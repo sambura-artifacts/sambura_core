@@ -7,6 +7,13 @@
 .packages
 build/
 
+# Tokens internos do Makefile
+.token*
+
+# Possíveis arqivos baixados
+*.tar.*
+*.tgz
+
 # Pacotes (downloads de dependências)
 **/pubspec.lock
 **/packages/

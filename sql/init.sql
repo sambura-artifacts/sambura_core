@@ -43,7 +43,31 @@ CREATE TABLE IF NOT EXISTS artifacts (
     CONSTRAINT unique_version_per_package UNIQUE(package_id, version)
 );
 
--- 5. ÍNDICES (Camada de Performance)
+-- 5. ACCOUNTS (Gestão de Usuários)
+CREATE TABLE IF NOT EXISTS accounts (
+    id SERIAL PRIMARY KEY,
+    username TEXT UNIQUE NOT NULL,
+    password_hash TEXT NOT NULL, -- Senha criptografada, sempre!
+    email TEXT UNIQUE NOT NULL,
+    role TEXT NOT NULL DEFAULT 'developer', -- 'admin', 'developer', 'service-account'
+    is_active BOOLEAN DEFAULT true,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- 6. API KEY
+
+CREATE TABLE IF NOT EXISTS api_keys (
+    id SERIAL PRIMARY KEY,
+    account_id INTEGER NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
+    name TEXT NOT NULL,              -- ex: 'github-actions-prod'
+    key_hash TEXT UNIQUE NOT NULL,    -- O hash da chave (segurança máxima)
+    prefix TEXT NOT NULL,            -- ex: 'sb_live_' (pra ajudar no lookup)
+    last_used_at TIMESTAMP WITH TIME ZONE,
+    expires_at TIMESTAMP WITH TIME ZONE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- 7. ÍNDICES (Camada de Performance)
 -- Busca rápida por ID externo (padrão em sistemas distribuídos)
 CREATE INDEX IF NOT EXISTS idx_artifacts_external_id ON artifacts(external_id);
 
@@ -55,3 +79,11 @@ CREATE INDEX IF NOT EXISTS idx_repositories_namespace ON repositories(namespace)
 
 -- Acelera o JOIN entre artefatos e blobs para downloads
 CREATE INDEX IF NOT EXISTS idx_artifacts_blob_id ON artifacts(blob_id);
+
+-- Acelera o JOIN entre artefatos e blobs para downloads amigáveis
+CREATE INDEX IF NOT EXISTS idx_artifacts_lookup ON artifacts (package_id, version);
+
+-- Índice para login rápido
+CREATE INDEX IF NOT EXISTS idx_accounts_username ON accounts(username);
+
+CREATE INDEX IF NOT EXISTS idx_api_keys_hash ON api_keys(key_hash);

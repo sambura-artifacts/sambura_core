@@ -1,4 +1,31 @@
 services:
+  # api:
+  #   build: 
+  #     context: .
+  #     dockerfile: Dockerfile
+  #   container_name: sambura_api
+  #   restart: always
+  #   depends_on:
+  #     postgres:
+  #       condition: service_healthy
+  #     minio:
+  #       condition: service_started
+  #   environment:
+  #     # PAPO RETO: Aqui tu usa o nome dos serviços do compose!
+  #     DB_HOST: postgres
+  #     DB_PORT: 5432
+  #     DB_USER: sambura
+  #     DB_PASS: sambura_db_secret
+  #     DB_NAME: sambura_metadata
+  #     SILO_HOST: minio
+  #     SILO_PORT_API: 9000
+  #     SILO_ACCESS_KEY: sambura_admin
+  #     SILO_SECRET_KEY: sambura_silo_secret
+  #   ports:
+  #     - "8080:8080"
+  #   networks:
+  #     - sambura_net
+
   postgres:
     image: postgres:15-alpine
     container_name: sambura_db
@@ -12,6 +39,11 @@ services:
       - db_data:/var/lib/postgresql/data
     networks:
       - sambura_net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sambura -d sambura_metadata"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
   redis:
     image: redis:7-alpine
@@ -60,6 +92,22 @@ services:
     networks:
       - sambura_net
     command: vault server -dev
+
+  vault-init:
+    image: hashicorp/vault:latest
+    container_name: sambura_vault_init
+    depends_on:
+      - vault
+    networks:
+      - sambura_net
+    environment:
+      VAULT_ADDR: "http://vault:8200"
+      VAULT_TOKEN: "root_token_sambura"
+    entrypoint: >
+      sh -c "sleep 5;
+             vault kv put -mount=secret sambura/database password=sambura_db_secret;
+             vault kv put -mount=secret sambura/auth jwt_secret=chave_mestra_sambura_2025 pepper=pimenta_no_reino;
+             echo '✅ Vault populado com sucesso, cria!';"
 
 volumes:
   db_data:
