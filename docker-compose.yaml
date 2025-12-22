@@ -1,0 +1,70 @@
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: sambura_db
+    environment:
+      POSTGRES_USER: sambura
+      POSTGRES_PASSWORD: sambura_db_secret
+      POSTGRES_DB: sambura_metadata
+    ports:
+      - "5432:5432"
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    networks:
+      - sambura_net
+
+  redis:
+    image: redis:7-alpine
+    container_name: sambura_cache
+    ports:
+      - "6379:6379"
+    networks:
+      - sambura_net
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: sambura_broker
+    environment:
+      RABBITMQ_DEFAULT_USER: sambura_user
+      RABBITMQ_DEFAULT_PASS: sambura_mq_secret
+    ports:
+      - "5672:5672" # Porta para o Core/Worker (AMQP)
+      - "15672:15672" # Porta para o Console Web
+    networks:
+      - sambura_net
+
+  minio:
+    image: minio/minio:latest
+    container_name: sambura_silo_infra
+    environment:
+      MINIO_ROOT_USER: sambura_admin
+      MINIO_ROOT_PASSWORD: sambura_silo_secret
+    ports:
+      - "9000:9000" # API S3
+      - "9001:9001" # Console Web UI
+    volumes:
+      - storage_data:/data
+    command: server /data --console-address ":9001"
+    networks:
+      - sambura_net
+
+  vault:
+    image: hashicorp/vault:latest
+    container_name: sambura_vault
+    environment:
+      VAULT_DEV_ROOT_TOKEN_ID: root_token_sambura 
+      VAULT_DEV_LISTEN_ADDRESS: 0.0.0.0:8200
+    ports:
+      - "8200:8200"
+    cap_add:
+      - IPC_LOCK
+    networks:
+      - sambura_net
+    command: vault server -dev
+
+volumes:
+  db_data:
+  storage_data:
+
+networks:
+  sambura_net:
+    driver: bridge

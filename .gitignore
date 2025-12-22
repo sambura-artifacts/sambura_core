@@ -1,0 +1,56 @@
+# ----------------------------------
+# 1. ARTEFATOS DART/FLUTTER
+# ----------------------------------
+
+# Diretórios de build
+.dart_tool/
+.packages
+build/
+
+# Pacotes (downloads de dependências)
+**/pubspec.lock
+**/packages/
+.dartServer/
+
+# Arquivos de geração de código (gerados pelo build_runner)
+# O código gerado não deve ir pro git, apenas o fonte.
+*.g.dart
+*.freezed.dart
+*.gr.dart
+test/coverage/
+
+# Arquivos de configuração de debug
+flutter_debug.log
+ios/Flutter/Generated.xcconfig
+# ----------------------------------
+# 2. CONFIGURAÇÕES DA IDE (VS Code / IntelliJ / Android Studio)
+# ----------------------------------
+
+# VS Code
+.vscode/
+.history/
+
+# IntelliJ / Android Studio
+.idea/
+*.iws
+*.iml
+*.ipr
+# ----------------------------------
+# 3. DOCKER & INFRA (Não comitar volumes/logs)
+# ----------------------------------
+volumes/
+db_data/
+storage_data/
+
+# Arquivos de log
+*.log
+log/
+tmp/
+# ----------------------------------
+# 4. CREDENCIAIS E ARTEFATOS SENSÍVEIS
+# ----------------------------------
+.env
+.env.*.local
+
+# Python venv for awscli-local
+.venv

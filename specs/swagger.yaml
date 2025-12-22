@@ -1,0 +1,54 @@
+openapi: 3.0.3
+info:
+  title: Samburá Docs - API de Elite
+  description: Proxy de artefatos NPM com persistência em S3 e Postgres.
+  version: 1.0.0
+
+servers:
+  - url: http://localhost:8080
+    description: Servidor Local
+
+paths:
+  /admin/repositories:
+    post:
+      summary: Cria um novo repositório
+      tags:
+        - Admin
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                namespace:
+                  type: string
+                is_public:
+                  type: boolean
+      responses:
+        '200':
+          description: OK
+
+  /{repository}/{package}/{version}:
+    get:
+      summary: Resolve artefato
+      tags:
+        - Artifacts
+      parameters:
+        - name: repository
+          in: path
+          required: true
+          schema: { type: string }
+        - name: package
+          in: path
+          required: true
+          schema: { type: string }
+        - name: version
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: OK
