@@ -1,0 +1,30 @@
+name: sambura_core
+description: The Core API Gateway, Authentication Manager, and Metadata Orchestrator for Samburá Artifacts. 
+version: 0.0.1
+repository: https://github.com/sambura-artifacts/sambura_core
+
+environment:
+  sdk: ^3.10.3
+
+dependencies:
+  async: ^2.13.0
+  convert: ^3.1.2
+  crypto: ^3.0.7
+  dart_amqp: ^0.3.1
+  equatable: ^2.0.7
+  get_it: ^9.2.0
+  http: ^1.6.0
+  logging: ^1.2.0
+  mime: ^2.0.0
+  minio: ^3.5.8
+  postgres: ^3.5.9
+  redis: ^4.0.0
+  shelf: ^1.4.2
+  shelf_router: ^1.1.2
+  shelf_swagger_ui: ^1.0.0+2
+  uuid: ^4.5.2
+ 
+
+dev_dependencies:
+  lints: ^6.0.0
+  test: ^1.25.6
