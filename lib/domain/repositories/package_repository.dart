@@ -20,5 +20,11 @@ abstract class PackageRepository {
 
   // Mantendo os outros por retrocompatibilidade se precisar
   Future<PackageEntity?> findByGlobalName(String name);
-  Future<List<PackageEntity>> listByNamespace(String name);
+  Future<List<PackageEntity>> listByNamespace(
+    String name, {
+    int limit = 50,
+    int offset = 0,
+  });
+
+  Future<List<dynamic>> listAll({int limit = 50, int offset = 0});
 }

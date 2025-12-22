@@ -43,6 +43,22 @@ class PackageEntity {
     );
   }
 
+  static PackageEntity restore(
+    int id,
+    int repositoryId,
+    String name,
+    String description,
+    DateTime createdAt,
+  ) {
+    return PackageEntity._(
+      id: id,
+      repositoryId: repositoryId,
+      name: name,
+      description: description,
+      createdAt: createdAt,
+    );
+  }
+
   /// Converte a entidade em uma estrutura JSON.
   /// Utilizado para respostas da API ou transferência entre camadas.
   Map<String, dynamic> toJson() {

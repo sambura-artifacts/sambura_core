@@ -40,6 +40,7 @@ class EnvConfig extends Equatable {
   final int siloPort;
   final String siloAccessKey;
   final String siloSecretKey;
+  final String bucketName;
 
   // ----------------------------------
   // 5. KEYCLOAK (AUTH/OIDC)
@@ -76,6 +77,7 @@ class EnvConfig extends Equatable {
     required this.siloPort,
     required this.siloAccessKey,
     required this.siloSecretKey,
+    required this.bucketName,
     required this.keycloakUrl,
     required this.keycloakRealm,
     required this.keycloakClientId,
@@ -93,6 +95,7 @@ class EnvConfig extends Equatable {
     redisHost,
     rabbitmqHost,
     siloHost,
+    bucketName,
     keycloakUrl,
     keycloakRealm,
     vaultUrl,
@@ -155,6 +158,7 @@ class Env {
         'SILO_SECRET_KEY',
         defaultValue: 'sambura_silo_secret',
       ),
+      bucketName: getString('BUCKET_NAME', defaultValue: 'sambura-blobs'),
 
       // KEYCLOAK
       keycloakUrl: getString(
