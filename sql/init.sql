@@ -59,9 +59,9 @@ CREATE TABLE IF NOT EXISTS accounts (
 CREATE TABLE IF NOT EXISTS api_keys (
     id SERIAL PRIMARY KEY,
     account_id INTEGER NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
-    name TEXT NOT NULL,              -- ex: 'github-actions-prod'
-    key_hash TEXT UNIQUE NOT NULL,    -- O hash da chave (segurança máxima)
-    prefix TEXT NOT NULL,            -- ex: 'sb_live_' (pra ajudar no lookup)
+    name TEXT NOT NULL,
+    key_hash TEXT UNIQUE NOT NULL,
+    prefix TEXT NOT NULL,
     last_used_at TIMESTAMP WITH TIME ZONE,
     expires_at TIMESTAMP WITH TIME ZONE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()

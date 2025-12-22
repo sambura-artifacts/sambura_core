@@ -29,10 +29,12 @@ class RepositoryEntity {
 
   factory RepositoryEntity.fromMap(Map<String, dynamic> map) {
     return RepositoryEntity._(
-      id: map['id'] as int?,
+      id: map['id'] is int ? map['id'] as int : null,
       name: map['name'] as String,
-      namespace: map['namespace'] as String,
-      isPublic: map['is_public'] as bool? ?? false,
+      // AJUSTE: Use 'namespace' em vez de 'type'
+      namespace: (map['namespace'] ?? map['type'] ?? 'default') as String,
+      // AJUSTE: Use 'is_public' (como vem do JSON/DB) para o 'isPublic'
+      isPublic: map['is_public'] ?? map['isPublic'] ?? false,
       createdAt: map['created_at'] != null
           ? (map['created_at'] is DateTime
                 ? map['created_at'] as DateTime

@@ -20,6 +20,14 @@ class BlobEntity {
     this.createdAt,
   });
 
+  factory BlobEntity.create({
+    required String hash,
+    required int size,
+    required String mime,
+  }) {
+    return BlobEntity._(hashValue: hash, sizeBytes: size, mimeType: mime);
+  }
+
   /// Ponto de entrada para processar um binário e gerar a entidade BlobEntity.
   ///
   /// Este método lê o [byteStream] uma única vez, calculando o SHA-256
@@ -85,6 +93,21 @@ class BlobEntity {
     return {'hash': hashValue, 'size': sizeBytes, 'mime': mimeType};
   }
 
+  factory BlobEntity.fromMap(Map<String, dynamic> map) {
+    return BlobEntity._(
+      id: map['id'] as int?,
+      // Mapeia hash_value do banco para hashValue da entidade
+      hashValue: (map['hash_value'] ?? map['sha256'] ?? '') as String,
+      // Garante que o tamanho seja int, tratando possíveis retornos do driver
+      sizeBytes: map['size_bytes'] as int,
+      mimeType: (map['mime_type'] ?? 'application/octet-stream') as String,
+      createdAt: map['created_at'] != null
+          ? (map['created_at'] is DateTime
+                ? map['created_at'] as DateTime
+                : DateTime.parse(map['created_at'] as String))
+          : null,
+    );
+  }
   // 1. Ajusta o detector para receber a lista de bytes já lidos
   static String _detectRealMimeType(List<int> headerBytes) {
     if (headerBytes.isEmpty) return 'application/octet-stream';

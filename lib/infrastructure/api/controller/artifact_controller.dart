@@ -6,6 +6,7 @@ import 'package:sambura_core/application/usecase/get_artifact_by_id_usecase.dart
 import 'package:sambura_core/application/usecase/get_artifact_download_stream_usecase.dart';
 import 'package:sambura_core/config/logger.dart';
 import 'package:sambura_core/domain/entities/account_entity.dart';
+import 'package:sambura_core/domain/exceptions/domain_exception.dart';
 import 'package:sambura_core/infrastructure/services/hash_service.dart';
 import 'package:sambura_core/utils/crypto_utils.dart';
 import 'package:shelf/shelf.dart';
@@ -63,10 +64,25 @@ class ArtifactController {
 
       _log.fine('Executando usecase de criação de artefato');
       final artifact = await _createUsecase.execute(input, byteStream);
+
+      if (artifact == null) {
+        return ErrorPresenter.notFound(
+          'Repositório ou Artefato não encontrado.',
+          instance,
+          baseUrl,
+        );
+      }
+
       _log.info(
         'Upload concluído com sucesso: artifact_id=${artifact.externalId}',
       );
       return ArtifactPresenter.createArtifact(artifact, baseUrl);
+    } on RepositoryNotFoundException catch (e) {
+      _log.warning(e.message);
+      return ErrorPresenter.notFound(e.message, instance, baseUrl);
+    } on ArtifactNotFoundException catch (e) {
+      _log.warning(e.message);
+      return ErrorPresenter.notFound(e.message, instance, baseUrl);
     } catch (e, stack) {
       _log.severe(
         'Erro ao processar upload de $packageName@$version',
@@ -166,6 +182,12 @@ class ArtifactController {
 
       _log.info('Resolução bem-sucedida: artifact_id=${artifact.externalId}');
       return ArtifactPresenter.success(artifact);
+    } on RepositoryNotFoundException catch (e) {
+      _log.warning(e.message);
+      return ErrorPresenter.notFound(e.message, instance, baseUrl);
+    } on ArtifactNotFoundException catch (e) {
+      _log.warning(e.message);
+      return ErrorPresenter.notFound(e.message, instance, baseUrl);
     } catch (e, stack) {
       _log.severe(
         'Erro crítico ao resolver artefato $packageName@$version',

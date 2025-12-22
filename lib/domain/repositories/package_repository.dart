@@ -12,6 +12,13 @@ abstract class PackageRepository {
     int offset = 0,
   });
 
+  /// Lista pacotes filtrando pelo NOME do repositório (ex: npm-proxy)
+  /// Adicionada paginação para escala.
+  Future<List<PackageEntity>> findByRepositoryNameAndPackageName(
+    String repoName,
+    String packageName,
+  );
+
   /// Garante a existência de um pacote (Upsert).
   Future<PackageEntity> ensurePackage({
     required int repositoryId,

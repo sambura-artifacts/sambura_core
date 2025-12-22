@@ -19,11 +19,17 @@ abstract class ArtifactRepository {
   /// Lista as versões de um pacote específico utilizando o identificador interno do catálogo.
   Future<List<ArtifactEntity>> listArtifactsByPackage(int packageId);
 
-  Future<String?> findHashByVersion({
-    required String namespace,
-    required String name,
-    required String version,
-  });
+  Future<String?> findHashByVersion(
+    String namespace,
+    String name,
+    String version,
+  );
+
+  Future<ArtifactEntity?> findOne(
+    String repoName,
+    String packageName,
+    String version,
+  );
 
   /// Solicita a remoção lógica ou física do ponteiro do artefato.
   /// Nota: Preserva o Blob físico para manter a integridade da Deduplicação Global.

@@ -4,6 +4,7 @@ import 'package:sambura_core/infrastructure/api/controller/auth_controller.dart'
 import 'package:sambura_core/infrastructure/api/controller/blob_controller.dart';
 import 'package:sambura_core/infrastructure/api/controller/package_controller.dart';
 import 'package:sambura_core/infrastructure/api/controller/repository_controller.dart';
+import 'package:sambura_core/infrastructure/api/controller/upload_controller.dart';
 import 'package:sambura_core/infrastructure/api/middleware/auth_middleware.dart';
 import 'package:sambura_core/infrastructure/api/routes/admin_router.dart';
 import 'package:sambura_core/infrastructure/api/routes/public_router.dart';
@@ -21,6 +22,7 @@ class MainRouter {
   final ArtifactController _artifactController;
   final BlobController _blobController;
   final ApiKeyController _apiKeyController;
+  final UploadController _uploadController;
   final AuthService _authService;
   final ApiKeyRepository _apiKeyRepo;
   final AccountRepository _accountRepo;
@@ -33,6 +35,7 @@ class MainRouter {
     this._artifactController,
     this._blobController,
     this._apiKeyController,
+    this._uploadController,
     this._authService,
     this._apiKeyRepo,
     this._accountRepo,
@@ -42,7 +45,8 @@ class MainRouter {
   Handler get handler {
     final mainRouter = Router();
 
-    final publicModule = PublicRouter(
+    // 1. Instancia os módulos que organizam as rotas
+    final publicRouter = PublicRouter(
       _authController,
       _artifactController,
       _blobController,
@@ -52,22 +56,42 @@ class MainRouter {
       _hashService,
     );
 
-    final adminModule = AdminRouter(
+    final adminRouter = AdminRouter(
       _repositoryController,
       _packageController,
       _artifactController,
       _apiKeyController,
+      _uploadController,
     );
 
-    mainRouter.mount('/', publicModule.router.call);
+    // 2. Pipeline de autenticação
+    final authenticatedPipeline = Pipeline().addMiddleware(
+      authMiddleware(_accountRepo, _authService, _apiKeyRepo, _hashService),
+    );
 
-    final authenticatedPipeline = Pipeline()
-        .addMiddleware(
-          authMiddleware(_accountRepo, _authService, _apiKeyRepo, _hashService),
-        )
-        .addHandler(adminModule.router.call);
+    // 3. Rotas Públicas (Login, etc)
+    mainRouter.mount('/', publicRouter.router.call);
 
-    mainRouter.mount('/admin/', authenticatedPipeline);
+    // 4. Rotas Protegidas
+    final protectedRouter = Router();
+
+    // Sub-rotas de Admin
+    protectedRouter.mount('/admin', adminRouter.router.call);
+
+    // API de Consumo Privada
+    protectedRouter.get(
+      '/api/v1/download/<namespace>/<name>/<version>',
+      _artifactController.downloadByVersion,
+    );
+    protectedRouter.get(
+      '/api/v1/resolve/<repository>/<package>/<version>',
+      _artifactController.resolve,
+    );
+
+    mainRouter.mount(
+      '/',
+      authenticatedPipeline.addHandler(protectedRouter.call),
+    );
 
     return mainRouter.call;
   }

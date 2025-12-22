@@ -83,5 +83,35 @@ class SiloBlobRepository implements BlobRepository {
   }
 
   @override
+  Future<BlobEntity> saveContent(String hash, Uint8List bytes) async {
+    try {
+      final existingBlob = await _repository.findByHash(hash);
+      if (existingBlob != null) {
+        return existingBlob;
+      }
+
+      final stream = Stream.value(bytes);
+
+      await _minio.putObject(
+        _bucket,
+        hash,
+        stream,
+        size: bytes.length,
+        metadata: {'Content-Type': 'application/octet-stream'},
+      );
+
+      return await _repository.save(
+        BlobEntity.create(
+          hash: hash,
+          size: bytes.length,
+          mime: 'application/octet-stream',
+        ),
+      );
+    } catch (e) {
+      throw Exception('Falha ao salvar conteúdo no Silo: $e');
+    }
+  }
+
+  @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }

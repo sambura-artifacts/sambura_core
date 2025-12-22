@@ -1,3 +1,4 @@
+import 'dart:typed_data';
 import 'package:logging/logging.dart';
 import 'package:sambura_core/config/logger.dart';
 import 'package:sambura_core/domain/repositories/blob_repository.dart';
@@ -12,16 +13,13 @@ class PostgresBlobRepository implements BlobRepository {
 
   @override
   Future<BlobEntity> save(BlobEntity blob) async {
-    _log.fine(
-      'Salvando Blob: hash=${blob.hashValue.substring(0, 10)}..., size=${blob.sizeBytes} bytes',
-    );
-
     try {
+      // Ajuste: Adicionado created_at no RETURNING
       const sql = '''
         INSERT INTO blobs (hash, size_bytes, mime_type)
         VALUES (@hash, @size, @mime)
         ON CONFLICT (hash) DO UPDATE SET hash = EXCLUDED.hash
-        RETURNING id, hash, size_bytes, mime_type;
+        RETURNING id, hash, size_bytes, mime_type, created_at;
       ''';
 
       final result = await _db.query(sql, {
@@ -30,85 +28,41 @@ class PostgresBlobRepository implements BlobRepository {
         'mime': blob.mimeType,
       });
 
-      if (result.isEmpty) {
-        throw Exception(
-          "Falha ao salvar Blob: Nenhuma linha retornada pelo banco.",
-        );
-      }
-
       final row = result.first.toColumnMap();
-      _log.info(
-        'Blob salvo no banco! ID: ${row['id']}, hash=${blob.hashValue.substring(0, 12)}...',
-      );
-
-      return BlobEntity.restore(
-        row['id'] as int,
-        row['hash'] as String,
-        row['size_bytes'] as int,
-        row['mime_type'] as String,
-        row['created_at'] != null
-            ? (row['created_at'] as DateTime)
-            : DateTime.now(),
-      );
+      return _mapRow(row);
     } catch (e, stackTrace) {
-      _log.severe('Erro ao salvar blob: ${blob.hashValue}', e, stackTrace);
+      _log.severe('Erro ao salvar blob', e, stackTrace);
       rethrow;
     }
   }
+
+  // --- MÉTODOS QUE FALTAVAM PARA COMPILAR ---
+
+  @override
+  Future<BlobEntity> saveFromStream(Stream<List<int>> byteStream) async {
+    // Esse método geralmente é implementado no SiloBlobRepository
+    // Se precisar aqui, teria que ler a stream toda pra buffer.
+    throw UnimplementedError(
+      'Use o SiloBlobRepository para salvar streams, cria!',
+    );
+  }
+
+  @override
+  Future<Stream<Uint8List>> readAsStream(String hashValue) async {
+    // A leitura do binário é papel do Storage (MinIO)
+    throw UnimplementedError(
+      'O binário mora no MinIO, busque via SiloBlobRepository!',
+    );
+  }
+
+  // --- BUSCAS ---
 
   @override
   Future<BlobEntity?> findByHash(String hashValue) async {
-    try {
-      final result = await _db.query('SELECT * FROM blobs WHERE hash = @hash', {
-        'hash': hashValue,
-      });
-
-      if (result.isEmpty) {
-        _log.fine('Hash não encontrado: ${hashValue.substring(0, 10)}...');
-        return null;
-      }
-
-      final row = result.first.toColumnMap();
-      return BlobEntity.restore(
-        row['id'] as int,
-        row['hash'] as String,
-        row['size_bytes'] as int,
-        row['mime_type'] as String,
-        row['created_at'] != null
-            ? (row['created_at'] as DateTime)
-            : DateTime.now(),
-      );
-    } catch (e, stackTrace) {
-      _log.severe('Erro ao buscar blob por hash', e, stackTrace);
-      rethrow;
-    }
-  }
-
-  @override
-  Future<bool> exists(String hashValue) async {
-    try {
-      final result = await _db.query(
-        'SELECT 1 FROM blobs WHERE hash = @hash LIMIT 1',
-        {'hash': hashValue},
-      );
-      final exists = result.isNotEmpty;
-      _log.fine('Check exists: ${hashValue.substring(0, 10)}... -> $exists');
-      return exists;
-    } catch (e, stackTrace) {
-      _log.severe('Erro no check exists', e, stackTrace);
-      return false;
-    }
-  }
-
-  @override
-  Future<void> delete(int id) async {
-    _log.info('Deletando blob ID: $id');
-    try {
-      await _db.query('DELETE FROM blobs WHERE id = @id', {'id': id});
-    } catch (e, stackTrace) {
-      _log.severe('Erro ao deletar blob $id', e, stackTrace);
-      rethrow;
-    }
+    final result = await _db.query('SELECT * FROM blobs WHERE hash = @hash', {
+      'hash': hashValue,
+    });
+    return result.isEmpty ? null : _mapRow(result.first.toColumnMap());
   }
 
   @override
@@ -116,19 +70,35 @@ class PostgresBlobRepository implements BlobRepository {
     final result = await _db.query('SELECT * FROM blobs WHERE id = @id', {
       'id': id,
     });
-    if (result.isEmpty) return null;
-    final row = result.first.toColumnMap();
+    return result.isEmpty ? null : _mapRow(result.first.toColumnMap());
+  }
+
+  @override
+  Future<bool> exists(String hashValue) async {
+    final result = await _db.query('SELECT 1 FROM blobs WHERE hash = @hash', {
+      'hash': hashValue,
+    });
+    return result.isNotEmpty;
+  }
+
+  @override
+  Future<void> delete(int id) async {
+    await _db.query('DELETE FROM blobs WHERE id = @id', {'id': id});
+  }
+
+  // Helper pra não repetir código de mapeamento
+  BlobEntity _mapRow(Map<String, dynamic> row) {
     return BlobEntity.restore(
       row['id'] as int,
       row['hash'] as String,
       row['size_bytes'] as int,
       row['mime_type'] as String,
-      row['created_at'] != null
-          ? (row['created_at'] as DateTime)
-          : DateTime.now(),
+      row['created_at'] as DateTime? ?? DateTime.now(),
     );
   }
 
   @override
-  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+  Future<BlobEntity> saveContent(String hash, Uint8List bytes) {
+    throw UnimplementedError();
+  }
 }

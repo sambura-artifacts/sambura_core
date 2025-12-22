@@ -7,6 +7,8 @@ abstract class BlobRepository {
   /// Se o hash já existir, ele deve retornar o [Blob] com o ID
   Future<BlobEntity> save(BlobEntity blob);
 
+  Future<BlobEntity> saveContent(String hash, Uint8List bytes);
+
   /// Busca um Blob pelo seu Hash único (SHA-256).
   Future<BlobEntity?> findByHash(String hashValue);
 

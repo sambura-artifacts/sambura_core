@@ -161,4 +161,35 @@ class PostgresPackageRepository implements PackageRepository {
       rethrow;
     }
   }
+
+  @override
+  Future<List<PackageEntity>> findByRepositoryNameAndPackageName(
+    String repoName,
+    String packageName,
+  ) async {
+    const sql = '''
+      SELECT p.id, p.repository_id, p.name, p.description, p.created_at 
+      FROM packages p
+      INNER JOIN repositories r ON p.repository_id = r.id
+      WHERE r.name = @repoName 
+        AND p.name = @packageName
+    ''';
+
+    final result = await _db.query(sql, {
+      'repoName': repoName,
+      'packageName': packageName,
+    });
+
+    return result.map((row) {
+      final data = row.toColumnMap();
+
+      return PackageEntity.restore(
+        data['id'] as int,
+        data['repository_id'] as int,
+        data['name'] as String,
+        data['description'] ?? '',
+        data['created_at'] as DateTime,
+      );
+    }).toList();
+  }
 }

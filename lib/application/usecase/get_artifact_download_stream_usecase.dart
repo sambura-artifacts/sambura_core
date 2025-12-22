@@ -46,9 +46,9 @@ class GetArtifactDownloadStreamUsecase {
     }
 
     final hash = await _artifactRepo.findHashByVersion(
-      namespace: namespace,
-      name: name,
-      version: version,
+      namespace,
+      name,
+      version,
     );
 
     if (hash == null) {

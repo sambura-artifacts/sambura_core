@@ -142,16 +142,14 @@ class PostgresArtifactRepository implements ArtifactRepository {
   }
 
   @override
-  Future<String?> findHashByVersion({
-    required String namespace,
-    required String name,
-    required String version,
-  }) async {
+  Future<String?> findHashByVersion(
+    String namespace,
+    String name,
+    String version,
+  ) async {
     try {
       _log.info('🔍 Buscando hash no banco: $namespace/$name@$version');
 
-      // Query que faz o join ou busca direta na tabela de versões/artefatos
-      // Ajuste os nomes das tabelas de acordo com o seu init.sql
       final result = await _db.query(
         '''
       SELECT b.hash 
@@ -180,6 +178,32 @@ class PostgresArtifactRepository implements ArtifactRepository {
       _log.severe('🔥 Erro ao buscar hash por versão no Postgres', e, stack);
       rethrow;
     }
+  }
+
+  @override
+  Future<ArtifactEntity?> findOne(
+    String repoName,
+    String packageName,
+    String version,
+  ) async {
+    final result = await _db.query(
+      '''
+    SELECT a.*, r.name as repo_name, r.namespace as repo_namespace
+    FROM artifacts a
+    JOIN packages p ON a.package_id = p.id
+    JOIN repositories r ON p.repository_id = r.id
+    WHERE r.name = @repoName 
+      AND p.name = @packageName 
+      AND a.version = @version
+    LIMIT 1
+    ''',
+      {'repoName': repoName, 'packageName': packageName, 'version': version},
+    );
+
+    if (result.isEmpty) return null;
+
+    final row = result.first.toColumnMap();
+    return ArtifactEntity.fromMap(row);
   }
 
   @override

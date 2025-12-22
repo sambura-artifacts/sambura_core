@@ -1,37 +1,40 @@
+import 'dart:convert';
+import 'dart:math';
+import 'package:crypto/crypto.dart';
 import 'package:sambura_core/domain/repositories/api_key_repository.dart';
 import 'package:sambura_core/infrastructure/services/hash_service.dart';
-import 'package:sambura_core/utils/crypto_utils.dart';
 
-class ApiKeyResponse {
-  final String plainKey;
+class GenerateApiKeyResult {
   final String name;
+  final String plainKey;
 
-  ApiKeyResponse(this.plainKey, this.name);
+  GenerateApiKeyResult(this.name, this.plainKey);
 }
 
 class GenerateApiKeyUsecase {
-  final ApiKeyRepository _keyRepo;
+  final ApiKeyRepository _repository;
   final HashService _hashService;
 
-  GenerateApiKeyUsecase(this._keyRepo, this._hashService);
+  GenerateApiKeyUsecase(this._repository, this._hashService);
 
-  Future<ApiKeyResponse> execute({
+  Future<GenerateApiKeyResult> execute({
     required int accountId,
     required String keyName,
   }) async {
-    final prefix = 'sb_';
-    final securePart = CryptoUtils.generateSecureKey(32);
-    final plainKey = '$prefix$securePart';
+    final random = Random.secure();
+    final values = List<int>.generate(32, (i) => random.nextInt(256));
 
-    final hashedKey = _hashService.hashPassword(plainKey);
+    final plainKey = 'sb_live_${base64Url.encode(values).replaceAll('=', '')}';
 
-    await _keyRepo.create(
+    final hash = sha256.convert(utf8.encode(plainKey)).toString();
+
+    await _repository.create(
       accountId: accountId,
       name: keyName,
-      keyHash: hashedKey,
-      prefix: prefix,
+      keyHash: hash,
+      prefix: 'sb_live_',
     );
 
-    return ApiKeyResponse(plainKey, keyName);
+    return GenerateApiKeyResult(keyName, plainKey);
   }
 }

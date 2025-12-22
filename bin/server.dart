@@ -4,12 +4,10 @@ import 'package:minio/minio.dart';
 import 'package:shelf/shelf.dart';
 import 'package:shelf/shelf_io.dart' as io;
 
-// Configurações e Infra
 import 'package:sambura_core/config/logger.dart';
 import 'package:sambura_core/config/env.dart';
 import 'package:sambura_core/infrastructure/database/postgres_connector.dart';
 
-// Repositórios
 import 'package:sambura_core/infrastructure/repositories/postgres_blob_repository.dart';
 import 'package:sambura_core/infrastructure/repositories/silo_blob_repository.dart';
 import 'package:sambura_core/infrastructure/repositories/postgres_repository_repository.dart';
@@ -18,29 +16,28 @@ import 'package:sambura_core/infrastructure/repositories/postgres_package_reposi
 import 'package:sambura_core/infrastructure/repositories/postgres_account_repository.dart';
 import 'package:sambura_core/infrastructure/repositories/postgres_api_key_repository.dart';
 
-// Serviços e Segurança
 import 'package:sambura_core/infrastructure/services/redis_service.dart';
 import 'package:sambura_core/infrastructure/services/vault_service.dart';
 import 'package:sambura_core/infrastructure/services/hash_service.dart';
 import 'package:sambura_core/infrastructure/services/auth_service.dart';
 import 'package:sambura_core/infrastructure/proxies/npm_proxy.dart';
 
-// Casos de Uso
 import 'package:sambura_core/application/usecase/get_artifact_by_id_usecase.dart';
 import 'package:sambura_core/application/usecase/get_artifact_download_stream_usecase.dart';
 import 'package:sambura_core/application/usecase/get_artifact_usecase.dart';
 import 'package:sambura_core/application/usecase/create_artifact_usecase.dart';
+import 'package:sambura_core/application/usecase/upload_artifact_usecase.dart';
 import 'package:sambura_core/application/usecase/login_usecase.dart';
 import 'package:sambura_core/application/usecase/create_account_usecase.dart';
 import 'package:sambura_core/application/usecase/generate_api_key_usecase.dart';
 
-// Controllers e Rotas
 import 'package:sambura_core/infrastructure/api/controller/blob_controller.dart';
 import 'package:sambura_core/infrastructure/api/controller/package_controller.dart';
 import 'package:sambura_core/infrastructure/api/controller/artifact_controller.dart';
 import 'package:sambura_core/infrastructure/api/controller/repository_controller.dart';
 import 'package:sambura_core/infrastructure/api/controller/auth_controller.dart';
 import 'package:sambura_core/infrastructure/api/controller/api_key_controller.dart';
+import 'package:sambura_core/infrastructure/api/controller/upload_controller.dart';
 import 'package:sambura_core/infrastructure/api/routes/main_router.dart';
 
 void main() async {
@@ -50,13 +47,11 @@ void main() async {
   log.info('🌊 Iniciando os motores do Samburá...');
   final env = Env().load();
 
-  // 1. Vault e Segredos (A base de tudo)
   final vault = VaultService(
     endpoint: Platform.environment['VAULT_ADDR'] ?? 'http://localhost:8200',
     token: Platform.environment['VAULT_TOKEN'] ?? 'root_token_sambura',
   );
 
-  log.info('🔐 Buscando segredos no cofre...');
   final dbSecrets = await vault.getSecrets('sambura/database');
   final authSecrets = await vault.getSecrets('sambura/auth');
 
@@ -65,7 +60,6 @@ void main() async {
     return;
   }
 
-  // 2. Infraestrutura (DB, Storage, Cache)
   final dbConnector = PostgresConnector(
     env.dbHost,
     env.dbPort,
@@ -89,7 +83,6 @@ void main() async {
   );
   await redisService.connect();
 
-  // 3. Repositórios e Serviços de Segurança
   final accountRepo = PostgresAccountRepository(dbConnector);
   final apiKeyRepo = PostgresApiKeyRepository(dbConnector);
   final hashService = HashService(authSecrets['pepper']);
@@ -105,7 +98,6 @@ void main() async {
     postgresBlobRepo,
   );
 
-  // 4. Casos de Uso
   final loginUsecase = LoginUsecase(
     accountRepo,
     hashService,
@@ -130,9 +122,16 @@ void main() async {
     artifactRepo,
     packageRepo,
     siloBlobRepo,
+    repositoryRepo,
   );
 
-  // 5. Controllers
+  final uploadArtifactUsecase = UploadArtifactUsecase(
+    artifactRepo,
+    packageRepo,
+    repositoryRepo,
+    siloBlobRepo,
+  );
+
   final authController = AuthController(createAccountUsecase, loginUsecase);
   final apiKeyController = ApiKeyController(generateApiKeyUsecase, apiKeyRepo);
   final artifactController = ArtifactController(
@@ -145,8 +144,8 @@ void main() async {
   final repositoryController = RepositoryController(repositoryRepo);
   final packageController = PackageController(packageRepo);
   final blobController = BlobController(siloBlobRepo);
+  final uploadController = UploadController(uploadArtifactUsecase);
 
-  // 6. Router Principal (Com os 10 argumentos na régua)
   final mainRouter = MainRouter(
     authController,
     repositoryController,
@@ -154,13 +153,13 @@ void main() async {
     artifactController,
     blobController,
     apiKeyController,
+    uploadController,
     authService,
     apiKeyRepo,
     accountRepo,
     hashService,
   );
 
-  // 7. Start do Servidor
   final handler = const Pipeline()
       .addMiddleware(logRequests())
       .addHandler(mainRouter.handler);
