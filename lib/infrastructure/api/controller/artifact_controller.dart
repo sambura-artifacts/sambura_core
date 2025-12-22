@@ -1,6 +1,13 @@
+import 'dart:convert';
+
 import 'package:logging/logging.dart';
+import 'package:sambura_core/application/usecase/generate_api_key_usecase.dart';
 import 'package:sambura_core/application/usecase/get_artifact_by_id_usecase.dart';
+import 'package:sambura_core/application/usecase/get_artifact_download_stream_usecase.dart';
 import 'package:sambura_core/config/logger.dart';
+import 'package:sambura_core/domain/entities/account_entity.dart';
+import 'package:sambura_core/infrastructure/services/hash_service.dart';
+import 'package:sambura_core/utils/crypto_utils.dart';
 import 'package:shelf/shelf.dart';
 import 'package:sambura_core/application/usecase/get_artifact_usecase.dart';
 import 'package:sambura_core/application/usecase/create_artifact_usecase.dart';
@@ -12,6 +19,8 @@ class ArtifactController {
   final CreateArtifactUsecase _createUsecase;
   final GetArtifactUseCase _getArtifactUseCase;
   final GetArtifactByIdUseCase _getByIdUseCase;
+  final GetArtifactDownloadStreamUsecase _getArtifactDownloadStreamUsecase;
+  final GenerateApiKeyUsecase _generateApiKeyUsecase;
   final Logger _log = LoggerConfig.getLogger('ArtifactController');
 
   // No construtor, a gente recebe os UseCases.
@@ -20,6 +29,8 @@ class ArtifactController {
     this._createUsecase,
     this._getArtifactUseCase,
     this._getByIdUseCase,
+    this._getArtifactDownloadStreamUsecase,
+    this._generateApiKeyUsecase,
   );
 
   /// POST /:repository/:namespace/:package/:version
@@ -175,6 +186,7 @@ class ArtifactController {
   /// Busca os metadados de um artefato específico pelo seu UUID
   Future<Response> getByExternalId(Request request, String externalId) async {
     final baseUrl = request.requestedUri.origin;
+
     _log.info('Buscando artefato por ID: $externalId');
 
     try {
@@ -204,5 +216,74 @@ class ArtifactController {
         baseUrl,
       );
     }
+  }
+
+  Future<Response> downloadByVersion(
+    Request request,
+    String namespace,
+    String name,
+    String version,
+  ) async {
+    final baseUrl = request.requestedUri.origin;
+    try {
+      final result = await _getArtifactDownloadStreamUsecase.execute(
+        namespace: namespace,
+        name: name,
+        version: version,
+      );
+
+      if (result == null) {
+        return ErrorPresenter.notFound(
+          "Artefato não localizado.",
+          request.url.path,
+          baseUrl,
+        );
+      }
+
+      return Response.ok(
+        result.stream,
+        headers: {
+          'Content-Type': result.blob.mimeType,
+          'Content-Length': result.blob.sizeBytes.toString(),
+          'Content-Disposition':
+              'attachment; filename="${name}-${version}.tgz"',
+        },
+      );
+    } catch (e, stack) {
+      _log.severe('Erro no controller de download', e, stack);
+      return ErrorPresenter.internalServerError(
+        "Erro interno.",
+        request.url.path,
+        baseUrl,
+      );
+    }
+  }
+
+  Future<Response> generateApiKey(Request request) async {
+    final user = request.context['user'] as AccountEntity;
+
+    // Só admin ou o próprio dono pode gerar (Regra de negócio)
+    if (user.role != 'admin') {
+      return Response.forbidden(
+        jsonEncode({'error': 'Só o admin pode gerar ApiKey!'}),
+      );
+    }
+
+    final payload = jsonDecode(await request.readAsString());
+    final keyName = payload['name'] ?? 'default-key';
+
+    // Chama o Usecase que a gente acabou de criar
+    final result = await _generateApiKeyUsecase.execute(
+      accountId: user.id!,
+      keyName: keyName,
+    );
+
+    return Response.ok(
+      jsonEncode({
+        'message': 'Guarda isso num lugar seguro!',
+        'api_key': result.plainKey,
+        'name': result.name,
+      }),
+    );
   }
 }

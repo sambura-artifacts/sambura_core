@@ -5,20 +5,20 @@ import 'package:sambura_core/domain/entities/artifact_entity.dart';
 import 'package:sambura_core/domain/repositories/artifact_repository.dart';
 import 'package:sambura_core/domain/repositories/package_repository.dart';
 import 'package:sambura_core/domain/repositories/repository_repository.dart';
-import 'package:sambura_core/infrastructure/services/npm_proxy_service.dart';
+import 'package:sambura_core/infrastructure/proxies/npm_proxy.dart';
 
 class GetArtifactUseCase {
   final ArtifactRepository _artifactRepository;
   final PackageRepository _packageRepository;
   final RepositoryRepository _repositoryRepository;
-  final NpmProxyService _npmProxyService;
+  final NpmProxy _npmProxy;
   final Logger _log = LoggerConfig.getLogger('GetArtifactUseCase');
 
   GetArtifactUseCase(
     this._artifactRepository,
     this._packageRepository,
     this._repositoryRepository,
-    this._npmProxyService,
+    this._npmProxy,
   );
 
   Future<ArtifactEntity?> execute({
@@ -55,7 +55,7 @@ class GetArtifactUseCase {
         _log.fine('Pacote garantido: ID ${package.id}');
 
         _log.info('Baixando de upstream: $packageName@$version');
-        final blob = await _npmProxyService.fetchAndStore(packageName, version);
+        final blob = await _npmProxy.fetchAndStore(packageName, version);
 
         _log.fine('Blob obtido. Criando entidade Artifact');
 
