@@ -9,10 +9,10 @@ import 'package:sambura_core/domain/repositories/blob_repository.dart';
 class SiloBlobRepository implements BlobRepository {
   final Minio _minio;
   final String _bucket;
-  final BlobRepository _databaseRepository;
+  final BlobRepository _repository;
   final Logger _log = LoggerConfig.getLogger('SiloBlobRepository');
 
-  SiloBlobRepository(this._minio, this._bucket, this._databaseRepository);
+  SiloBlobRepository(this._minio, this._bucket, this._repository);
 
   @override
   Future<BlobEntity> saveFromStream(Stream<List<int>> byteStream) async {
@@ -23,7 +23,7 @@ class SiloBlobRepository implements BlobRepository {
 
     final blobMetadata = await BlobEntity.fromStream(metadataStream);
 
-    final blobWithId = await _databaseRepository.save(blobMetadata);
+    final blobWithId = await _repository.save(blobMetadata);
 
     try {
       await _minio.statObject(_bucket, blobWithId.hashValue);
@@ -41,9 +41,45 @@ class SiloBlobRepository implements BlobRepository {
   }
 
   @override
-  Future<Stream<Uint8List>> readAsStream(String hashValue) async {
-    final MinioByteStream stream = await _minio.getObject(_bucket, hashValue);
-    return stream.cast<Uint8List>();
+  Future<Stream<Uint8List>> readAsStream(String hash) async {
+    try {
+      _log.info('Lendo stream do MinIO: ${hash.substring(0, 12)}...');
+
+      // O minioClient devolve Stream<List<int>>
+      final stream = await _minio.getObject(_bucket, hash);
+
+      // Converte cada "pedaço" (chunk) do stream para Uint8List
+      return stream.map((chunk) => Uint8List.fromList(chunk));
+    } catch (e, stack) {
+      _log.severe(
+        'Erro ao ler stream do blob: ${hash.substring(0, 12)}...',
+        e,
+        stack,
+      );
+      rethrow;
+    }
+  }
+
+  @override
+  Future<BlobEntity?> findByHash(String hash) async {
+    try {
+      _log.info('Buscando metadados do blob: ${hash.substring(0, 12)}...');
+
+      final repo = await _repository.findByHash(hash);
+
+      if (repo == null) return null;
+
+      return BlobEntity.restore(
+        repo.id!,
+        repo.hashValue,
+        repo.sizeBytes,
+        repo.mimeType,
+        repo.createdAt!,
+      );
+    } catch (e) {
+      _log.severe('Erro ao buscar metadados: $e');
+      return null;
+    }
   }
 
   @override

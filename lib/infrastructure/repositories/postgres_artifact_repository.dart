@@ -142,6 +142,47 @@ class PostgresArtifactRepository implements ArtifactRepository {
   }
 
   @override
+  Future<String?> findHashByVersion({
+    required String namespace,
+    required String name,
+    required String version,
+  }) async {
+    try {
+      _log.info('🔍 Buscando hash no banco: $namespace/$name@$version');
+
+      // Query que faz o join ou busca direta na tabela de versões/artefatos
+      // Ajuste os nomes das tabelas de acordo com o seu init.sql
+      final result = await _db.query(
+        '''
+      SELECT b.hash 
+        FROM artifacts a
+        JOIN packages p ON a.package_id = p.id
+        JOIN repositories r ON p.repository_id = r.id
+        JOIN blobs b ON a.blob_id = b.id
+      WHERE r.namespace = @namespace 
+        AND p.name = @repo_name 
+        AND a.version = @version
+      LIMIT 1
+    ''',
+        {'namespace': namespace, 'repo_name': name, 'version': version},
+      );
+
+      if (result.isEmpty) {
+        _log.warning('⚠️ Nenhum hash encontrado para $name@$version');
+        return null;
+      }
+
+      final hash = result.first[0] as String;
+      _log.info('✅ Hash localizado: ${hash.substring(0, 12)}...');
+
+      return hash;
+    } catch (e, stack) {
+      _log.severe('🔥 Erro ao buscar hash por versão no Postgres', e, stack);
+      rethrow;
+    }
+  }
+
+  @override
   Future<void> delete(ArtifactEntity artifact) async {
     if (artifact.id == null) return;
     _log.info('Deletando artifact ID: ${artifact.id}');

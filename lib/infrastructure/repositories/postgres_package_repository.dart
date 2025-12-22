@@ -107,22 +107,57 @@ class PostgresPackageRepository implements PackageRepository {
   }
 
   @override
-  Future<List<PackageEntity>> listByNamespace(String namespace) async {
+  Future<List<PackageEntity>> listByNamespace(
+    String namespace, {
+    int limit = 50,
+    int offset = 0,
+  }) async {
     _log.fine('Listando por namespace: $namespace');
+
+    final sql = '''
+      SELECT p.* FROM packages p JOIN repositories r ON p.repository_id = r.id 
+      WHERE r.namespace = @namespace
+      LIMIT @limit OFFSET @offset
+    ''';
+
     try {
-      final res = await _db.connection.execute(
-        Sql.named(
-          'SELECT p.* FROM packages p JOIN repositories r ON p.repository_id = r.id '
-          'WHERE r.namespace = @namespace',
-        ),
-        parameters: {'namespace': namespace},
-      );
+      final res = await _db.query(sql, {
+        'namespace': namespace,
+        'limit': limit,
+        'offset': offset,
+      });
+
       _log.info('Encontrados ${res.length} pacotes no namespace $namespace');
+
       return res
           .map((row) => PackageEntity.fromMap(row.toColumnMap()))
           .toList();
     } catch (e, stackTrace) {
       _log.severe('Erro ao listar por namespace: $namespace', e, stackTrace);
+
+      rethrow;
+    }
+  }
+
+  @override
+  Future<List<PackageEntity>> listAll({int limit = 50, int offset = 0}) async {
+    const sql = '''
+    SELECT * FROM packages 
+    ORDER BY created_at DESC 
+    LIMIT @limit OFFSET @offset
+  ''';
+
+    try {
+      final result = await _db.connection.execute(
+        sql,
+        parameters: {'limit': limit, 'offset': offset},
+      );
+
+      return result
+          .map((row) => PackageEntity.fromMap(row.toColumnMap()))
+          .toList();
+    } catch (e, stack) {
+      _log.severe('🔥 Erro ao listar pacotes com fromMap', e, stack);
       rethrow;
     }
   }
