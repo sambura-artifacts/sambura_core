@@ -172,10 +172,7 @@ class Env {
       ),
 
       // HASHICORP VAULT
-      vaultUrl: getString(
-        'VAULT_URL',
-        defaultValue: 'http://sambura_vault:8200',
-      ),
+      vaultUrl: getString('VAULT_URL', defaultValue: 'http://localhost:8200'),
       vaultToken: getString('VAULT_TOKEN', defaultValue: 'root_token_sambura'),
       vaultSecretPath: getString(
         'VAULT_SECRET_PATH',

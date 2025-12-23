@@ -96,9 +96,7 @@ class BlobEntity {
   factory BlobEntity.fromMap(Map<String, dynamic> map) {
     return BlobEntity._(
       id: map['id'] as int?,
-      // Mapeia hash_value do banco para hashValue da entidade
-      hashValue: (map['hash_value'] ?? map['sha256'] ?? '') as String,
-      // Garante que o tamanho seja int, tratando possíveis retornos do driver
+      hashValue: (map['hash_value'] ?? '') as String,
       sizeBytes: map['size_bytes'] as int,
       mimeType: (map['mime_type'] ?? 'application/octet-stream') as String,
       createdAt: map['created_at'] != null
@@ -108,12 +106,10 @@ class BlobEntity {
           : null,
     );
   }
-  // 1. Ajusta o detector para receber a lista de bytes já lidos
   static String _detectRealMimeType(List<int> headerBytes) {
     if (headerBytes.isEmpty) return 'application/octet-stream';
 
     final resolver = MimeTypeResolver();
-    // O resolver usa os headerBytes para dar o veredito
     final mimeType = resolver.lookup('', headerBytes: headerBytes);
 
     return mimeType ?? 'application/octet-stream';

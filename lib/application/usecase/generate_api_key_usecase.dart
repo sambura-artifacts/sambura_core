@@ -13,9 +13,8 @@ class GenerateApiKeyResult {
 
 class GenerateApiKeyUsecase {
   final ApiKeyRepository _repository;
-  final HashService _hashService;
 
-  GenerateApiKeyUsecase(this._repository, this._hashService);
+  GenerateApiKeyUsecase(this._repository);
 
   Future<GenerateApiKeyResult> execute({
     required int accountId,

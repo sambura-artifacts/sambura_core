@@ -4,10 +4,14 @@ import 'package:minio/minio.dart';
 import 'package:shelf/shelf.dart';
 import 'package:shelf/shelf_io.dart' as io;
 
+// Configurações
 import 'package:sambura_core/config/logger.dart';
 import 'package:sambura_core/config/env.dart';
+
+// Infraestrutura - Banco e Conectores
 import 'package:sambura_core/infrastructure/database/postgres_connector.dart';
 
+// Repositories
 import 'package:sambura_core/infrastructure/repositories/postgres_blob_repository.dart';
 import 'package:sambura_core/infrastructure/repositories/silo_blob_repository.dart';
 import 'package:sambura_core/infrastructure/repositories/postgres_repository_repository.dart';
@@ -16,12 +20,14 @@ import 'package:sambura_core/infrastructure/repositories/postgres_package_reposi
 import 'package:sambura_core/infrastructure/repositories/postgres_account_repository.dart';
 import 'package:sambura_core/infrastructure/repositories/postgres_api_key_repository.dart';
 
+// Services
 import 'package:sambura_core/infrastructure/services/redis_service.dart';
 import 'package:sambura_core/infrastructure/services/vault_service.dart';
 import 'package:sambura_core/infrastructure/services/hash_service.dart';
 import 'package:sambura_core/infrastructure/services/auth_service.dart';
 import 'package:sambura_core/infrastructure/proxies/npm_proxy.dart';
 
+// UseCases
 import 'package:sambura_core/application/usecase/get_artifact_by_id_usecase.dart';
 import 'package:sambura_core/application/usecase/get_artifact_download_stream_usecase.dart';
 import 'package:sambura_core/application/usecase/get_artifact_usecase.dart';
@@ -30,7 +36,9 @@ import 'package:sambura_core/application/usecase/upload_artifact_usecase.dart';
 import 'package:sambura_core/application/usecase/login_usecase.dart';
 import 'package:sambura_core/application/usecase/create_account_usecase.dart';
 import 'package:sambura_core/application/usecase/generate_api_key_usecase.dart';
+import 'package:sambura_core/application/usecase/get_package_metadata_usecase.dart'; // NOVO
 
+// Controllers
 import 'package:sambura_core/infrastructure/api/controller/blob_controller.dart';
 import 'package:sambura_core/infrastructure/api/controller/package_controller.dart';
 import 'package:sambura_core/infrastructure/api/controller/artifact_controller.dart';
@@ -38,37 +46,43 @@ import 'package:sambura_core/infrastructure/api/controller/repository_controller
 import 'package:sambura_core/infrastructure/api/controller/auth_controller.dart';
 import 'package:sambura_core/infrastructure/api/controller/api_key_controller.dart';
 import 'package:sambura_core/infrastructure/api/controller/upload_controller.dart';
+
+// Rotas
 import 'package:sambura_core/infrastructure/api/routes/main_router.dart';
 
 void main() async {
+  // Logger
   LoggerConfig.initialize(level: Level.ALL);
   final log = LoggerConfig.getLogger('Server');
 
-  log.info('🌊 Iniciando os motores do Samburá...');
+  // Config
   final env = Env().load();
 
-  final vault = VaultService(
-    endpoint: Platform.environment['VAULT_ADDR'] ?? 'http://localhost:8200',
-    token: Platform.environment['VAULT_TOKEN'] ?? 'root_token_sambura',
-  );
+  final vaultService = VaultService(env.vaultUrl, env.vaultToken);
 
-  final dbSecrets = await vault.getSecrets('sambura/database');
-  final authSecrets = await vault.getSecrets('sambura/auth');
+  final dbSecrets = await vaultService.getSecrets('sambura/database');
+  final authSecrets = await vaultService.getSecrets('sambura/auth');
 
   if (dbSecrets.isEmpty || authSecrets.isEmpty) {
     log.severe('❌ Falha crítica: Segredos não encontrados no Vault!');
     return;
   }
 
+  // Database
   final dbConnector = PostgresConnector(
     env.dbHost,
     env.dbPort,
     env.dbUser,
-    dbSecrets['password'],
+    env.dbPassword,
     env.dbName,
   );
   await dbConnector.connect();
 
+  // Redis
+  final redisService = RedisService(host: env.redisHost, port: env.redisPort);
+  await redisService.connect();
+
+  // MinIO
   final minioClient = Minio(
     endPoint: env.siloHost,
     port: env.siloPort,
@@ -77,17 +91,9 @@ void main() async {
     secretKey: env.siloSecretKey,
   );
 
-  final redisService = RedisService(
-    host: Platform.environment['REDIS_HOST'] ?? 'localhost',
-    port: int.parse(Platform.environment['REDIS_PORT'] ?? '6379'),
-  );
-  await redisService.connect();
-
+  // Repositories
   final accountRepo = PostgresAccountRepository(dbConnector);
   final apiKeyRepo = PostgresApiKeyRepository(dbConnector);
-  final hashService = HashService(authSecrets['pepper']);
-  final authService = AuthService(authSecrets['jwt_secret']);
-
   final repositoryRepo = PostgresRepositoryRepository(dbConnector);
   final artifactRepo = PostgresArtifactRepository(dbConnector);
   final packageRepo = PostgresPackageRepository(dbConnector);
@@ -98,15 +104,21 @@ void main() async {
     postgresBlobRepo,
   );
 
+  // Services
+  final hashService = HashService(authSecrets['pepper']);
+  final authService = AuthService(authSecrets['jwt_secret']);
+  final npmProxy = NpmProxy(siloBlobRepo);
+
+  // UseCases
   final loginUsecase = LoginUsecase(
     accountRepo,
     hashService,
     authSecrets['jwt_secret'],
   );
   final createAccountUsecase = CreateAccountUsecase(accountRepo, hashService);
-  final generateApiKeyUsecase = GenerateApiKeyUsecase(apiKeyRepo, hashService);
+  final generateApiKeyUsecase = GenerateApiKeyUsecase(apiKeyRepo);
+  final getPackageMetadataUseCase = GetPackageMetadataUseCase(artifactRepo);
 
-  final npmProxy = NpmProxy(siloBlobRepo);
   final getArtifactUseCase = GetArtifactUseCase(
     artifactRepo,
     packageRepo,
@@ -118,13 +130,6 @@ void main() async {
     siloBlobRepo,
     redisService,
   );
-  final createArtifactUseCase = CreateArtifactUsecase(
-    artifactRepo,
-    packageRepo,
-    siloBlobRepo,
-    repositoryRepo,
-  );
-
   final uploadArtifactUsecase = UploadArtifactUsecase(
     artifactRepo,
     packageRepo,
@@ -132,20 +137,31 @@ void main() async {
     siloBlobRepo,
   );
 
+  final createArtifactUseCase = CreateArtifactUsecase(
+    artifactRepo,
+    packageRepo,
+    siloBlobRepo,
+    repositoryRepo,
+  );
+
   final authController = AuthController(createAccountUsecase, loginUsecase);
   final apiKeyController = ApiKeyController(generateApiKeyUsecase, apiKeyRepo);
+
   final artifactController = ArtifactController(
     createArtifactUseCase,
     getArtifactUseCase,
     GetArtifactByIdUseCase(artifactRepo),
     getArtifactDownloadStreamUsecase,
     generateApiKeyUsecase,
+    getPackageMetadataUseCase,
   );
+
   final repositoryController = RepositoryController(repositoryRepo);
   final packageController = PackageController(packageRepo);
   final blobController = BlobController(siloBlobRepo);
   final uploadController = UploadController(uploadArtifactUsecase);
 
+  // Router
   final mainRouter = MainRouter(
     authController,
     repositoryController,

@@ -25,7 +25,7 @@ class ErrorPresenter {
       "detail": detail,
       "instance": instance,
       "_links": {
-        "self": {"href": "$baseUrl$instance", "method": "GET"},
+        "self": {"href": "$baseUrl/$instance", "method": "GET"},
         "home": {"href": "$baseUrl/", "method": "GET"},
       },
     });

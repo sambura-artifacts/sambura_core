@@ -45,7 +45,7 @@ class MainRouter {
   Handler get handler {
     final mainRouter = Router();
 
-    // 1. Instancia os módulos que organizam as rotas
+    // 1. Definição dos Routers Secundários
     final publicRouter = PublicRouter(
       _authController,
       _artifactController,
@@ -64,32 +64,34 @@ class MainRouter {
       _uploadController,
     );
 
-    // 2. Pipeline de autenticação
+    // 2. Pipeline de Autenticação para Rotas Protegidas
     final authenticatedPipeline = Pipeline().addMiddleware(
       authMiddleware(_accountRepo, _authService, _apiKeyRepo, _hashService),
     );
 
-    // 3. Rotas Públicas (Login, etc)
-    mainRouter.mount('/', publicRouter.router.call);
+    // --- ROTAS PÚBLICAS / NPM ---
+    // Montamos o publicRouter na raiz ou prefixo /api/v1
+    mainRouter.mount('/api/v1', publicRouter.router.call);
 
-    // 4. Rotas Protegidas
+    // --- ROTAS PROTEGIDAS (Admin / Download) ---
     final protectedRouter = Router();
-
-    // Sub-rotas de Admin
     protectedRouter.mount('/admin', adminRouter.router.call);
 
-    // API de Consumo Privada
     protectedRouter.get(
-      '/api/v1/download/<namespace>/<name>/<version>',
+      '/download/<repo>/<name|.*>/<version>',
       _artifactController.downloadByVersion,
     );
+
     protectedRouter.get(
-      '/api/v1/resolve/<repository>/<package>/<version>',
+      '/resolve/<repository>/<package>/<version>',
       _artifactController.resolve,
     );
 
+    protectedRouter.post('/upload', _uploadController.handle);
+
+    // Monta tudo que é protegido sob o pipeline de auth
     mainRouter.mount(
-      '/',
+      '/api/v1',
       authenticatedPipeline.addHandler(protectedRouter.call),
     );
 

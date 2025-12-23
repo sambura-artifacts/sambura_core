@@ -1,7 +1,7 @@
 # ==============================================================================
 # VARIÁVEIS DE AMBIENTE
 # ==============================================================================
-API_URL=http://localhost:8080
+API_URL=http://localhost:8080/api/v1
 ADMIN_USER=cria_root
 ADMIN_PASS=senha_braba_123
 ADMIN_EMAIL=admin@sambura.io

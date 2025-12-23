@@ -41,6 +41,12 @@ class PublicRouter {
     router.post('/auth/register', _authController.register);
     router.post('/auth/login', _authController.login);
 
+    // Rota do NPM com Catch-all para Scopes (@scope/package)
+    router.get(
+      '/npm/<repo>/<packageName|.*>',
+      _artifactController.getPackageMetadata,
+    );
+
     final secureResolverPipeline = Pipeline()
         .addMiddleware(
           authMiddleware(_accountRepo, _authService, _apiKeyRepo, _hashService),

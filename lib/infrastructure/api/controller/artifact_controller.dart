@@ -4,6 +4,7 @@ import 'package:logging/logging.dart';
 import 'package:sambura_core/application/usecase/generate_api_key_usecase.dart';
 import 'package:sambura_core/application/usecase/get_artifact_by_id_usecase.dart';
 import 'package:sambura_core/application/usecase/get_artifact_download_stream_usecase.dart';
+import 'package:sambura_core/application/usecase/get_package_metadata_usecase.dart';
 import 'package:sambura_core/config/logger.dart';
 import 'package:sambura_core/domain/entities/account_entity.dart';
 import 'package:sambura_core/domain/exceptions/domain_exception.dart';
@@ -15,6 +16,7 @@ import 'package:sambura_core/application/usecase/create_artifact_usecase.dart';
 import 'package:sambura_core/infrastructure/api/presenter/artifact_presenter.dart';
 import 'package:sambura_core/infrastructure/api/presenter/error_presenter.dart';
 import 'package:sambura_core/infrastructure/api/dtos/artifact_input.dart';
+import 'package:shelf_router/shelf_router.dart';
 
 class ArtifactController {
   final CreateArtifactUsecase _createUsecase;
@@ -22,6 +24,7 @@ class ArtifactController {
   final GetArtifactByIdUseCase _getByIdUseCase;
   final GetArtifactDownloadStreamUsecase _getArtifactDownloadStreamUsecase;
   final GenerateApiKeyUsecase _generateApiKeyUsecase;
+  final GetPackageMetadataUseCase _getPackageMetadataUseCase;
   final Logger _log = LoggerConfig.getLogger('ArtifactController');
 
   // No construtor, a gente recebe os UseCases.
@@ -32,6 +35,7 @@ class ArtifactController {
     this._getByIdUseCase,
     this._getArtifactDownloadStreamUsecase,
     this._generateApiKeyUsecase,
+    this._getPackageMetadataUseCase,
   );
 
   /// POST /:repository/:namespace/:package/:version
@@ -306,6 +310,30 @@ class ArtifactController {
         'api_key': result.plainKey,
         'name': result.name,
       }),
+    );
+  }
+
+  Future<Response> getPackageMetadata(
+    Request request,
+    String repo,
+    String packageName,
+  ) async {
+    final decodedName = Uri.decodeComponent(packageName);
+
+    _log.info('📦 Buscando metadata para: $decodedName no repo: $repo');
+
+    final metadata = await _getPackageMetadataUseCase.execute(
+      repo,
+      decodedName,
+    );
+
+    if (metadata == null) {
+      return Response.notFound(jsonEncode({'error': 'Package not found'}));
+    }
+
+    return Response.ok(
+      jsonEncode(metadata),
+      headers: {'Content-Type': 'application/json'},
     );
   }
 }

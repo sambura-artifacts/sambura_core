@@ -153,16 +153,16 @@ class PostgresArtifactRepository implements ArtifactRepository {
       final result = await _db.query(
         '''
       SELECT b.hash 
-        FROM artifacts a
-        JOIN packages p ON a.package_id = p.id
-        JOIN repositories r ON p.repository_id = r.id
-        JOIN blobs b ON a.blob_id = b.id
-      WHERE r.namespace = @namespace 
-        AND p.name = @repo_name 
+      FROM artifacts a
+      JOIN packages p ON a.package_id = p.id
+      JOIN repositories r ON p.repository_id = r.id
+      JOIN blobs b ON a.blob_id = b.id
+      WHERE r.name = @repo_name 
+        AND p.name = @package_name 
         AND a.version = @version
       LIMIT 1
     ''',
-        {'namespace': namespace, 'repo_name': name, 'version': version},
+        {'repo_name': namespace, 'package_name': name, 'version': version},
       );
 
       if (result.isEmpty) {
@@ -204,6 +204,54 @@ class PostgresArtifactRepository implements ArtifactRepository {
 
     final row = result.first.toColumnMap();
     return ArtifactEntity.fromMap(row);
+  }
+
+  @override
+  Future<List<ArtifactEntity>> findAllVersions(
+    String repoName,
+    String packageName,
+  ) async {
+    final results = await _db.query(
+      '''
+    SELECT 
+      a.id, a.external_id, a.version, a.path, a.created_at, a.package_id, a.blob_id,
+      r.name as repo_name, 
+      p.name as pkg_name,
+      b.id as b_id, b.hash as b_hash, b.size_bytes as b_size_bytes, b.mime_type as b_mime_type, b.created_at as b_at
+    FROM artifacts a
+    JOIN packages p ON a.package_id = p.id
+    JOIN repositories r ON p.repository_id = r.id
+    JOIN blobs b ON a.blob_id = b.id
+    WHERE p.name = @packageName AND r.name = @repoName
+  ''',
+      {'packageName': packageName, 'repoName': repoName},
+    );
+
+    return results.map((row) {
+      final map = row.toColumnMap();
+
+      final artifact = ArtifactEntity.fromMap({
+        'id': map['id'],
+        'external_id': '${map['external_id'] ?? ''}',
+        'package_id': map['package_id'],
+        'repo_namespace': (map['repo_name'] ?? '').toString(),
+        'namespace': (map['repo_name'] ?? '').toString(),
+        'package_name': (map['pkg_name'] ?? '').toString(),
+        'version': (map['version'] ?? '').toString(),
+        'path': (map['path'] ?? '').toString(),
+        'blob_id': map['blob_id'],
+        'created_at': (map['created_at'] ?? DateTime.now()).toString(),
+        'blob_data': {
+          'id': map['b_id'],
+          'hash_value': (map['b_hash'] ?? '').toString(),
+          'size_bytes': map['b_size_bytes'] ?? 0,
+          'mime_type': (map['b_mime_type'] ?? 'application/octet-stream')
+              .toString(),
+          'created_at': (map['b_at'] ?? DateTime.now()).toString(),
+        },
+      });
+      return artifact;
+    }).toList();
   }
 
   @override

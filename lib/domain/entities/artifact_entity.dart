@@ -99,22 +99,17 @@ class ArtifactEntity {
     );
   }
 
-  // Factory para reconstruir a entidade a partir do banco de dados
   factory ArtifactEntity.fromMap(Map<String, dynamic> map) {
     return ArtifactEntity._(
       id: map['id'] as int?,
       externalId: map['external_id'] as String,
       packageId: map['package_id'] as int,
-      // Se o map vier do JOIN, pegamos o namespace do repo,
-      // caso contrário, tentamos a coluna direta.
       namespace: (map['repo_namespace'] ?? map['namespace']) as String,
-      // O mesmo vale para o packageName que vem da tabela 'packages' no JOIN
       packageName:
           (map['package_name'] ?? map['package_name_alias'] ?? '') as String,
       version: map['version'] as String,
       path: map['path'] as String,
       blobId: map['blob_id'] as int?,
-      // Se houver um blob aninhado (via JOIN opcional), carregamos aqui
       blob: map['blob_data'] != null
           ? BlobEntity.fromMap(map['blob_data'] as Map<String, dynamic>)
           : null,

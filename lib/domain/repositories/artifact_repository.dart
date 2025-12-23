@@ -31,6 +31,11 @@ abstract class ArtifactRepository {
     String version,
   );
 
+  Future<List<ArtifactEntity>> findAllVersions(
+    String repoName,
+    String packageName,
+  );
+
   /// Solicita a remoção lógica ou física do ponteiro do artefato.
   /// Nota: Preserva o Blob físico para manter a integridade da Deduplicação Global.
   Future<void> delete(ArtifactEntity artifact);
