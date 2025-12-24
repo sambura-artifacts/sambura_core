@@ -10,22 +10,29 @@ info:
     - **API Key**: Use `X-API-Key: <api_key>` para integração de sistemas
     
     ## Fluxo de Uso
-    1. Registre um usuário via `/api/v1/auth/register`
-    2. Faça login via `/api/v1/auth/login` para obter o token JWT
+    1. Registre um usuário via `/api/v1/public/auth/register`
+    2. Faça login via `/api/v1/public/auth/login` para obter o token JWT
     3. Crie uma API Key via `/api/v1/admin/api-keys` para upload automatizado
     4. Crie repositórios via `/api/v1/admin/repositories`
     5. Faça upload de artefatos via `/api/v1/admin/upload` ou `/api/v1/upload`
-    6. Resolva artefatos via `/api/v1/{repositoryName}/{packageName}/{version}`
-    7. Baixe artefatos via `/api/v1/download/{namespace}/{name}/{version}`
+    6. Resolva artefatos via `/api/v1/public/{repositoryName}/{packageName}/{version}`
+    7. Baixe artefatos via `/api/v1/public/download/{namespace}/{name}/{version}`
     
     ## Estrutura de Rotas
-    - `/api/v1/auth/*` - Autenticação pública (registro e login)
-    - `/api/v1/admin/*` - Gerenciamento de recursos (requer autenticação)
-    - `/api/v1/npm/*` - Compatibilidade com NPM Registry
-    - `/api/v1/{repo}/{package}/{version}` - Resolução de artefatos
-    - `/api/v1/download/*` - Download de artefatos
-    - `/api/v1/blobs/*` - Download direto de blobs
-    - `/api/v1/docs` - Documentação Swagger UI
+    
+    ### Rotas Públicas (sem autenticação)
+    - `/api/v1/public/auth/*` - Autenticação (registro e login)
+    - `/api/v1/public/docs` - Documentação Swagger UI
+    
+    ### Rotas Protegidas (requer autenticação)
+    - `/api/v1/public/{repo}/{package}/{version}` - Resolução de artefatos
+    - `/api/v1/public/download/*` - Download de artefatos
+    - `/api/v1/public/blobs/*` - Download direto de blobs
+    - `/api/v1/admin/*` - Gerenciamento de recursos
+    - `/api/v1/npm/*` - Compatibilidade com NPM Registry (metadata e search)
+    - `/api/v1/download/*` - Download alternativo de artefatos
+    - `/api/v1/resolve/*` - Resolução alternativa de artefatos
+    - `/api/v1/upload` - Upload de pacotes (POST/PUT)
     
   version: 1.0.0
   contact:
@@ -224,8 +231,8 @@ components:
             type: string
 
 paths:
-  # ===== AUTH =====
-  /api/v1/auth/register:
+  # ===== PUBLIC - AUTH =====
+  /api/v1/public/auth/register:
     post:
       summary: Registra um novo usuário
       description: Cria uma nova conta no sistema
@@ -275,7 +282,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
 
-  /api/v1/auth/login:
+  /api/v1/public/auth/login:
     post:
       summary: Faz login no sistema
       description: Autentica o usuário e retorna um token JWT
@@ -658,7 +665,7 @@ paths:
         '404':
           description: Chave não encontrada
 
-  # ===== UPLOAD =====
+  # ===== ADMIN - UPLOAD =====
   /api/v1/admin/upload:
     post:
       summary: Faz upload de um artefato
@@ -711,60 +718,8 @@ paths:
         '500':
           description: Erro no processamento
 
-  /api/v1/upload:
-    post:
-      summary: Faz upload de um artefato (alternativa)
-      description: Upload de artefatos via multipart/form-data (endpoint alternativo na raiz do /api/v1)
-      tags:
-        - Upload
-      security:
-        - BearerAuth: []
-        - ApiKeyAuth: []
-      requestBody:
-        required: true
-        content:
-          multipart/form-data:
-            schema:
-              type: object
-              required:
-                - file
-                - package
-                - version
-              properties:
-                file:
-                  type: string
-                  format: binary
-                  description: Arquivo .tgz do pacote
-                package:
-                  type: string
-                  example: "@sambura/core"
-                version:
-                  type: string
-                  example: "1.0.0"
-                repository:
-                  type: string
-                  default: "default"
-                  example: "my-repo"
-      responses:
-        '200':
-          description: Artefato enviado com sucesso
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                    example: "Artefato no ninho! 🚀"
-        '400':
-          description: Dados incompletos ou formato inválido
-        '401':
-          description: Não autenticado
-        '500':
-          description: Erro no processamento
-
-  # ===== ARTIFACTS - RESOLVE & DOWNLOAD =====
-  /api/v1/{repositoryName}/{packageName}/{version}:
+  # ===== ARTIFACTS - RESOLVE & DOWNLOAD (PUBLIC com Auth) =====
+  /api/v1/public/{repositoryName}/{packageName}/{version}:
     get:
       summary: Resolve a localização de um artefato
       description: Busca artefato no banco ou faz proxy do NPM Registry
@@ -809,7 +764,7 @@ paths:
         '500':
           description: Erro no servidor
 
-  /api/v1/download/{namespace}/{name}/{version}:
+  /api/v1/public/download/{namespace}/{name}/{version}:
     get:
       summary: Download de artefato
       description: Faz o download do arquivo binário do artefato
@@ -865,47 +820,7 @@ paths:
         '500':
           description: Erro no servidor
 
-  # ===== NPM COMPATIBLE =====
-  /api/v1/npm/{repo}/{packageName}:
-    get:
-      summary: Obtém metadados do pacote (NPM-compatible)
-      description: Retorna metadados no formato do NPM Registry para compatibilidade com clientes NPM
-      tags:
-        - NPM
-      parameters:
-        - name: repo
-          in: path
-          required: true
-          schema:
-            type: string
-          example: "my-repo"
-        - name: packageName
-          in: path
-          required: true
-          schema:
-            type: string
-          description: Nome do pacote (pode conter escopo com @)
-          example: "@sambura/core"
-      responses:
-        '200':
-          description: Metadados do pacote
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/NPMMetadata'
-        '404':
-          description: Pacote não encontrado
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  error:
-                    type: string
-                    example: "Package not found"
-
-  # ===== BLOBS =====
-  /api/v1/blobs/{hash}:
+  /api/v1/public/blobs/{hash}:
     get:
       summary: Download de blob por hash
       description: Faz o download direto de um blob binário pelo seu hash
@@ -947,8 +862,46 @@ paths:
         '500':
           description: Erro no servidor
 
+  /api/v1/public/npm/{repo}/{packageName}:
+    get:
+      summary: Obtém metadados do pacote NPM (público)
+      description: Retorna metadados no formato do NPM Registry sem autenticação
+      tags:
+        - NPM
+      parameters:
+        - name: repo
+          in: path
+          required: true
+          schema:
+            type: string
+          example: "my-repo"
+        - name: packageName
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Nome do pacote (pode conter escopo com @)
+          example: "@sambura/core"
+      responses:
+        '200':
+          description: Metadados do pacote
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NPMMetadata'
+        '404':
+          description: Pacote não encontrado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Package not found"
+
   # ===== SWAGGER UI =====
-  /api/v1/docs:
+  /api/v1/public/docs:
     get:
       summary: Documentação Swagger UI
       description: Interface gráfica da documentação da API
@@ -957,3 +910,346 @@ paths:
       responses:
         '200':
           description: Página HTML do Swagger UI
+
+  # ===== NPM COMPATIBLE (Autenticado) =====
+  /api/v1/npm/{repo}/-/v1/search:
+    get:
+      summary: Busca pacotes no NPM (npm search)
+      description: |
+        Encaminha a consulta para o registro oficial do NPM e retorna resultados filtrados.
+        Compatível com `npm search` e ferramentas que usam a API de search do NPM.
+      tags:
+        - NPM
+      security:
+        - BearerAuth: []
+        - ApiKeyAuth: []
+      parameters:
+        - name: repo
+          in: path
+          required: true
+          schema:
+            type: string
+          example: "my-repo"
+          description: Nome do repositório
+        - name: text
+          in: query
+          schema:
+            type: string
+          description: Termo de busca
+          example: "lodash"
+        - name: size
+          in: query
+          schema:
+            type: integer
+            default: 20
+          description: Número de resultados
+        - name: from
+          in: query
+          schema:
+            type: integer
+            default: 0
+          description: Offset para paginação
+      responses:
+        '200':
+          description: Resultados da busca
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  objects:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        package:
+                          type: object
+                          properties:
+                            name:
+                              type: string
+                            version:
+                              type: string
+                            description:
+                              type: string
+                  total:
+                    type: integer
+        '401':
+          description: Não autenticado
+        '500':
+          description: Erro no servidor
+
+  /api/v1/npm/{repo}/{packageName}:
+    get:
+      summary: Obtém metadados do pacote NPM (autenticado)
+      description: Retorna metadados no formato do NPM Registry para compatibilidade com clientes NPM
+      tags:
+        - NPM
+      security:
+        - BearerAuth: []
+        - ApiKeyAuth: []
+      parameters:
+        - name: repo
+          in: path
+          required: true
+          schema:
+            type: string
+          example: "my-repo"
+        - name: packageName
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Nome do pacote (pode conter escopo com @)
+          example: "@sambura/core"
+      responses:
+        '200':
+          description: Metadados do pacote
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NPMMetadata'
+        '401':
+          description: Não autenticado
+        '404':
+          description: Pacote não encontrado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Package not found"
+
+    put:
+      summary: Publica/atualiza um pacote NPM
+      description: Endpoint compatível com `npm publish` para publicar pacotes
+      tags:
+        - NPM
+      security:
+        - BearerAuth: []
+        - ApiKeyAuth: []
+      parameters:
+        - name: repo
+          in: path
+          required: true
+          schema:
+            type: string
+          example: "my-repo"
+        - name: packageName
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Nome do pacote (pode conter escopo com @)
+          example: "@sambura/core"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              description: Payload do npm publish (formato packument)
+      responses:
+        '200':
+          description: Pacote publicado com sucesso
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Artefato no ninho! 🚀"
+        '400':
+          description: Dados inválidos
+        '401':
+          description: Não autenticado
+        '500':
+          description: Erro no servidor
+
+  # ===== ROUTES ALTERNATIVAS AUTENTICADAS =====
+  /api/v1/download/{repo}/{name}/{version}:
+    get:
+      summary: Download alternativo de artefato
+      description: Rota alternativa para download de artefatos com autenticação
+      tags:
+        - Artifacts
+      security:
+        - BearerAuth: []
+        - ApiKeyAuth: []
+      parameters:
+        - name: repo
+          in: path
+          required: true
+          schema:
+            type: string
+          example: "my-repo"
+        - name: name
+          in: path
+          required: true
+          schema:
+            type: string
+          example: "@sambura/core"
+          description: Nome do pacote (pode incluir namespace)
+        - name: version
+          in: path
+          required: true
+          schema:
+            type: string
+          example: "1.0.0"
+      responses:
+        '200':
+          description: Download iniciado
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        '401':
+          description: Não autenticado
+        '404':
+          description: Artefato não encontrado
+
+  /api/v1/resolve/{repository}/{package}/{version}:
+    get:
+      summary: Resolve artefato (rota alternativa)
+      description: Rota alternativa para resolução de artefatos
+      tags:
+        - Artifacts
+      security:
+        - BearerAuth: []
+        - ApiKeyAuth: []
+      parameters:
+        - name: repository
+          in: path
+          required: true
+          schema:
+            type: string
+          example: "my-repo"
+        - name: package
+          in: path
+          required: true
+          schema:
+            type: string
+          example: "@sambura/core"
+        - name: version
+          in: path
+          required: true
+          schema:
+            type: string
+          example: "1.0.0"
+      responses:
+        '200':
+          description: Artefato encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Artifact'
+        '401':
+          description: Não autenticado
+        '404':
+          description: Artefato não encontrado
+
+  /api/v1/upload:
+    post:
+      summary: Upload de artefato (POST)
+      description: Upload de artefatos via multipart/form-data
+      tags:
+        - Upload
+      security:
+        - BearerAuth: []
+        - ApiKeyAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - file
+                - package
+                - version
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: Arquivo .tgz do pacote
+                package:
+                  type: string
+                  example: "@sambura/core"
+                version:
+                  type: string
+                  example: "1.0.0"
+                repository:
+                  type: string
+                  default: "default"
+                  example: "my-repo"
+      responses:
+        '200':
+          description: Artefato enviado com sucesso
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Artefato no ninho! 🚀"
+        '400':
+          description: Dados incompletos ou formato inválido
+        '401':
+          description: Não autenticado
+        '500':
+          description: Erro no processamento
+
+    put:
+      summary: Upload de artefato (PUT)
+      description: Upload de artefatos via multipart/form-data (método PUT)
+      tags:
+        - Upload
+      security:
+        - BearerAuth: []
+        - ApiKeyAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - file
+                - package
+                - version
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: Arquivo .tgz do pacote
+                package:
+                  type: string
+                  example: "@sambura/core"
+                version:
+                  type: string
+                  example: "1.0.0"
+                repository:
+                  type: string
+                  default: "default"
+                  example: "my-repo"
+      responses:
+        '200':
+          description: Artefato enviado com sucesso
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Artefato no ninho! 🚀"
+        '400':
+          description: Dados incompletos ou formato inválido
+        '401':
+          description: Não autenticado
+        '500':
+          description: Erro no processamento
