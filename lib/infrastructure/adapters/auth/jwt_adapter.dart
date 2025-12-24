@@ -1,11 +1,10 @@
-import 'dart:convert';
 import 'package:dart_jsonwebtoken/dart_jsonwebtoken.dart';
 import 'package:logging/logging.dart';
 import 'package:sambura_core/config/logger.dart';
 import 'package:sambura_core/application/ports/auth_port.dart';
 
 /// Adapter para JWT implementando IAuthPort.
-/// 
+///
 /// Segue o padrão Hexagonal Architecture (Ports & Adapters).
 class JwtAdapter implements IAuthPort {
   final String _secret;
@@ -15,8 +14,8 @@ class JwtAdapter implements IAuthPort {
   JwtAdapter({
     required String secret,
     Duration tokenDuration = const Duration(hours: 24),
-  })  : _secret = secret,
-        _tokenDuration = tokenDuration;
+  }) : _secret = secret,
+       _tokenDuration = tokenDuration;
 
   @override
   String generateToken({
@@ -39,7 +38,7 @@ class JwtAdapter implements IAuthPort {
       });
 
       final token = jwt.sign(SecretKey(_secret), algorithm: JWTAlgorithm.HS256);
-      
+
       _log.fine('✅ Token generated for user: $username');
       return token;
     } catch (e, stack) {
@@ -52,7 +51,7 @@ class JwtAdapter implements IAuthPort {
   Map<String, dynamic> verifyToken(String token) {
     try {
       final jwt = JWT.verify(token, SecretKey(_secret));
-      
+
       _log.fine('✅ Token verified successfully');
       return jwt.payload as Map<String, dynamic>;
     } on JWTExpiredException {
@@ -94,7 +93,7 @@ class JwtAdapter implements IAuthPort {
   String refreshToken(String oldToken) {
     try {
       final payload = verifyToken(oldToken);
-      
+
       return generateToken(
         userId: payload['user_id'] as int,
         username: payload['username'] as String,
