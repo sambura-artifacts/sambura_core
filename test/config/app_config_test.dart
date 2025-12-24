@@ -1,6 +1,6 @@
 import 'dart:io';
+import 'package:sambura_core/config/app_config.dart';
 import 'package:test/test.dart';
-import '../../lib/config/app_config.dart';
 
 void main() {
   group('AppConfig', () {
