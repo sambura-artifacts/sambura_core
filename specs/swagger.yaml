@@ -37,7 +37,7 @@ info:
   version: 1.0.0
   contact:
     name: Samburá Core
-    url: https://github.com/sambura
+    url: https://github.com/sambura-artifacts/sambura_core
 
 servers:
   - url: http://localhost:8080

@@ -46,3 +46,13 @@ jobs:
 
       - name: ⚡ Run Unit Tests
         run: dart test --reporter=expanded --exclude-tags=integration
+
+      - name: Create Test Badge
+        uses: schneegans/dynamic-badges-action@v1.7.0
+        with:
+          auth: ${{ secrets.GIST_SECRET }}
+          gistID: SEU_GIST_ID
+          filename: test-results.json
+          label: Tests
+          message: 185 total
+          color: blue
