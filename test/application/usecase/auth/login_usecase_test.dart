@@ -66,14 +66,15 @@ void main() {
     test('deve retornar token quando credenciais são válidas', () async {
       // Arrange
       const username = 'testuser';
-      const password = 'password123';
+      const password = 'password123@312CCCCC';
+      const externalId = '3ef0cb03-9f2c-4c01-90bc-329cd3555ebe';
 
       final account = AccountEntity.restore(
         id: 1,
-        externalId: 'ext-123',
+        externalId: externalId,
         username: username,
         email: 'test@example.com',
-        password: 'hashed_password',
+        password: 'password123@312CCCCC',
         role: 'developer',
         createdAt: DateTime.now(),
       );
@@ -107,14 +108,14 @@ void main() {
     test('deve retornar null quando senha é inválida', () async {
       // Arrange
       const username = 'testuser';
-      const password = 'wrongpassword';
+      const password = 'w/h/eo1n1u&&3nudvsv';
 
       final account = AccountEntity.restore(
         id: 1,
-        externalId: '01234567-89ab-cdef-0123-456789abcdef',
+        externalId: '3ef0cb03-9f2c-4c01-90bc-329cd3555ebe',
         username: username,
         email: 'test@example.com',
-        password: 'hashed_password',
+        password: 'NAushabsgvtalvçvehye23@',
         role: 'developer',
         createdAt: DateTime.now(),
       );
@@ -136,10 +137,10 @@ void main() {
 
       final account = AccountEntity.restore(
         id: 42,
-        externalId: '01234567-89ab-cdef-0123-456789abcdef',
+        externalId: 'b2e89017-70ae-4d57-ac98-9cdb9d8ef1e0',
         username: username,
         email: 'test@example.com',
-        password: 'hashed_password',
+        password: 'passwordNi1çjsbpu@@333i',
         role: 'admin',
         createdAt: DateTime.now(),
       );

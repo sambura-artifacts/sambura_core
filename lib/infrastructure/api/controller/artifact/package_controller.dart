@@ -15,7 +15,7 @@ class PackageController {
 
   PackageController(this._repository, this._getMetadataUseCase);
 
-  /// GET /api/v1/npm/private-repo/<name>
+  /// GET /api/v1/npm/private-repo/&lt;name&gt;
   /// Este é o endpoint que o NPM CLI consulta antes de publicar ou instalar.
   Future<Response> getMetadata(Request request) async {
     final requestId = DateTime.now().millisecondsSinceEpoch.toString();

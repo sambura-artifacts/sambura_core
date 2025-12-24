@@ -134,7 +134,6 @@ class ApiKeyController {
       await _revokeApiKeyUsecase.execute(
         key: id,
         requestUserId: user.externalIdValue,
-        requestUserRole: user.roleValue,
       );
       _log.info('[REQ:$requestId] ✓ API key revogada com sucesso: ID=$keyId');
       return ApiKeyPresenter.revoked(keyId);

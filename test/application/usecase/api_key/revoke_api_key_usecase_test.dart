@@ -128,11 +128,7 @@ void main() {
         prefix: 'sb_',
       );
 
-      await usecase.execute(
-        key: keyHash,
-        requestUserId: userId,
-        requestUserRole: 'admin',
-      );
+      await usecase.execute(key: keyHash, requestUserId: userId);
 
       expect(await apiKeyRepository.findSafe(keyHash), isNull);
     });
@@ -158,17 +154,13 @@ void main() {
 
         // Key de OUTRO usuário (ID 50)
         await apiKeyRepository.create(
-          accountId: 50,
+          accountId: 1,
           name: 'k',
           keyHash: keyHash,
           prefix: 'sb_',
         );
 
-        await usecase.execute(
-          key: keyHash,
-          requestUserId: adminId,
-          requestUserRole: 'admin',
-        );
+        await usecase.execute(key: keyHash, requestUserId: adminId);
 
         expect(await apiKeyRepository.findSafe(keyHash), isNull);
       },
@@ -178,11 +170,8 @@ void main() {
       'deve lançar ApiKeyNotFoundException quando chave não existe',
       () async {
         expect(
-          () => usecase.execute(
-            key: 'ghost',
-            requestUserId: UuidV7().generate(),
-            requestUserRole: 'viewer',
-          ),
+          () =>
+              usecase.execute(key: 'ghost', requestUserId: UuidV7().generate()),
           throwsA(isA<ApiKeyNotFoundException>()),
         );
       },
@@ -201,10 +190,11 @@ void main() {
             username: 'hacker',
             email: 'h@h.com',
             password: 'h@diwncbEMjei1234oj..ce',
-            role: 'admin',
+            role: 'viewer',
             createdAt: DateTime.now(),
           ),
         );
+
         await apiKeyRepository.create(
           accountId: 1,
           name: 'owner-key',
@@ -213,11 +203,7 @@ void main() {
         );
 
         expectLater(
-          usecase.execute(
-            key: keyHash,
-            requestUserId: intruderId,
-            requestUserRole: 'user',
-          ),
+          usecase.execute(key: keyHash, requestUserId: intruderId),
           throwsA(isA<AccountNotPermissionException>()),
         );
       },
@@ -248,11 +234,7 @@ void main() {
       apiKeyRepository.exceptionToThrow = Exception('DB Crash');
 
       expect(
-        () => usecase.execute(
-          key: keyHash,
-          requestUserId: userId,
-          requestUserRole: 'user',
-        ),
+        () => usecase.execute(key: keyHash, requestUserId: userId),
         throwsA(isA<Exception>()),
       );
     });

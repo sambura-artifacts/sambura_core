@@ -4,12 +4,17 @@ import 'package:sambura_core/application/ports/http_client_port.dart';
 
 class HttpClientAdapter extends HttpClientPort {
   @override
-  Future<dynamic> get(uri, {Map<String, String>? headers}) async {
-    return await http.get(uri, headers: headers);
+  Future<HttpClientResponse> get(uri, {Map<String, String>? headers}) async {
+    final response = await http.get(uri, headers: headers);
+    return HttpClientResponse(
+      statusCode: response.statusCode,
+      body: response.body,
+      bodyBytes: response.bodyBytes,
+    );
   }
 
   @override
-  Future<dynamic> post({
+  Future<HttpClientResponse> post({
     required String uri,
     Map<String, String>? headers,
     data,

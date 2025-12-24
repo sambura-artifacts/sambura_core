@@ -14,7 +14,6 @@ class RevokeApiKeyUsecase {
   Future<void> execute({
     required String key,
     required String requestUserId,
-    required String requestUserRole,
   }) async {
     _log.info('Tentativa de revogação: keyId=$key por userId=$requestUserId');
 
@@ -32,10 +31,9 @@ class RevokeApiKeyUsecase {
       throw AccountNotFoundException(requestUserId);
     }
 
-    final isOwner = apiKey.accountId == 1;
-    final isAdmin = requestUserRole == 'admin';
+    final isOwner = apiKey.accountId == user.id;
 
-    if (!isOwner && !isAdmin) {
+    if (!isOwner && !user.isAdmin) {
       _log.warning(
         '⚠️ Acesso negado: Usuário $requestUserId tentou revogar chave de outro usuário.',
       );
