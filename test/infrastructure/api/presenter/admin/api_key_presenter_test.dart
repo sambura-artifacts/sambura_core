@@ -208,6 +208,29 @@ void main() {
         expect(body['title'], equals('Internal Server Error'));
         expect(body['detail'], equals(detail));
       });
+
+      test('deve retornar response 500 com erro e stack trace', () async {
+        // Arrange
+        const detail = 'Erro crítico';
+        const instance = '/api/v1/admin/api-keys';
+        final error = Exception('Test error');
+        final stack = StackTrace.current;
+
+        // Act
+        final response = ApiKeyPresenter.internalServerError(
+          detail,
+          instance,
+          error: error,
+          stack: stack,
+        );
+
+        // Assert
+        expect(response.statusCode, equals(500));
+        final body =
+            jsonDecode(await response.readAsString()) as Map<String, dynamic>;
+        expect(body['status'], equals(500));
+        expect(body['detail'], equals(detail));
+      });
     });
   });
 }

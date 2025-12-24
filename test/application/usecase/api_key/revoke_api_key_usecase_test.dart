@@ -238,5 +238,53 @@ void main() {
         throwsA(isA<Exception>()),
       );
     });
+
+    test('deve logar informação de sucesso ao revogar key', () async {
+      const keyHash = 'success-hash';
+      final userId = UuidV7().generate();
+
+      accountRepository.save(
+        AccountEntity.restore(
+          id: 1,
+          externalId: userId,
+          username: 'user',
+          email: 'user@example.com',
+          password: 'Password123!@#',
+          role: 'admin',
+          createdAt: DateTime.now(),
+        ),
+      );
+
+      await apiKeyRepository.create(
+        accountId: 1,
+        name: 'test-key',
+        keyHash: keyHash,
+        prefix: 'sb_',
+      );
+
+      await usecase.execute(key: keyHash, requestUserId: userId);
+
+      expect(await apiKeyRepository.findSafe(keyHash), isNull);
+    });
+
+    test(
+      'deve lançar AccountNotFoundException quando requestUser não existe',
+      () async {
+        const keyHash = 'some-key-hash';
+        const nonExistentUserId = '018c1820-a9f6-7123-b456-789012345678';
+
+        await apiKeyRepository.create(
+          accountId: 1,
+          name: 'test-key',
+          keyHash: keyHash,
+          prefix: 'sb_',
+        );
+
+        expect(
+          () => usecase.execute(key: keyHash, requestUserId: nonExistentUserId),
+          throwsA(isA<AccountNotFoundException>()),
+        );
+      },
+    );
   });
 }

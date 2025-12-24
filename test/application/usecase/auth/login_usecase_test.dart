@@ -6,9 +6,13 @@ import 'package:test/test.dart';
 
 class MockAccountRepository implements AccountRepository {
   AccountEntity? accountToReturn;
+  bool shouldThrowError = false;
 
   @override
   Future<AccountEntity?> findByUsername(String username) async {
+    if (shouldThrowError) {
+      throw Exception('Database error');
+    }
     return accountToReturn;
   }
 
@@ -170,6 +174,41 @@ void main() {
 
       // Assert
       expect(result, isNull);
+    });
+
+    test('deve logar informações de autenticação bem-sucedida', () async {
+      const username = 'successuser';
+      const password = 'password123';
+
+      final account = AccountEntity.restore(
+        id: 1,
+        externalId: '018c1820-a9f6-7123-b456-789012345678', // Valid UUID v7
+        username: username,
+        email: 'success@example.com',
+        password: 'Password123!@#', // Valid password
+        role: 'developer',
+        createdAt: DateTime.now(),
+      );
+
+      repository.accountToReturn = account;
+      hashService.shouldVerifySucceed = true;
+
+      final result = await usecase.execute(username, password);
+
+      expect(result, isNotNull);
+      expect(result!.username, equals(username));
+    });
+
+    test('deve propagar exceção quando ocorre erro no repositório', () async {
+      const username = 'testuser';
+      const password = 'password123';
+
+      repository.shouldThrowError = true;
+
+      expect(
+        () => usecase.execute(username, password),
+        throwsA(isA<Exception>()),
+      );
     });
   });
 }
