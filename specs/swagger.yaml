@@ -36,12 +36,16 @@ info:
     
   version: 1.0.0
   contact:
-    name: Samburá Core
+    name: Samburá Core GitHub Repository
     url: https://github.com/sambura-artifacts/sambura_core
 
 servers:
   - url: http://localhost:8080
     description: Servidor Local
+  - url: https://dev.api.sambura.io
+    description: Servidor de Desenvolvimento
+  - url: https://hml.api.sambura.io
+    description: Servidor de Homologação
   - url: https://api.sambura.io
     description: Servidor de Produção
 
