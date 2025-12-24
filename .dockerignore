@@ -1,9 +1,43 @@
+# Docker files
 .dockerignore
 Dockerfile
+docker-compose.yaml
+
+# Build and tools
 build/
 .dart_tool/
+.packages
+
+# Version control
 .git/
 .github/
 .gitignore
+
+# IDE
 .idea/
-.packages
+.vscode/
+
+# Tests and coverage
+test/
+coverage/
+.test_coverage.dart
+
+# Documentation
+docs/
+README.md
+README_STRUCTURE.md
+CHANGELOG.md
+CONTRIBUTING.md
+
+# Local development
+.env
+.env.*
+.artifacts/
+.token*
+scripts/
+
+# Logs
+*.log
+
+# Python venv
+.venv/
