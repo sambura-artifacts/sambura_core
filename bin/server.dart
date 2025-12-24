@@ -1,8 +1,10 @@
 import 'dart:io';
 import 'package:logging/logging.dart';
-import 'package:minio/minio.dart';
+import 'package:sambura_core/application/usecase/health/get_server_health_usecase.dart';
 import 'package:sambura_core/application/usecase/package/proxy_package_metadata_usecase.dart';
 import 'package:sambura_core/infrastructure/adapters/http/http_client_adapter.dart';
+import 'package:sambura_core/infrastructure/adapters/storage/minio_storage_adapter.dart';
+import 'package:sambura_core/infrastructure/api/controller/system/health_controller.dart';
 import 'package:shelf/shelf.dart';
 import 'package:shelf/shelf_io.dart' as io;
 
@@ -87,12 +89,13 @@ void main() async {
   await redisService.connect();
 
   // MinIO
-  final minioClient = Minio(
+  final minioStorageAdapter = MinioStorageAdapter(
     endPoint: env.siloHost,
     port: env.siloPort,
-    useSSL: false,
     accessKey: env.siloAccessKey,
     secretKey: env.siloSecretKey,
+    useSSL: env.siloUseSSL,
+    bucket: env.bucketName,
   );
 
   // Repositories
@@ -103,8 +106,7 @@ void main() async {
   final packageRepo = PostgresPackageRepository(dbConnector);
   final postgresBlobRepo = PostgresBlobRepository(dbConnector);
   final siloBlobRepo = SiloBlobRepository(
-    minioClient,
-    env.bucketName,
+    minioStorageAdapter,
     postgresBlobRepo,
   );
 
@@ -157,6 +159,11 @@ void main() async {
     repositoryRepo,
   );
 
+  final healthUseCase = GetServerHealthUseCase(
+    artifactRepo,
+    minioStorageAdapter,
+  );
+
   final authController = AuthController(createAccountUsecase, loginUsecase);
   final apiKeyController = ApiKeyController(
     generateApiKeyUsecase,
@@ -178,6 +185,7 @@ void main() async {
   final blobController = BlobController(siloBlobRepo);
   final uploadController = UploadController(uploadArtifactUsecase);
 
+  final healthController = HealthController(healthUseCase);
   // Router
   final mainRouter = MainRouter(
     authController,
@@ -187,6 +195,7 @@ void main() async {
     blobController,
     apiKeyController,
     uploadController,
+    healthController,
     authService,
     apiKeyRepo,
     accountRepo,

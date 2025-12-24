@@ -40,6 +40,7 @@ class EnvConfig extends Equatable {
   final int siloPort;
   final String siloAccessKey;
   final String siloSecretKey;
+  final bool siloUseSSL;
   final String bucketName;
 
   // ----------------------------------
@@ -77,6 +78,7 @@ class EnvConfig extends Equatable {
     required this.siloPort,
     required this.siloAccessKey,
     required this.siloSecretKey,
+    required this.siloUseSSL,
     required this.bucketName,
     required this.keycloakUrl,
     required this.keycloakRealm,
@@ -159,6 +161,7 @@ class Env {
         defaultValue: 'sambura_silo_secret',
       ),
       bucketName: getString('BUCKET_NAME', defaultValue: 'sambura-blobs'),
+      siloUseSSL: bool.fromEnvironment('SILO_USESSL', defaultValue: false),
 
       // KEYCLOAK
       keycloakUrl: getString(
