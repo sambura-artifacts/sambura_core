@@ -7,9 +7,12 @@
 .packages
 build/
 
+# Diretorio de teste local
+.artifacts
+
 # Tokens internos do Makefile
 .token*
-criar_apikey.sh
+scripts
 
 # Possíveis arqivos baixados
 *.tar.*
@@ -62,3 +65,7 @@ tmp/
 
 # Python venv for awscli-local
 .venv
+
+
+# Coverage
+coverage
