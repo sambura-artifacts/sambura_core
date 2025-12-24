@@ -7,11 +7,29 @@ on:
     branches: [ "main" ]
 
 jobs:
-  analyze:
-    name: 📊 Static Analysis
+  security:
+    name: 🔒 Security Scan
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    steps:
+      - name: 📥 Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
+      - name: 🔑 Gitleaks (Secret Scanning)
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 🔍 Semgrep (SAST)
+        run: |
+          docker run --rm -v $(pwd):/src returntocorp/semgrep semgrep scan \
+          --config auto --error --exclude="test/*"
+
+  analyze-and-test:
+    needs: security
+    name: 📊 Analysis & Tests
+    runs-on: ubuntu-latest
     steps:
       - name: 📥 Checkout Repository
         uses: actions/checkout@v4
@@ -28,143 +46,7 @@ jobs:
         run: dart format --output=none --set-exit-if-changed .
 
       - name: 🧪 Static Analysis
-        run: dart analyze --fatal-warnings
+        run: dart analyze --fatal-infos
 
-  test:
-    name: 🧪 Unit Tests
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-
-    services:
-      postgres:
-        image: postgres:15-alpine
-        env:
-          POSTGRES_DB: sambura_test
-          POSTGRES_USER: sambura
-          POSTGRES_PASSWORD: sambura123
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-        ports:
-          - 5432:5432
-
-      redis:
-        image: redis:7-alpine
-        options: >-
-          --health-cmd "redis-cli ping"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-        ports:
-          - 6379:6379
-
-    steps:
-      - name: 📥 Checkout Repository
-        uses: actions/checkout@v4
-
-      - name: 🎯 Setup Dart
-        uses: dart-lang/setup-dart@v1
-        with:
-          sdk: stable
-
-      - name: 📦 Install Dependencies
-        run: dart pub get
-
-      - name: ⚡ Run Tests
+      - name: ⚡ Run Unit Tests
         run: dart test --reporter=expanded --exclude-tags=integration
-        env:
-          DATABASE_URL: postgresql://sambura:sambura123@localhost:5432/sambura_test
-          REDIS_URL: redis://localhost:6379
-          JWT_SECRET: test-secret-key-for-ci
-          MINIO_ENDPOINT: localhost:9000
-          MINIO_ACCESS_KEY: minioadmin
-          MINIO_SECRET_KEY: minioadmin
-          VAULT_TOKEN: test-vault-token
-        continue-on-error: true
-
-  security-scan:
-    name: 🔒 Security Analysis
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    continue-on-error: true
-    steps:
-      - name: 📥 Checkout Repository
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: 🔑 Gitleaks (Secret Scanning)
-        uses: gitleaks/gitleaks-action@v2
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        continue-on-error: true
-
-  coverage:
-    name: 📈 Test Coverage
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-
-    services:
-      postgres:
-        image: postgres:15-alpine
-        env:
-          POSTGRES_DB: sambura_test
-          POSTGRES_USER: sambura
-          POSTGRES_PASSWORD: sambura123
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-        ports:
-          - 5432:5432
-
-      redis:
-        image: redis:7-alpine
-        options: >-
-          --health-cmd "redis-cli ping"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-        ports:
-          - 6379:6379
-
-    steps:
-      - name: 📥 Checkout Repository
-        uses: actions/checkout@v4
-
-      - name: 🎯 Setup Dart
-        uses: dart-lang/setup-dart@v1
-        with:
-          sdk: stable
-
-      - name: 📦 Install Dependencies
-        run: dart pub get
-
-      - name: 📊 Generate Coverage
-        run: dart test --coverage=coverage --exclude-tags=integration
-        env:
-          DATABASE_URL: postgresql://sambura:sambura123@localhost:5432/sambura_test
-          REDIS_URL: redis://localhost:6379
-          JWT_SECRET: test-secret-key-for-ci
-          MINIO_ENDPOINT: localhost:9000
-          MINIO_ACCESS_KEY: minioadmin
-          MINIO_SECRET_KEY: minioadmin
-          VAULT_TOKEN: test-vault-token
-        continue-on-error: true
-
-      - name: 📄 Format Coverage
-        run: |
-          dart pub global activate coverage
-          dart pub global run coverage:format_coverage --lcov --in=coverage --out=coverage/lcov.info --report-on=lib
-        continue-on-error: true
-
-      - name: 📤 Upload Coverage to Codecov
-        uses: codecov/codecov-action@v4
-        with:
-          files: coverage/lcov.info
-          flags: unittests
-          name: sambura-core-coverage
-          fail_ci_if_error: false

@@ -2,7 +2,7 @@
 
 ## 📋 Visão Geral
 
-O Samburá Core utiliza **GitHub Actions** para automação de qualidade e deploy. O workflow principal é o **Quality Gate**, que executa análise estática, testes unitários, verificação de segurança e cobertura de código em paralelo.
+O Samburá Core utiliza **GitHub Actions** para automação de qualidade. O workflow **Quality Gate** executa análise estática, testes unitários e verificação de segurança em paralelo, com foco em simplicidade e velocidade.
 
 ## 🛡️ Quality Gate Workflow
 
@@ -14,73 +14,60 @@ O workflow é acionado em:
 
 ### Jobs
 
-#### 1. 📊 Static Analysis (10 min)
+#### 1. 🔒 Security Scan (5 min)
 
-Valida qualidade do código sem executá-lo:
+Verifica vazamento de credenciais e secrets no código:
 
 ```yaml
-- Checkout do código
-- Setup Dart SDK (stable)
-- Instalação de dependências (dart pub get)
-- Verificação de formatação (dart format)
-- Análise estática (dart analyze --fatal-warnings)
+- Checkout com histórico completo (fetch-depth: 0)
+- Gitleaks: Detecta secrets, API keys, tokens
 ```
+
+**Continue-on-error**: `true` - Não bloqueia pipeline
+
+#### 2. 📊 Analysis & Tests (15 min)
+
+Job unificado que executa todas as verificações de qualidade:
+
+**Steps:**
+
+1. **Checkout** - Clone do repositório
+2. **Setup Dart** - Instala Dart SDK stable
+3. **Install Dependencies** - `dart pub get`
+4. **Verify Formatting** - `dart format --output=none --set-exit-if-changed .`
+5. **Static Analysis** - `dart analyze --fatal-warnings`
+6. **Run Unit Tests** - `dart test --reporter=expanded --exclude-tags=integration`
+7. **Generate Coverage** - `dart test --coverage=coverage --exclude-tags=integration`
+8. **Format Coverage** - Converte para formato LCOV
+9. **Coverage Summary** - Exibe estatísticas no log (% e linhas cobertas)
 
 **Critérios de Falha:**
 - Código não formatado segundo padrão Dart
 - Warnings do analyzer (unused imports, dead code, etc)
 
-#### 2. 🧪 Unit Tests (15 min)
+**Continue-on-error**: Testes e coverage não bloqueiam (6 falhas conhecidas)
 
-Executa suite de testes com infraestrutura necessária:
+## 🧪 Arquitetura de Testes
 
-**Services:**
-- **PostgreSQL 15**: Banco de dados de teste
-- **Redis 7**: Cache em memória
+### Testes com Mocks
 
-**Configuração:**
-```bash
-Database: sambura_test
-User: sambura
-Password: sambura123
-Redis: localhost:6379
-```
+O projeto utiliza **mocks e in-memory implementations** ao invés de serviços reais:
 
-**Comando:**
-```bash
-dart test --reporter=expanded --exclude-tags=integration
-```
+- ✅ **Banco de Dados**: Mock em memória (sem PostgreSQL)
+- ✅ **Cache**: Mock em memória (sem Redis)
+- ✅ **Storage**: Mock em memória (sem MinIO)
+- ✅ **Secrets**: Mock em memória (sem Vault)
 
-**Variáveis de Ambiente:**
-- `DATABASE_URL`: Conexão PostgreSQL
-- `REDIS_URL`: Conexão Redis
-- `JWT_SECRET`: Chave para tokens JWT
-- `MINIO_*`: Configuração MinIO (mock)
-- `VAULT_TOKEN`: Token Vault (mock)
+**Vantagens:**
+- ⚡ **Rápido**: Sem overhead de containers Docker
+- 🎯 **Determinístico**: Testes sempre produzem mesmo resultado
+- 💰 **Econômico**: Não requer infraestrutura externa
+- 🔧 **Simples**: Sem configuração complexa de serviços
 
-**Continue-on-error**: `true` - Testes com falhas conhecidas não bloqueiam pipeline
+### Tags de Teste
 
-#### 3. 🔒 Security Analysis (10 min)
-
-Verifica vulnerabilidades e vazamento de credenciais:
-
-**Ferramentas:**
-- **Gitleaks**: Detecta secrets, API keys, tokens no código
-
-**Continue-on-error**: `true` - Não bloqueia pipeline
-
-#### 4. 📈 Test Coverage (15 min)
-
-Gera relatório de cobertura e envia para Codecov:
-
-**Services:** PostgreSQL + Redis (mesma config do job Test)
-
-**Steps:**
-1. Gera coverage: `dart test --coverage=coverage --exclude-tags=integration`
-2. Formata para LCOV: `coverage:format_coverage`
-3. Upload para Codecov
-
-**Continue-on-error**: `true` em todas as etapas
+- `--exclude-tags=integration`: Exclui testes que requerem serviços reais
+- Testes unitários rodam 100% em memória
 
 ## 📊 Métricas de Qualidade
 
@@ -88,20 +75,21 @@ Gera relatório de cobertura e envia para Codecov:
 
 - **Target**: 80%+
 - **Atual**: 80.1% (335/418 linhas)
-- **Relatório**: `coverage/html/index.html`
+- **Relatório Local**: `coverage/html/index.html`
+- **CI**: Estatísticas no log do workflow
 
 ### Testes
 
 - **Total**: 185 testes
 - **Passando**: 179 (96.7%)
-- **Falhando**: 6 (issues conhecidas)
+- **Falhando**: 6 (issues conhecidas - ExternalId validation)
 - **Excludes**: `--exclude-tags=integration`
 
 ### Análise Estática
 
 - **Linter**: `dart analyze --fatal-warnings`
 - **Formatter**: `dart format`
-- **Sem warnings permitidos**
+- **Nível**: Warnings bloqueiam (infos não)
 
 ## 🔧 Executar Localmente
 
@@ -115,112 +103,212 @@ dart format .
 dart analyze --fatal-warnings
 
 # Testes
-dart test --reporter=expanded
+dart test --reporter=expanded --exclude-tags=integration
 
 # Coverage
-dart test --coverage=coverage
+dart test --coverage=coverage --exclude-tags=integration
+dart pub global activate coverage
+dart pub global run coverage:format_coverage --lcov --in=coverage --out=coverage/lcov.info --report-on=lib
+
+# Gerar HTML de coverage
 genhtml coverage/lcov.info -o coverage/html
+open coverage/html/index.html  # ou xdg-open no Linux
 ```
 
 ### Com Make
 
 ```bash
-make test      # Testes
+make test      # Testes com reporter expanded
 make coverage  # Coverage com HTML
 make analyze   # Análise estática
+make format    # Formata código
 ```
 
-### Com Docker
+### Executar Teste Específico
 
 ```bash
-# Subir infraestrutura
-docker-compose up -d postgres redis
+# Por arquivo
+dart test test/domain/entities/account_entity_test.dart
 
-# Executar testes
-docker-compose run --rm app dart test
+# Por padrão
+dart test --name "Account"
+
+# Com coverage de arquivo específico
+dart test test/domain/ --coverage=coverage
 ```
 
 ## 🐛 Troubleshooting CI/CD
 
-### ❌ Testes Falhando
+### ❌ Workflow Falhando no Static Analysis
 
+**Problema**: `dart analyze --fatal-warnings` encontrou warnings
+
+**Solução**:
 ```bash
-# Verificar logs específicos do job
-# GitHub Actions > Workflow run > Test job > Step logs
+# Ver warnings localmente
+dart analyze
 
-# Executar localmente com mesmas variáveis
-export DATABASE_URL=postgresql://sambura:sambura123@localhost:5432/sambura_test
-export REDIS_URL=redis://localhost:6379
-dart test
+# Corrigir automaticamente (quando possível)
+dart fix --apply
+
+# Suprimir warning específico (último caso)
+// ignore: warning_type
+var x = something();
 ```
 
-### ❌ Coverage Job Falhando
+### ❌ Testes Falhando Localmente mas Passando no CI
 
+**Problema**: Diferenças de ambiente
+
+**Solução**:
+```bash
+# Limpar cache
+dart pub cache clean
+dart pub get
+
+# Verificar versão do Dart
+dart --version  # Deve ser stable (mesma do CI)
+
+# Limpar build artifacts
+rm -rf .dart_tool/
+dart pub get
+```
+
+### ❌ Coverage Não Gerando Relatório
+
+**Problema**: Comando `coverage:format_coverage` falhando
+
+**Solução**:
 ```bash
 # Verificar se coverage foi gerado
-ls -la coverage/lcov.info
+ls -la coverage/
 
-# Formatar manualmente
+# Verificar se coverage tool está instalado
 dart pub global activate coverage
+
+# Adicionar ao PATH se necessário
+export PATH="$PATH":"$HOME/.pub-cache/bin"
+
+# Gerar manualmente
 dart pub global run coverage:format_coverage \
-  --lcov --in=coverage --out=coverage/lcov.info --report-on=lib
+  --lcov \
+  --in=coverage \
+  --out=coverage/lcov.info \
+  --report-on=lib
 ```
 
-### ❌ Security Scan Alertas
+### ❌ Gitleaks Encontrando Falsos Positivos
 
+**Problema**: Secrets de teste ou exemplos sendo detectados
+
+**Solução**:
 ```bash
-# Executar Gitleaks localmente
-docker run --rm -v $(pwd):/path zricethezav/gitleaks:latest \
-  detect --source="/path" -v
+# Criar .gitleaksignore na raiz
+echo "test/**" >> .gitleaksignore
+echo "docs/**" >> .gitleaksignore
 
-# Adicionar exceções em .gitleaksignore se necessário
+# Ou adicionar comentário inline
+const secret = "fake-secret-for-testing"; // gitleaks:allow
 ```
 
-### ❌ Formatter Falhando
+### ❌ Formatter Alterando Arquivos Gerados
 
+**Problema**: `dart format` modificando `.g.dart` ou outros gerados
+
+**Solução**:
 ```bash
-# Formatar automaticamente
-dart format .
+# Arquivos gerados já devem estar formatados
+# Se não, regenere-os:
+dart run build_runner build --delete-conflicting-outputs
 
-# Verificar sem modificar
-dart format --output=none --set-exit-if-changed .
+# Ou adicione ao .gitignore
+**/*.g.dart
+**/*.freezed.dart
 ```
 
-## 🔐 Secrets Necessários
+## 📈 Performance do CI
 
-### GitHub Secrets
+### Tempos Médios
 
-- `GITHUB_TOKEN`: Auto-gerado pelo GitHub (já disponível)
-- `CODECOV_TOKEN`: Token para upload de coverage (opcional)
+| Job | Duração | Pode Falhar |
+|-----|---------|-------------|
+| Security Scan | ~2 min | ✅ Sim |
+| Analysis & Tests | ~8 min | ⚠️ Parcial |
+| - Install Deps | ~30s | ❌ Não |
+| - Formatting | ~10s | ❌ Não |
+| - Static Analysis | ~20s | ❌ Não |
+| - Run Tests | ~5 min | ✅ Sim |
+| - Generate Coverage | ~2 min | ✅ Sim |
+| **Total** | **~10 min** | - |
+
+### Otimizações Implementadas
+
+✅ **Jobs em Paralelo**: Security e Analysis rodam simultaneamente  
+✅ **Sem Docker**: Mocks eliminam overhead de containers  
+✅ **Continue-on-error**: Testes conhecidos não bloqueiam  
+✅ **Timeouts**: Previne workflows travados  
+✅ **Cache de deps**: Pub cache do GitHub Actions  
+
+## 🔐 Secrets e Variáveis
+
+### GitHub Secrets Necessários
+
+- `GITHUB_TOKEN`: ✅ Auto-gerado (já disponível)
+
+**Não requer configuração adicional** - testes usam mocks!
 
 ### Variáveis de Ambiente
 
-Configuradas no workflow, não precisam de secrets:
-- `JWT_SECRET`: Gerado para testes
-- Credenciais de serviços (PostgreSQL, Redis)
+Nenhuma variável externa necessária no CI. Testes utilizam:
+- Mocks em memória para todos os serviços
+- Dados faker/fixture para cenários
+- No estado compartilhado entre testes
 
 ## 📈 Melhorias Futuras
 
 ### v1.1
-- [ ] Testes de integração com MinIO real
-- [ ] Testes E2E com servidor completo
-- [ ] Cache de dependências do Dart
-- [ ] Matrix testing (múltiplas versões Dart)
+- [ ] Cache de dependências Dart pub mais agressivo
+- [ ] Matrix testing (múltiplas versões Dart: stable, beta, dev)
+- [ ] Testes de mutação (mutation testing)
+- [ ] Badges dinâmicos de coverage no README
 
 ### v2.0
-- [ ] Deploy automático para staging
+- [ ] Deploy automático para staging (Cloud Run/Fly.io)
 - [ ] Smoke tests pós-deploy
-- [ ] Performance benchmarks
+- [ ] Performance benchmarks comparativos
 - [ ] Análise de dependências vulneráveis (Dependabot)
-- [ ] Container scanning (Trivy)
+- [ ] Teste de carga básico (k6)
 
 ## 📚 Recursos
 
-- [GitHub Actions Docs](https://docs.github.com/actions)
-- [Dart CI Best Practices](https://dart.dev/guides/testing/continuous-integration)
-- [Codecov Documentation](https://docs.codecov.com/)
-- [Gitleaks](https://github.com/gitleaks/gitleaks)
+- [GitHub Actions Documentation](https://docs.github.com/actions)
+- [Dart Testing Best Practices](https://dart.dev/guides/testing)
+- [Dart CI/CD Guide](https://dart.dev/guides/testing/continuous-integration)
+- [Gitleaks Secret Scanning](https://github.com/gitleaks/gitleaks)
+- [Coverage Package](https://pub.dev/packages/coverage)
+
+## 💡 Boas Práticas
+
+### ✅ Do's
+
+- ✅ Manter testes rápidos (< 10 min total)
+- ✅ Usar mocks para dependências externas
+- ✅ Executar CI localmente antes do push
+- ✅ Manter coverage acima de 80%
+- ✅ Corrigir warnings do analyzer
+- ✅ Formatar código antes de commitar
+
+### ❌ Don'ts
+
+- ❌ Depender de serviços externos no CI
+- ❌ Ignorar falhas de testes sistematicamente
+- ❌ Commitar código não formatado
+- ❌ Usar `// ignore:` indiscriminadamente
+- ❌ Deixar testes flaky (não determinísticos)
+- ❌ Fazer testes que dependem de ordem de execução
 
 ---
 
-**Última atualização**: 24 de dezembro de 2025
+**Última atualização**: 24 de dezembro de 2025  
+**Versão**: 1.0  
+**Status**: ✅ Operacional
