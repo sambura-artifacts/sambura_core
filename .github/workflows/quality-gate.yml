@@ -48,14 +48,23 @@ jobs:
         run: dart analyze --fatal-infos
 
       - name: ⚡ Run Unit Tests
-        run: dart test --reporter=expanded --exclude-tags=integration
+        run: dart test --reporter=json --exclude-tags=integration > test-results.json
+      
+      - name: 📊 Get Test Count
+        id: test_count
+        if: always()
+        run: |
+          # Extrai apenas os testes que passaram com sucesso
+          PASSED=$(jq -s '[.[] | select(.type=="testDone" and .result=="success")] | length' test-results.json)
+          echo "total=$PASSED" >> $GITHUB_OUTPUT
 
-      - name: Create Test Badge
+      - name: 🛡️ Create Test Badge
+        if: always()
         uses: schneegans/dynamic-badges-action@v1.7.0
         with:
-          auth: ${{ secrets.GIST_SECRET }}
-          gistID: SEU_GIST_ID
+          auth: ${{ secrets.GIST_TOKEN }}
+          gistID: d089a6ba4882701dbca635367b01e9b2
           filename: test-results.json
           label: Tests
-          message: 185 total
-          color: blue
+          message: "${{ steps.test_count.outputs.total }} passed"
+          color: green
