@@ -7,6 +7,7 @@ import 'package:sambura_core/infrastructure/api/controller/artifact/blob_control
 import 'package:sambura_core/infrastructure/api/controller/artifact/package_controller.dart';
 import 'package:sambura_core/infrastructure/api/controller/artifact/repository_controller.dart';
 import 'package:sambura_core/infrastructure/api/controller/artifact/upload_controller.dart';
+import 'package:sambura_core/infrastructure/api/controller/system/health_controller.dart';
 import 'package:sambura_core/infrastructure/api/middleware/auth_middleware.dart';
 import 'package:sambura_core/infrastructure/api/routes/admin_router.dart';
 import 'package:sambura_core/infrastructure/api/routes/public_router.dart';
@@ -25,6 +26,7 @@ class MainRouter {
   final BlobController _blobController;
   final ApiKeyController _apiKeyController;
   final UploadController _uploadController;
+  final HealthController _healthController;
   final AuthService _authService;
   final ApiKeyRepository _apiKeyRepo;
   final AccountRepository _accountRepo;
@@ -40,6 +42,7 @@ class MainRouter {
     this._blobController,
     this._apiKeyController,
     this._uploadController,
+    this._healthController,
     this._authService,
     this._apiKeyRepo,
     this._accountRepo,
@@ -112,6 +115,7 @@ class MainRouter {
     _log.info('🚀 Montando API em /api/v1');
     mainRouter.mount('/api/v1', authenticatedHandler);
     mainRouter.mount('/api/v1/public', publicRouter.router.call);
+    mainRouter.mount('/health', _healthController.router.call);
 
     return mainRouter.call;
   }
