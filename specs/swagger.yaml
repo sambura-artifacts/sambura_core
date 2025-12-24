@@ -14,8 +14,18 @@ info:
     2. Faça login via `/api/v1/auth/login` para obter o token JWT
     3. Crie uma API Key via `/api/v1/admin/api-keys` para upload automatizado
     4. Crie repositórios via `/api/v1/admin/repositories`
-    5. Faça upload de artefatos via `/api/v1/upload`
-    6. Resolva e baixe artefatos via endpoints de download
+    5. Faça upload de artefatos via `/api/v1/admin/upload` ou `/api/v1/upload`
+    6. Resolva artefatos via `/api/v1/{repositoryName}/{packageName}/{version}`
+    7. Baixe artefatos via `/api/v1/download/{namespace}/{name}/{version}`
+    
+    ## Estrutura de Rotas
+    - `/api/v1/auth/*` - Autenticação pública (registro e login)
+    - `/api/v1/admin/*` - Gerenciamento de recursos (requer autenticação)
+    - `/api/v1/npm/*` - Compatibilidade com NPM Registry
+    - `/api/v1/{repo}/{package}/{version}` - Resolução de artefatos
+    - `/api/v1/download/*` - Download de artefatos
+    - `/api/v1/blobs/*` - Download direto de blobs
+    - `/api/v1/docs` - Documentação Swagger UI
     
   version: 1.0.0
   contact:
@@ -47,6 +57,8 @@ tags:
     description: Upload de artefatos (requer autenticação)
   - name: Blobs
     description: Download de blobs binários
+  - name: Docs
+    description: Documentação da API
 
 components:
   securitySchemes:
@@ -647,7 +659,7 @@ paths:
           description: Chave não encontrada
 
   # ===== UPLOAD =====
-  /api/v1/upload:
+  /api/v1/admin/upload:
     post:
       summary: Faz upload de um artefato
       description: Upload de artefatos via multipart/form-data
@@ -699,8 +711,60 @@ paths:
         '500':
           description: Erro no processamento
 
+  /api/v1/upload:
+    post:
+      summary: Faz upload de um artefato (alternativa)
+      description: Upload de artefatos via multipart/form-data (endpoint alternativo na raiz do /api/v1)
+      tags:
+        - Upload
+      security:
+        - BearerAuth: []
+        - ApiKeyAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - file
+                - package
+                - version
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: Arquivo .tgz do pacote
+                package:
+                  type: string
+                  example: "@sambura/core"
+                version:
+                  type: string
+                  example: "1.0.0"
+                repository:
+                  type: string
+                  default: "default"
+                  example: "my-repo"
+      responses:
+        '200':
+          description: Artefato enviado com sucesso
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Artefato no ninho! 🚀"
+        '400':
+          description: Dados incompletos ou formato inválido
+        '401':
+          description: Não autenticado
+        '500':
+          description: Erro no processamento
+
   # ===== ARTIFACTS - RESOLVE & DOWNLOAD =====
-  /api/v1/resolve/{repository}/{package}/{version}:
+  /api/v1/{repositoryName}/{packageName}/{version}:
     get:
       summary: Resolve a localização de um artefato
       description: Busca artefato no banco ou faz proxy do NPM Registry
@@ -710,24 +774,27 @@ paths:
         - BearerAuth: []
         - ApiKeyAuth: []
       parameters:
-        - name: repository
+        - name: repositoryName
           in: path
           required: true
           schema:
             type: string
           example: "my-repo"
-        - name: package
+          description: Nome do repositório
+        - name: packageName
           in: path
           required: true
           schema:
             type: string
           example: "@sambura/core"
+          description: Nome do pacote (pode incluir namespace)
         - name: version
           in: path
           required: true
           schema:
             type: string
           example: "1.0.0"
+          description: Versão do pacote
       responses:
         '200':
           description: Artefato encontrado
@@ -758,18 +825,21 @@ paths:
           schema:
             type: string
           example: "@sambura"
+          description: Namespace do pacote (escopo)
         - name: name
           in: path
           required: true
           schema:
             type: string
           example: "core"
+          description: Nome do pacote sem namespace
         - name: version
           in: path
           required: true
           schema:
             type: string
           example: "1.0.0"
+          description: Versão do pacote
       responses:
         '200':
           description: Download iniciado
