@@ -45,10 +45,4 @@ abstract class StoragePort {
   Future<Map<String, dynamic>> getMetadata(String path);
 
   Future<bool> isHealthy();
-
-  Future<dynamic> statObject(
-    String bucket,
-    String object, {
-    bool retrieveAcls = true,
-  });
 }

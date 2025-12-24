@@ -6,7 +6,7 @@ import 'package:minio/minio.dart';
 import 'package:sambura_core/config/logger.dart';
 import 'package:sambura_core/application/ports/storage_port.dart';
 
-/// Adapter para MinIO/S3 implementando IStoragePort.
+/// Adapter para MinIO/S3 implementando StoragePort.
 ///
 /// Segue o padrão Hexagonal Architecture (Ports & Adapters).
 class MinioStorageAdapter implements StoragePort {
@@ -126,14 +126,5 @@ class MinioStorageAdapter implements StoragePort {
       _log.severe('❌ Storage Health Check falhou: $e');
       return false;
     }
-  }
-
-  @override
-  Future<dynamic> statObject(
-    String bucket,
-    String object, {
-    bool retrieveAcls = true,
-  }) {
-    return _client.statObject(bucket, object);
   }
 }
