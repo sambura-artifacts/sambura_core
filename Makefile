@@ -117,7 +117,8 @@ setup-s3: ## Garante que o bucket do MinIO existe
 # COMANDOS DE EXECUÇÃO & TESTES
 # ==============================================================================
 dev: ## Roda o servidor Dart com hot reload
-	dart bin/server.dart
+	@clear
+	@dart bin/server.dart
 
 test: ## Roda todos os testes unitários
 	@echo "🧪 Rodando testes..."

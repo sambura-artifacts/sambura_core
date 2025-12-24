@@ -31,6 +31,7 @@ class CreateArtifactUsecase {
     );
 
     try {
+      // 1. Validar Repositório
       _log.fine('Buscando repositório: ${input.repositoryName}');
       final repo = await _repositoryRepository.getByName(input.repositoryName);
 
@@ -38,25 +39,23 @@ class CreateArtifactUsecase {
         _log.severe('✗ Repositório não encontrado: ${input.repositoryName}');
         throw RepositoryNotFoundException(input.repositoryName);
       }
-      _log.fine('Repositório encontrado: ${repo.name} (ID: ${repo.id})');
 
+      // 2. Persistir o Binário (Blob) no MinIO/S3
       _log.fine('Salvando blob a partir do stream de dados');
       final blob = await _blobRepository.saveFromStream(fileStream);
       _log.info(
         'Blob salvo: ${blob.hashValue.substring(0, 12)}... (${blob.sizeBytes} bytes)',
       );
 
-      _log.fine('Buscando package: ${input.packageName}');
-      final package = await _packageRepository.findByGlobalName(
-        input.packageName,
+      // 3. Garantir que o Pacote existe (Busca ou Cria via Upsert)
+      _log.fine('Garantindo existência do package: ${input.packageName}');
+      final package = await _packageRepository.ensurePackage(
+        repositoryId: repo.id!,
+        name: input.packageName,
       );
+      _log.info('✅ Package pronto: ${package.name} (ID: ${package.id})');
 
-      if (package == null) {
-        _log.severe('✗ Package não encontrado: ${input.packageName}');
-        throw Exception('Package ${input.packageName} não encontrado');
-      }
-      _log.fine('Package encontrado: ${package.name} (ID: ${package.id})');
-
+      // 4. Criar e Salvar a versão do Artefato
       _log.fine('Criando entidade Artifact');
       final artifact = ArtifactEntity.create(
         packageId: package.id!,

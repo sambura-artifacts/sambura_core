@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:typed_data';
 
 import 'package:logging/logging.dart';
 import 'package:sambura_core/application/usecase/api_key/generate_api_key_usecase.dart';
@@ -9,6 +10,7 @@ import 'package:sambura_core/application/usecase/package/proxy_package_metadata_
 import 'package:sambura_core/config/logger.dart';
 import 'package:sambura_core/domain/entities/account_entity.dart';
 import 'package:sambura_core/domain/exceptions/domain_exception.dart';
+import 'package:sambura_core/infrastructure/api/helpers/package_path_parser.dart';
 import 'package:sambura_core/infrastructure/api/presenter/artifact/npm_packument_presenter.dart';
 import 'package:shelf/shelf.dart';
 import 'package:sambura_core/application/usecase/artifact/get_artifact_usecase.dart';
@@ -16,9 +18,10 @@ import 'package:sambura_core/application/usecase/artifact/create_artifact_usecas
 import 'package:sambura_core/infrastructure/api/presenter/artifact/artifact_presenter.dart';
 import 'package:sambura_core/infrastructure/api/presenter/error_presenter.dart';
 import 'package:sambura_core/infrastructure/api/dtos/artifact_input.dart';
+import 'package:shelf_router/shelf_router.dart';
 
 class ArtifactController {
-  final CreateArtifactUsecase _createUsecase;
+  final CreateArtifactUsecase _createArtifactUseCase;
   final GetArtifactUseCase _getArtifactUseCase;
   final GetArtifactByIdUseCase _getByIdUseCase;
   final GetArtifactDownloadStreamUsecase _getArtifactDownloadStreamUsecase;
@@ -30,7 +33,7 @@ class ArtifactController {
   // No construtor, a gente recebe os UseCases.
   // O repositório a gente deixa pros UseCases resolverem.
   ArtifactController(
-    this._createUsecase,
+    this._createArtifactUseCase,
     this._getArtifactUseCase,
     this._getByIdUseCase,
     this._getArtifactDownloadStreamUsecase,
@@ -68,7 +71,7 @@ class ArtifactController {
       );
 
       _log.fine('Executando usecase de criação de artefato');
-      final artifact = await _createUsecase.execute(input, byteStream);
+      final artifact = await _createArtifactUseCase.execute(input, byteStream);
 
       if (artifact == null) {
         return ErrorPresenter.notFound(
@@ -369,49 +372,93 @@ class ArtifactController {
     }
   }
 
-  Future<Response> getPackageMetadata(
-    Request request,
-    String repoName,
-    String packageName,
-  ) async {
-    final requestId = DateTime.now().millisecondsSinceEpoch.toString();
-    final decodedName = Uri.decodeComponent(packageName);
+  Future<Response> getPackageMetadata(Request request) async {
+    final repo = request.params['repo'];
+    final packageName = request.params['name'];
 
-    _log.info(
-      '[REQ:$requestId] GET /$repoName/$packageName - Buscando metadata do pacote',
-    );
+    if (packageName == null || repo == null) {
+      _log.severe('❌ Parâmetros nulos no Router');
+      return Response.internalServerError();
+    }
 
-    try {
-      final metadata = await _getPackageMetadataUseCase.execute(
-        repoName,
-        packageName,
+    // 1. Tratamento de Binário (.tgz)
+    if (packageName.endsWith('.tgz')) {
+      final nameOnly = PackagePathParser.extractName(packageName);
+      final version = PackagePathParser.extractVersion(packageName);
+
+      final downloadResult = await _getArtifactDownloadStreamUsecase.execute(
+        namespace: repo,
+        name: nameOnly,
+        version: version,
       );
 
-      if (metadata != null) {
-        return NpmPackumentPresenter.success(metadata);
-      }
-
-      final remoteMetadata = await _proxyPackageMetadataUseCase.execute(
-        packageName,
-      );
-
-      if (remoteMetadata is Map<String, dynamic>) {
-        return NpmPackumentPresenter.success(remoteMetadata);
-      }
-
-      if (remoteMetadata is List<int>) {
+      if (downloadResult != null) {
+        _log.info('📦 Cache Hit Silo: $nameOnly@$version');
         return Response.ok(
-          remoteMetadata,
-          headers: {
-            'Content-Type': 'application/octet-stream',
-            'Content-Disposition':
-                'attachment; filename="${packageName.split('/').last}"',
-          },
+          downloadResult.stream, // ✅ Extrai o stream real
+          headers: {'Content-Type': 'application/octet-stream'},
         );
       }
-      return NpmPackumentPresenter.error(404, 'Package not found');
+    }
+
+    // 2. Proxy (Metadata JSON ou Binário não cacheado)
+    final result = await _proxyPackageMetadataUseCase.execute(
+      packageName,
+      repoName: repo,
+    );
+
+    if (result == null) return Response.notFound('Pacote não encontrado');
+
+    // 3. Persistência se for binário novo
+    if (packageName.endsWith('.tgz') && result is Uint8List) {
+      // Não damos await para o dev não esperar o banco salvar
+      _persistProxyResult(
+        repo,
+        packageName,
+        result,
+      ).catchError((e) => _log.severe(e));
+
+      return Response.ok(
+        result,
+        headers: {'Content-Type': 'application/octet-stream'},
+      );
+    }
+
+    // 4. Retorno de Metadata (JSON)
+    return Response.ok(
+      result is Map ? jsonEncode(result) : result,
+      headers: {'Content-Type': 'application/json'},
+    );
+  }
+
+  Future<void> _persistProxyResult(
+    String repo,
+    String path,
+    Uint8List bytes,
+  ) async {
+    try {
+      final name = PackagePathParser.extractName(path);
+      final version = PackagePathParser.extractVersion(path);
+      final fileName = path.split('/').last;
+
+      _log.info('💾 Persistindo no Silo: $name@$version');
+
+      final input = ArtifactInput(
+        repositoryName: repo,
+        packageName: name,
+        version: version,
+        filename: fileName,
+        namespace: repo,
+        path: '$name/-/$fileName',
+      );
+
+      final stream = Stream.value(bytes);
+
+      await _createArtifactUseCase.execute(input, stream);
+
+      _log.info('✅ Cache salvo com sucesso para $fileName');
     } catch (e) {
-      return NpmPackumentPresenter.error(500, 'Internal server failure');
+      _log.severe('❌ Erro ao persistir cache do proxy', e);
     }
   }
 }

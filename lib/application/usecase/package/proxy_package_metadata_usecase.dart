@@ -1,52 +1,66 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:logging/logging.dart';
+import 'package:sambura_core/config/app_config.dart';
 import 'package:sambura_core/config/logger.dart';
 
 class ProxyPackageMetadataUseCase {
   final Logger _log = LoggerConfig.getLogger('ProxyPackageMetadataUseCase');
   final String remoteRegistry = 'https://registry.npmjs.org';
 
-  Future<dynamic> execute(String packageName) async {
-    _log.info('🔍 Proxy: Buscando pacote externo: $packageName');
-
+  Future<dynamic> execute(
+    String packageName, {
+    required String repoName,
+  }) async {
     try {
-      // O NPM exige encoding apenas da barra entre scope e nome
       final encodedName = packageName.replaceFirst('/', '%2f');
+
       final response = await http.get(
         Uri.parse('$remoteRegistry/$encodedName'),
       );
 
-      if (response.statusCode == 404) {
-        _log.warning(
-          '⚠️ Pacote não encontrado no registro oficial: $packageName',
-        );
-        return null;
-      }
+      if (response.statusCode != 200) return null;
 
-      if (response.statusCode != 200) {
-        throw Exception(
-          'Erro ao consultar registro remoto: ${response.statusCode}',
-        );
-      }
+      if (packageName.endsWith('.tgz')) return response.bodyBytes;
 
-      // 1. CHECAGEM DE TARBALL: Se for binário, retorna os bytes sem tentar decode JSON
-      if (packageName.endsWith('.tgz')) {
-        _log.info('📦 Proxy: Binário detectado (.tgz). Retornando bytes.');
-        return response.bodyBytes;
-      }
-
-      // 2. METADATA: Se não for binário, processa como JSON
       final Map<String, dynamic> remoteData = jsonDecode(response.body);
-      return _processRemoteMetadata(remoteData);
-    } catch (e, stack) {
-      _log.severe('🔥 Erro no Proxy para $packageName', e, stack);
+
+      // CENTRALIZANDO: Chama o process que por sua vez chama o rewrite
+      return _processRemoteMetadata(remoteData, repoName);
+    } catch (e) {
+      _log.severe('🔥 Erro no Proxy', e);
       return null;
     }
   }
 
-  Map<String, dynamic> _processRemoteMetadata(Map<String, dynamic> data) {
-    _log.info('✅ Metadata remoto obtido para ${data['name']}');
+  Map<String, dynamic> _processRemoteMetadata(
+    Map<String, dynamic> data,
+    String repoName,
+  ) {
+    _log.info('✅ Processando metadata remoto para: ${data['name']}');
+
+    final processedData = _rewriteTarballUrls(data, repoName);
+
+    return processedData;
+  }
+
+  Map<String, dynamic> _rewriteTarballUrls(
+    Map<String, dynamic> data,
+    String repoName,
+  ) {
+    final versions = data['versions'] as Map<String, dynamic>?;
+    if (versions == null) return data;
+
+    for (var versionData in versions.values) {
+      final dist = versionData['dist'] as Map<String, dynamic>?;
+      if (dist != null && dist['tarball'] != null) {
+        final String originalUrl = dist['tarball'];
+        final fileName = originalUrl.split('/').last;
+
+        dist['tarball'] =
+            '${AppConfig.baseUrl}${AppConfig.npmApiPrefix}/$repoName/${data['name']}/-/$fileName';
+      }
+    }
     return data;
   }
 }

@@ -85,18 +85,17 @@ class MainRouter {
     protectedRouter.post('/upload', _uploadController.handle);
 
     // Use o regex <name|.*> para permitir que o Router aceite a barra do scope
-    protectedRouter.put(
-      '/npm/private-repo/<name|.*>',
-      _uploadController.handle,
-    );
+    protectedRouter.put('/npm/<repo>/<name|.*>', _uploadController.handle);
     protectedRouter.get(
-      '/npm/private-repo/<name|.*>',
-      _packageController.getMetadata,
+      '/npm/<repo>/<name|@?.*>',
+      _artifactController.getPackageMetadata,
     );
 
-    // 3. Montagem da Árvore de Rotas
-    // Rotas Públicas
-    mainRouter.mount('/api/v1', publicRouter.router.call);
+    // E para suportar pacotes com SCOPE (ex: @cria/minha-lib), adicione esta TAMBÉM:
+    protectedRouter.get(
+      '/npm/<repo>/<scope>/<name>',
+      _artifactController.getPackageMetadata,
+    );
 
     // Rotas Protegidas sob Middleware de Autenticação (JWT ou API Key)
     final authenticatedHandler = Pipeline()
@@ -106,6 +105,8 @@ class MainRouter {
         .addHandler(protectedRouter.call);
 
     mainRouter.mount('/api/v1', authenticatedHandler);
+
+    mainRouter.mount('/api/v1/public', publicRouter.router.call);
 
     return mainRouter.call;
   }
