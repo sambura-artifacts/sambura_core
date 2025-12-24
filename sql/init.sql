@@ -46,6 +46,7 @@ CREATE TABLE IF NOT EXISTS artifacts (
 -- 5. ACCOUNTS (Gestão de Usuários)
 CREATE TABLE IF NOT EXISTS accounts (
     id SERIAL PRIMARY KEY,
+    external_id UUID UNIQUE NOT NULL, -- ID público (UUID v7) para a API
     username TEXT UNIQUE NOT NULL,
     password_hash TEXT NOT NULL, -- Senha criptografada, sempre!
     email TEXT UNIQUE NOT NULL,

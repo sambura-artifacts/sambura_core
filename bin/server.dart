@@ -12,40 +12,42 @@ import 'package:sambura_core/config/env.dart';
 import 'package:sambura_core/infrastructure/database/postgres_connector.dart';
 
 // Repositories
-import 'package:sambura_core/infrastructure/repositories/postgres_blob_repository.dart';
-import 'package:sambura_core/infrastructure/repositories/silo_blob_repository.dart';
-import 'package:sambura_core/infrastructure/repositories/postgres_repository_repository.dart';
-import 'package:sambura_core/infrastructure/repositories/postgres_artifact_repository.dart';
-import 'package:sambura_core/infrastructure/repositories/postgres_package_repository.dart';
-import 'package:sambura_core/infrastructure/repositories/postgres_account_repository.dart';
-import 'package:sambura_core/infrastructure/repositories/postgres_api_key_repository.dart';
+import 'package:sambura_core/infrastructure/repositories/postgres/postgres_blob_repository.dart';
+import 'package:sambura_core/infrastructure/repositories/blob/silo_blob_repository.dart';
+import 'package:sambura_core/infrastructure/repositories/postgres/postgres_repository_repository.dart';
+import 'package:sambura_core/infrastructure/repositories/postgres/postgres_artifact_repository.dart';
+import 'package:sambura_core/infrastructure/repositories/postgres/postgres_package_repository.dart';
+import 'package:sambura_core/infrastructure/repositories/postgres/postgres_account_repository.dart';
+import 'package:sambura_core/infrastructure/repositories/postgres/postgres_api_key_repository.dart';
 
 // Services
-import 'package:sambura_core/infrastructure/services/redis_service.dart';
-import 'package:sambura_core/infrastructure/services/vault_service.dart';
-import 'package:sambura_core/infrastructure/services/hash_service.dart';
-import 'package:sambura_core/infrastructure/services/auth_service.dart';
+import 'package:sambura_core/infrastructure/services/cache/redis_service.dart';
+import 'package:sambura_core/infrastructure/services/secrets/vault_service.dart';
+import 'package:sambura_core/infrastructure/services/auth/hash_service.dart';
+import 'package:sambura_core/infrastructure/services/auth/auth_service.dart';
 import 'package:sambura_core/infrastructure/proxies/npm_proxy.dart';
 
 // UseCases
-import 'package:sambura_core/application/usecase/get_artifact_by_id_usecase.dart';
-import 'package:sambura_core/application/usecase/get_artifact_download_stream_usecase.dart';
-import 'package:sambura_core/application/usecase/get_artifact_usecase.dart';
-import 'package:sambura_core/application/usecase/create_artifact_usecase.dart';
-import 'package:sambura_core/application/usecase/upload_artifact_usecase.dart';
-import 'package:sambura_core/application/usecase/login_usecase.dart';
-import 'package:sambura_core/application/usecase/create_account_usecase.dart';
-import 'package:sambura_core/application/usecase/generate_api_key_usecase.dart';
-import 'package:sambura_core/application/usecase/get_package_metadata_usecase.dart'; // NOVO
+import 'package:sambura_core/application/usecase/account/create_account_usecase.dart';
+import 'package:sambura_core/application/usecase/auth/login_usecase.dart';
+import 'package:sambura_core/application/usecase/api_key/generate_api_key_usecase.dart';
+import 'package:sambura_core/application/usecase/api_key/list_api_keys_usecase.dart';
+import 'package:sambura_core/application/usecase/api_key/revoke_api_key_usecase.dart';
+import 'package:sambura_core/application/usecase/artifact/create_artifact_usecase.dart';
+import 'package:sambura_core/application/usecase/artifact/get_artifact_by_id_usecase.dart';
+import 'package:sambura_core/application/usecase/artifact/get_artifact_download_stream_usecase.dart';
+import 'package:sambura_core/application/usecase/artifact/get_artifact_usecase.dart';
+import 'package:sambura_core/application/usecase/artifact/upload_artifact_usecase.dart';
+import 'package:sambura_core/application/usecase/package/get_package_metadata_usecase.dart';
 
 // Controllers
-import 'package:sambura_core/infrastructure/api/controller/blob_controller.dart';
-import 'package:sambura_core/infrastructure/api/controller/package_controller.dart';
-import 'package:sambura_core/infrastructure/api/controller/artifact_controller.dart';
-import 'package:sambura_core/infrastructure/api/controller/repository_controller.dart';
-import 'package:sambura_core/infrastructure/api/controller/auth_controller.dart';
-import 'package:sambura_core/infrastructure/api/controller/api_key_controller.dart';
-import 'package:sambura_core/infrastructure/api/controller/upload_controller.dart';
+import 'package:sambura_core/infrastructure/api/controller/artifact/blob_controller.dart';
+import 'package:sambura_core/infrastructure/api/controller/artifact/package_controller.dart';
+import 'package:sambura_core/infrastructure/api/controller/artifact/artifact_controller.dart';
+import 'package:sambura_core/infrastructure/api/controller/artifact/repository_controller.dart';
+import 'package:sambura_core/infrastructure/api/controller/auth/auth_controller.dart';
+import 'package:sambura_core/infrastructure/api/controller/admin/api_key_controller.dart';
+import 'package:sambura_core/infrastructure/api/controller/artifact/upload_controller.dart';
 
 // Rotas
 import 'package:sambura_core/infrastructure/api/routes/main_router.dart';
@@ -117,6 +119,8 @@ void main() async {
   );
   final createAccountUsecase = CreateAccountUsecase(accountRepo, hashService);
   final generateApiKeyUsecase = GenerateApiKeyUsecase(apiKeyRepo);
+  final listApiKeysUsecase = ListApiKeysUsecase(apiKeyRepo);
+  final revokeApiKeyUsecase = RevokeApiKeyUsecase(apiKeyRepo, accountRepo);
   final getPackageMetadataUseCase = GetPackageMetadataUseCase(artifactRepo);
 
   final getArtifactUseCase = GetArtifactUseCase(
@@ -145,7 +149,11 @@ void main() async {
   );
 
   final authController = AuthController(createAccountUsecase, loginUsecase);
-  final apiKeyController = ApiKeyController(generateApiKeyUsecase, apiKeyRepo);
+  final apiKeyController = ApiKeyController(
+    generateApiKeyUsecase,
+    listApiKeysUsecase,
+    revokeApiKeyUsecase,
+  );
 
   final artifactController = ArtifactController(
     createArtifactUseCase,

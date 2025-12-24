@@ -24,7 +24,7 @@ ifneq ("$(wildcard .env)","")
     export $(shell sed 's/=.*//' .env)
 endif
 
-.PHONY: help up down dev db-init db-reset db-refresh vault-seed auth-register auth-login create-repo setup-all check
+.PHONY: help up down dev db-init db-reset db-refresh vault-seed auth-register auth-login create-repo setup-all check test test-watch test-coverage
 
 # ==============================================================================
 # HELP & INFO
@@ -114,6 +114,20 @@ setup-s3: ## Garante que o bucket do MinIO existe
 # ==============================================================================
 dev: ## Roda o servidor Dart com hot reload
 	env $$(cat .env | xargs) dart --observe bin/server.dart
+
+test: ## Roda todos os testes unitários
+	@echo "🧪 Rodando testes unitários..."
+	@dart test --reporter=expanded
+
+test-watch: ## Roda testes em modo watch
+	@echo "👀 Rodando testes em modo watch..."
+	@dart test --reporter=expanded --watch
+
+test-coverage: ## Gera relatório de cobertura de testes
+	@echo "📊 Gerando cobertura de testes..."
+	@dart test --coverage=coverage
+	@dart pub global activate coverage
+	@dart pub global run coverage:format_coverage --lcov --in=coverage --out=coverage/lcov.info --packages=.dart_tool/package_config.json --report-on=lib
 
 setup-all: db-init vault-seed auth-register auth-login create-repo setup-s3 ## Setup COMPLETO do ambiente
 	@echo "🚀 SAMBURÁ ESTÁ PRONTO PRO COMBATE, CRIA!"

@@ -9,6 +9,7 @@ build/
 
 # Tokens internos do Makefile
 .token*
+criar_apikey.sh
 
 # Possíveis arqivos baixados
 *.tar.*
