@@ -6,10 +6,10 @@ import 'package:sambura_core/domain/entities/artifact_entity.dart';
 import 'package:sambura_core/infrastructure/database/postgres_connector.dart';
 
 class PostgresArtifactRepository implements ArtifactRepository {
-  final PostgresConnector _db;
+  final PostgresConnector _connection;
   final Logger _log = LoggerConfig.getLogger('PostgresArtifactRepository');
 
-  PostgresArtifactRepository(this._db);
+  PostgresArtifactRepository(this._connection);
 
   @override
   Future<ArtifactEntity> save(ArtifactEntity artifact) async {
@@ -29,7 +29,7 @@ class PostgresArtifactRepository implements ArtifactRepository {
     };
 
     try {
-      final result = await _db.query(sql, params);
+      final result = await _connection.query(sql, params);
       final id = result.first[0] as int;
       _log.info('Artifact salvo no banco: id=$id, version=${artifact.version}');
       return artifact.copyWith(id: id);
@@ -43,7 +43,7 @@ class PostgresArtifactRepository implements ArtifactRepository {
   Future<ArtifactEntity?> getByPath(String namespace, String path) async {
     _log.fine('Buscando artifact: namespace=$namespace, path=$path');
     try {
-      final res = await _db.query(
+      final res = await _connection.query(
         '''
           SELECT a.*, b.hash as blob_hash, b.size_bytes, b.mime_type 
           FROM artifacts a
@@ -72,7 +72,7 @@ class PostgresArtifactRepository implements ArtifactRepository {
   Future<List<ArtifactEntity>> listArtifactsByPackage(int packageId) async {
     _log.fine('Listando versões do package ID: $packageId');
     try {
-      final res = await _db.query(
+      final res = await _connection.query(
         '''
           SELECT a.*, b.hash as blob_hash, b.size_bytes, b.mime_type 
           FROM artifacts a
@@ -95,7 +95,7 @@ class PostgresArtifactRepository implements ArtifactRepository {
 
   @override
   Future<ArtifactEntity?> getByExternalId(String externalId) async {
-    final res = await _db.query(
+    final res = await _connection.query(
       '''
         SELECT a.*, b.hash as blob_hash, b.size_bytes, b.mime_type 
         FROM artifacts a 
@@ -110,7 +110,7 @@ class PostgresArtifactRepository implements ArtifactRepository {
 
   @override
   Future<List<ArtifactEntity>> listByNamespace(String namespace) async {
-    final res = await _db.query(
+    final res = await _connection.query(
       '''
         SELECT a.*, b.hash as blob_hash, b.size_bytes, b.mime_type 
         FROM artifacts a
@@ -135,7 +135,7 @@ class PostgresArtifactRepository implements ArtifactRepository {
     try {
       _log.info('🔍 Buscando hash no banco: $namespace/$name@$version');
 
-      final result = await _db.query(
+      final result = await _connection.query(
         '''
       SELECT b.hash 
       FROM artifacts a
@@ -171,7 +171,7 @@ class PostgresArtifactRepository implements ArtifactRepository {
     String packageName,
     String version,
   ) async {
-    final result = await _db.query(
+    final result = await _connection.query(
       '''
     SELECT a.*, r.name as repo_name, r.namespace as repo_namespace
     FROM artifacts a
@@ -196,7 +196,7 @@ class PostgresArtifactRepository implements ArtifactRepository {
     String repoName,
     String packageName,
   ) async {
-    final results = await _db.query(
+    final results = await _connection.query(
       '''
     SELECT 
       a.id, a.external_id, a.version, a.path, a.created_at, a.package_id, a.blob_id,
@@ -243,7 +243,7 @@ class PostgresArtifactRepository implements ArtifactRepository {
   Future<void> delete(ArtifactEntity artifact) async {
     if (artifact.id == null) return;
     _log.info('Deletando artifact ID: ${artifact.id}');
-    await _db.execute('DELETE FROM artifacts WHERE id = @id', {
+    await _connection.execute('DELETE FROM artifacts WHERE id = @id', {
       'id': artifact.id.toString(),
     });
   }
@@ -297,5 +297,17 @@ class PostgresArtifactRepository implements ArtifactRepository {
           ? artifactRow['created_at'] as DateTime
           : DateTime.parse(artifactRow['created_at'].toString()),
     );
+  }
+
+  @override
+  Future<bool> isHealthy() async {
+    try {
+      // Executa uma query mínima para testar a conexão
+      final result = await _connection.query('SELECT 1', {});
+      return result.isNotEmpty;
+    } catch (e) {
+      _log.severe('❌ Database health check falhou: $e');
+      return false;
+    }
   }
 }
