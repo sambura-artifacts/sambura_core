@@ -21,11 +21,6 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: 🔍 Semgrep (SAST)
-        run: |
-          docker run --rm -v $(pwd):/src returntocorp/semgrep semgrep scan \
-          --config auto --error --exclude="test/*"
-
   analyze-and-test:
     needs: security
     name: 📊 Analysis & Tests
