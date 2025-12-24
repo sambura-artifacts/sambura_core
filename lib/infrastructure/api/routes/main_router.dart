@@ -1,3 +1,5 @@
+import 'package:logging/logging.dart';
+import 'package:sambura_core/config/logger.dart';
 import 'package:sambura_core/infrastructure/api/controller/admin/api_key_controller.dart';
 import 'package:sambura_core/infrastructure/api/controller/artifact/artifact_controller.dart';
 import 'package:sambura_core/infrastructure/api/controller/auth/auth_controller.dart';
@@ -27,6 +29,8 @@ class MainRouter {
   final ApiKeyRepository _apiKeyRepo;
   final AccountRepository _accountRepo;
   final HashService _hashService;
+
+  final Logger _log = LoggerConfig.getLogger('MainRouter');
 
   MainRouter(
     this._authController,
@@ -70,32 +74,33 @@ class MainRouter {
     // Sub-rotas do Admin
     protectedRouter.mount('/admin', adminRouter.router.call);
 
-    // Gestão de Artefatos e Upload
+    // Busca de pacotes no NPM (npm search)
+    // Encaminha a consulta para o registro oficial e retorna resultados filtrados
+    protectedRouter.get('/npm/<repo>/-/v1/search', (Request req) {
+      _log.fine('🎯 Rota casada: SEARCH | Path: ${req.url.path}');
+      return _artifactController.searchPackages(req);
+    });
+    protectedRouter.get('/npm/<repo>/<name|.*>', (Request req) {
+      _log.fine('📦 Rota casada: METADATA | Path: ${req.url.path}');
+      return _artifactController.getPackageMetadata(req);
+    });
+
+    // --- 🔵 SEÇÃO GESTÃO E DOWNLOAD ---
+
     protectedRouter.get(
       '/download/<repo>/<name|.*>/<version>',
       _artifactController.downloadByVersion,
     );
+
     protectedRouter.get(
       '/resolve/<repository>/<package>/<version>',
       _artifactController.resolve,
     );
 
-    // Suporte a PUT e POST para Upload/Publish
+    // Suporte a Upload/Publish
     protectedRouter.put('/upload', _uploadController.handle);
     protectedRouter.post('/upload', _uploadController.handle);
-
-    // Use o regex <name|.*> para permitir que o Router aceite a barra do scope
     protectedRouter.put('/npm/<repo>/<name|.*>', _uploadController.handle);
-    protectedRouter.get(
-      '/npm/<repo>/<name|@?.*>',
-      _artifactController.getPackageMetadata,
-    );
-
-    // E para suportar pacotes com SCOPE (ex: @cria/minha-lib), adicione esta TAMBÉM:
-    protectedRouter.get(
-      '/npm/<repo>/<scope>/<name>',
-      _artifactController.getPackageMetadata,
-    );
 
     // Rotas Protegidas sob Middleware de Autenticação (JWT ou API Key)
     final authenticatedHandler = Pipeline()
@@ -104,8 +109,8 @@ class MainRouter {
         )
         .addHandler(protectedRouter.call);
 
+    _log.info('🚀 Montando API em /api/v1');
     mainRouter.mount('/api/v1', authenticatedHandler);
-
     mainRouter.mount('/api/v1/public', publicRouter.router.call);
 
     return mainRouter.call;

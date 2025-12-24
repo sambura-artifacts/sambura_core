@@ -461,4 +461,42 @@ class ArtifactController {
       _log.severe('❌ Erro ao persistir cache do proxy', e);
     }
   }
+
+  Future<Response> searchPackages(Request request) async {
+    final repo = request.params['repo']!;
+    final queryParams = request.url.queryParameters;
+
+    // Log de entrada: mostra o que o NPM CLI pediu pro Samburá
+    print('🔍 [SEARCH] Iniciando busca no repo: $repo');
+    print('🔎 [SEARCH] Parâmetros recebidos do NPM: $queryParams');
+
+    try {
+      final result = await _proxyPackageMetadataUseCase.execute(
+        '/-/v1/search',
+        repoName: repo,
+        queryParams: queryParams,
+      );
+
+      if (result == null) {
+        _log.warning(
+          '⚠️ [SEARCH] Nenhum resultado retornado pelo Proxy para: $queryParams',
+        );
+        return Response.notFound(jsonEncode({'error': 'Busca sem resultados'}));
+      }
+
+      _log.info(
+        '✅ [SEARCH] Busca concluída com sucesso para o termo: ${queryParams['text']}',
+      );
+
+      return Response.ok(
+        jsonEncode(result),
+        headers: {'Content-Type': 'application/json'},
+      );
+    } catch (e, stack) {
+      _log.severe('❌ [SEARCH] Erro crítico ao processar busca', e, stack);
+      return Response.internalServerError(
+        body: jsonEncode({'error': 'Erro interno ao processar busca'}),
+      );
+    }
+  }
 }

@@ -6,29 +6,49 @@ import 'package:sambura_core/config/logger.dart';
 
 class ProxyPackageMetadataUseCase {
   final Logger _log = LoggerConfig.getLogger('ProxyPackageMetadataUseCase');
-  final String remoteRegistry = 'https://registry.npmjs.org';
+  final String remoteHost = 'registry.npmjs.org';
 
   Future<dynamic> execute(
-    String packageName, {
+    String path, {
     required String repoName,
+    String? packageName,
+    Map<String, String>? queryParams,
   }) async {
+    _log.info(
+      '🌐 Proxy Request: path=$path, repo=$repoName, pkg=$packageName, params=$queryParams',
+    );
     try {
-      final encodedName = packageName.replaceFirst('/', '%2f');
+      final uri = Uri.https(remoteHost, path, queryParams);
+      _log.info('🌐 Proxy Request: $uri');
 
       final response = await http.get(
-        Uri.parse('$remoteRegistry/$encodedName'),
+        uri,
+        headers: {'Accept': 'application/json'},
       );
 
-      if (response.statusCode != 200) return null;
+      if (response.statusCode != 200) {
+        _log.warning(
+          '⚠️ Remote Registry respondeu: ${response.statusCode}, ${response.body}',
+        );
+        return null;
+      }
 
-      if (packageName.endsWith('.tgz')) return response.bodyBytes;
+      if (path.endsWith('.tgz') || (packageName?.endsWith('.tgz') ?? false)) {
+        return response.bodyBytes;
+      }
 
-      final Map<String, dynamic> remoteData = jsonDecode(response.body);
+      final dynamic remoteData = jsonDecode(response.body);
 
-      // CENTRALIZANDO: Chama o process que por sua vez chama o rewrite
-      return _processRemoteMetadata(remoteData, repoName);
-    } catch (e) {
-      _log.severe('🔥 Erro no Proxy', e);
+      if (path.contains('search')) {
+        return remoteData;
+      }
+
+      return _processRemoteMetadata(
+        remoteData as Map<String, dynamic>,
+        repoName,
+      );
+    } catch (e, stack) {
+      _log.severe('🔥 Erro no Proxy', e, stack);
       return null;
     }
   }
@@ -38,10 +58,7 @@ class ProxyPackageMetadataUseCase {
     String repoName,
   ) {
     _log.info('✅ Processando metadata remoto para: ${data['name']}');
-
-    final processedData = _rewriteTarballUrls(data, repoName);
-
-    return processedData;
+    return _rewriteTarballUrls(data, repoName);
   }
 
   Map<String, dynamic> _rewriteTarballUrls(
