@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:typed_data';
 
 /// Port (Interface) para serviço de armazenamento de blobs.
@@ -5,7 +6,7 @@ import 'dart:typed_data';
 /// Seguindo o princípio de Inversão de Dependência (DIP),
 /// esta interface define o contrato que qualquer adapter de storage deve implementar.
 /// Permite trocar facilmente entre MinIO, S3, FileSystem, etc.
-abstract class IStoragePort {
+abstract class StoragePort {
   /// Armazena um stream de bytes no storage.
   ///
   /// [path] - Caminho lógico do objeto
@@ -24,7 +25,7 @@ abstract class IStoragePort {
   /// [path] - Caminho lógico do objeto
   /// Returns: Stream de bytes do objeto
   /// Throws: Exception se o objeto não existir
-  Future<Stream<List<int>>> retrieve(String path);
+  Future<StreamView<List<int>>> retrieve(String path);
 
   /// Verifica se um objeto existe no storage.
   ///
@@ -42,4 +43,12 @@ abstract class IStoragePort {
   /// [path] - Caminho lógico do objeto
   /// Returns: Map com metadados (size, contentType, etc)
   Future<Map<String, dynamic>> getMetadata(String path);
+
+  Future<bool> isHealthy();
+
+  Future<dynamic> statObject(
+    String bucket,
+    String object, {
+    bool retrieveAcls = true,
+  });
 }

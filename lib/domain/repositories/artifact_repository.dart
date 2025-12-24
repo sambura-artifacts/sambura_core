@@ -39,4 +39,6 @@ abstract class ArtifactRepository {
   /// Solicita a remoção lógica ou física do ponteiro do artefato.
   /// Nota: Preserva o Blob físico para manter a integridade da Deduplicação Global.
   Future<void> delete(ArtifactEntity artifact);
+
+  Future<bool> isHealthy();
 }
