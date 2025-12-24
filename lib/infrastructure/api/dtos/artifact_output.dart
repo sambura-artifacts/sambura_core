@@ -19,10 +19,10 @@ class ArtifactOutput {
   /// Transforma a Entidade do Domínio no Output da API
   factory ArtifactOutput.fromEntity(ArtifactEntity entity) {
     return ArtifactOutput(
-      externalId: entity.externalId,
+      externalId: entity.externalIdValue,
       namespace: entity.namespace,
-      packageName: entity.packageName,
-      version: entity.version,
+      packageName: entity.packageNameValue,
+      version: entity.versionValue,
       path: entity.path,
     );
   }

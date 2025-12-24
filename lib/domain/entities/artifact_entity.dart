@@ -1,19 +1,20 @@
-import 'package:uuid/uuid.dart';
 import 'package:sambura_core/domain/entities/blob_entity.dart';
+import 'package:sambura_core/domain/value_objects/external_id.dart';
+import 'package:sambura_core/domain/value_objects/package_name.dart';
+import 'package:sambura_core/domain/value_objects/sem_ver.dart';
 
 class ArtifactEntity {
-  final int? id; // PK serial do Postgres
-  final String externalId; // UUID v7
-  final int packageId; // FK para a tabela 'packages' (Essencial!)
-  final String namespace; // Escopo/Organização
-  final String packageName; // Nome legível
-  final String version; // SemVer
-  final String path; // Caminho lógico
-  final int? blobId; // FK para a tabela 'blobs' (Essencial!)
-  final BlobEntity? blob; // Dados do arquivo
+  final int? id;
+  final ExternalId externalId; // VO: UUID v7
+  final int packageId;
+  final String namespace; // Opcional: Criar VO se quiser validar scopes @
+  final PackageName packageName; // VO: Valida contra caracteres proibidos
+  final SemVer version; // VO: Garante que é 1.0.0 e não "v1"
+  final String path;
+  final int? blobId;
+  final BlobEntity? blob;
   final DateTime createdAt;
 
-  // Construtor privado para controle total das instâncias
   ArtifactEntity._({
     this.id,
     required this.externalId,
@@ -27,98 +28,81 @@ class ArtifactEntity {
     required this.createdAt,
   });
 
-  /// Ponto de entrada para criação via UseCase.
-  /// Note que agora pedimos o [packageId] que veio da busca prévia no banco.
   static ArtifactEntity create({
     required int packageId,
     required String namespace,
     required String packageName,
     required String version,
-    required String path,
     required BlobEntity blob,
+    required String path,
   }) {
     return ArtifactEntity._(
-      externalId: const Uuid().v7(),
+      externalId: ExternalId.generate(),
       packageId: packageId,
       namespace: namespace,
-      packageName: packageName,
-      version: version,
+      packageName: PackageName(packageName),
+      version: SemVer(version),
       path: path,
-      blobId: blob.id, // Se o blob já foi salvo, o id tá aqui
+      blobId: blob.id,
       blob: blob,
       createdAt: DateTime.now().toUtc(),
     );
   }
 
-  /// Restaura a entidade vinda do repositório (JOIN entre artifacts e blobs)
-  factory ArtifactEntity.fromRepository(
-    Map<String, dynamic> artifactRow,
-    Map<String, dynamic> blobRow,
-  ) {
-    return ArtifactEntity._(
-      id: artifactRow['id'] as int?,
-      externalId: artifactRow['external_id'] as String,
-      packageId: artifactRow['package_id'] as int,
-      namespace:
-          artifactRow['namespace'] as String? ?? '', // Fallback se vier de JOIN
-      packageName: artifactRow['package_name'] as String? ?? '',
-      version: artifactRow['version'] as String,
-      path: artifactRow['path'] as String,
-      blobId: artifactRow['blob_id'] as int?,
-      blob: BlobEntity.restore(
-        blobRow['id'] as int,
-        blobRow['blob_hash'] as String,
-        blobRow['size_bytes'] as int,
-        blobRow['mime'] as String? ?? blobRow['mime_type'] as String,
-        blobRow['created_at'] as DateTime,
-      ),
-      createdAt: artifactRow['created_at'] is DateTime
-          ? artifactRow['created_at'] as DateTime
-          : DateTime.parse(artifactRow['created_at'].toString()),
-    );
-  }
-
-  /// Cria uma cópia da entidade alterando campos específicos (Imutabilidade)
-  ArtifactEntity copyWith({
-    int? id,
-    int? packageId,
+  factory ArtifactEntity.restore({
+    required int id,
+    required String externalId,
+    required int packageId,
+    required String namespace,
+    required String packageName,
+    required String version,
+    required String path,
     int? blobId,
     BlobEntity? blob,
+    required DateTime createdAt,
   }) {
     return ArtifactEntity._(
-      id: id ?? this.id,
-      externalId: externalId,
-      packageId: packageId ?? this.packageId,
+      id: id,
+      externalId: ExternalId(externalId), // Reconstrói o VO com o ID existente
+      packageId: packageId,
       namespace: namespace,
-      packageName: packageName,
-      version: version,
+      packageName: PackageName(packageName),
+      version: SemVer(version),
       path: path,
-      blobId: blobId ?? this.blobId,
-      blob: blob ?? this.blob,
+      blobId: blobId,
+      blob: blob,
       createdAt: createdAt,
     );
   }
 
-  factory ArtifactEntity.fromMap(Map<String, dynamic> map) {
+  ArtifactEntity copyWith({
+    int? id,
+    ExternalId? externalId,
+    int? packageId,
+    String? namespace,
+    PackageName? packageName,
+    SemVer? version,
+    String? path,
+    int? blobId,
+    BlobEntity? blob,
+    DateTime? createdAt,
+  }) {
     return ArtifactEntity._(
-      id: map['id'] as int?,
-      externalId: map['external_id'] as String,
-      packageId: map['package_id'] as int,
-      namespace: (map['repo_namespace'] ?? map['namespace']) as String,
-      packageName:
-          (map['package_name'] ?? map['package_name_alias'] ?? '') as String,
-      version: map['version'] as String,
-      path: map['path'] as String,
-      blobId: map['blob_id'] as int?,
-      blob: map['blob_data'] != null
-          ? BlobEntity.fromMap(map['blob_data'] as Map<String, dynamic>)
-          : null,
-      createdAt: map['created_at'] is DateTime
-          ? map['created_at'] as DateTime
-          : DateTime.parse(map['created_at'] as String),
+      id: id ?? this.id,
+      externalId: externalId ?? this.externalId,
+      packageId: packageId ?? this.packageId,
+      namespace: namespace ?? this.namespace,
+      packageName: packageName ?? this.packageName,
+      version: version ?? this.version,
+      path: path ?? this.path,
+      blobId: blobId ?? this.blobId,
+      blob: blob ?? this.blob,
+      createdAt: createdAt ?? this.createdAt,
     );
   }
 
-  // Getters simplificados (clean code)
-  bool get isPersisted => id != null;
+  String get versionValue => version.value;
+  String get nameValue => packageName.value;
+  String get externalIdValue => externalId.value;
+  String get packageNameValue => packageName.value;
 }

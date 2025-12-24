@@ -20,7 +20,7 @@ class GetArtifactInput {
   }) {
     return GetArtifactInput(
       repositoryName: repositoryName,
-      packageName: PackageName.create(packageName),
+      packageName: PackageName(packageName),
       version: Version.create(version),
     );
   }

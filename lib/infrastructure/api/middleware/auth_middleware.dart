@@ -4,8 +4,8 @@ import 'package:crypto/crypto.dart';
 import 'package:logging/logging.dart';
 import 'package:sambura_core/domain/repositories/account_repository.dart';
 import 'package:sambura_core/domain/repositories/api_key_repository.dart';
-import 'package:sambura_core/infrastructure/services/auth_service.dart';
-import 'package:sambura_core/infrastructure/services/hash_service.dart';
+import 'package:sambura_core/infrastructure/services/auth/auth_service.dart';
+import 'package:sambura_core/infrastructure/services/auth/hash_service.dart';
 import 'package:shelf/shelf.dart';
 
 final _log = Logger('AuthMiddleware');

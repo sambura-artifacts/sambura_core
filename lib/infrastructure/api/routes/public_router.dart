@@ -1,14 +1,14 @@
 import 'package:shelf/shelf.dart';
 import 'package:shelf_router/shelf_router.dart';
 import 'package:shelf_swagger_ui/shelf_swagger_ui.dart';
-import 'package:sambura_core/infrastructure/api/controller/auth_controller.dart';
-import 'package:sambura_core/infrastructure/api/controller/artifact_controller.dart';
-import 'package:sambura_core/infrastructure/api/controller/blob_controller.dart';
+import 'package:sambura_core/infrastructure/api/controller/auth/auth_controller.dart';
+import 'package:sambura_core/infrastructure/api/controller/artifact/artifact_controller.dart';
+import 'package:sambura_core/infrastructure/api/controller/artifact/blob_controller.dart';
 import 'package:sambura_core/infrastructure/api/middleware/auth_middleware.dart';
-import 'package:sambura_core/infrastructure/services/auth_service.dart';
+import 'package:sambura_core/infrastructure/services/auth/auth_service.dart';
 import 'package:sambura_core/domain/repositories/api_key_repository.dart';
 import 'package:sambura_core/domain/repositories/account_repository.dart';
-import 'package:sambura_core/infrastructure/services/hash_service.dart';
+import 'package:sambura_core/infrastructure/services/auth/hash_service.dart';
 
 class PublicRouter {
   final AuthController _authController;

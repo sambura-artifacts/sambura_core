@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 /// Port (Interface) para serviço de armazenamento de blobs.
 ///
 /// Seguindo o princípio de Inversão de Dependência (DIP),
@@ -12,7 +14,7 @@ abstract class IStoragePort {
   /// [contentType] - MIME type do conteúdo
   Future<void> store({
     required String path,
-    required Stream<List<int>> stream,
+    required Stream<Uint8List> stream,
     required int sizeBytes,
     String contentType = 'application/octet-stream',
   });

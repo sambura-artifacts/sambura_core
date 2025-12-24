@@ -11,7 +11,9 @@ abstract class ApiKeyRepository {
 
   Future<ApiKeyEntity?> findByHash(String hash);
 
-  Future<List<ApiKeyEntity>> findAllByAccount(int accountId);
+  Future<List<ApiKeyEntity>> findAllByAccountId(int accountId);
+
+  Future<ApiKeyEntity> findByAccountId(int accountId);
 
   Future<void> updateLastUsed(int id);
 

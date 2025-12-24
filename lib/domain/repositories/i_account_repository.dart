@@ -30,10 +30,7 @@ abstract class IAccountReadRepository {
   Future<bool> emailExists(String email);
 
   /// Lista todas as contas (com paginação).
-  Future<List<AccountEntity>> findAll({
-    int limit = 50,
-    int offset = 0,
-  });
+  Future<List<AccountEntity>> findAll({int limit = 50, int offset = 0});
 }
 
 /// Interface para consultas de autenticação.

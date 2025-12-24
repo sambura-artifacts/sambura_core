@@ -1,9 +1,9 @@
-import 'package:sambura_core/infrastructure/api/controller/upload_controller.dart';
+import 'package:sambura_core/infrastructure/api/controller/artifact/upload_controller.dart';
 import 'package:shelf_router/shelf_router.dart';
-import 'package:sambura_core/infrastructure/api/controller/api_key_controller.dart';
-import 'package:sambura_core/infrastructure/api/controller/repository_controller.dart';
-import 'package:sambura_core/infrastructure/api/controller/package_controller.dart';
-import 'package:sambura_core/infrastructure/api/controller/artifact_controller.dart';
+import 'package:sambura_core/infrastructure/api/controller/admin/api_key_controller.dart';
+import 'package:sambura_core/infrastructure/api/controller/artifact/repository_controller.dart';
+import 'package:sambura_core/infrastructure/api/controller/artifact/package_controller.dart';
+import 'package:sambura_core/infrastructure/api/controller/artifact/artifact_controller.dart';
 
 class AdminRouter {
   final RepositoryController _repositoryController;

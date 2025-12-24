@@ -27,7 +27,7 @@ class CreateArtifactInput {
   }) {
     return CreateArtifactInput(
       repositoryName: repositoryName,
-      packageName: PackageName.create(packageName),
+      packageName: PackageName(packageName),
       version: Version.create(version),
       path: path,
       dataStream: dataStream,
