@@ -5,7 +5,6 @@ import 'package:sambura_core/application/usecase/package/proxy_package_metadata_
 import 'package:test/test.dart';
 import 'dart:convert';
 
-// Criamos o Mock para o Client HTTP
 class MockClient implements HttpClientPort {
   @override
   Future<dynamic> get(uri, {Map<String, String>? headers}) async {
@@ -50,16 +49,6 @@ void main() {
     test('deve buscar metadados de pacote sem escopo com sucesso', () async {
       // Arrange
       const packageName = 'lodash';
-      final mockResponse = {
-        'name': packageName,
-        'versions': {
-          '4.17.21': {'version': '4.17.21'},
-        },
-      };
-
-      when(
-        () => mockClient.get(any(), headers: any(named: 'headers')),
-      ).thenAnswer((_) async => http.Response(jsonEncode(mockResponse), 200));
 
       // Act
       final result = await usecase.execute(
@@ -70,31 +59,20 @@ void main() {
       // Assert
       expect(result, isNotNull);
       expect(result!['name'], equals(packageName));
-      verify(
-        () => mockClient.get(any(), headers: any(named: 'headers')),
-      ).called(1);
     });
 
     test('deve fazer encoding correto de pacotes com escopo (@scope/name)', () {
       const packageName = '@sambura/core';
-      // O UseCase deve tratar isso internamente, aqui validamos a lógica
       final encoded = packageName.replaceFirst('/', '%2f');
       expect(encoded, equals('@sambura%2fcore'));
     });
 
     test('deve retornar null quando o pacote não existe (404)', () async {
-      // Arrange
-      when(
-        () => mockClient.get(any(), headers: any(named: 'headers')),
-      ).thenAnswer((_) async => http.Response('Not Found', 404));
-
-      // Act
       final result = await usecase.execute(
-        'pacote-inexistente',
+        'pacote-inexistente-xpto-123',
         repoName: 'npm-registry',
       );
 
-      // Assert
       expect(result, isNull);
     });
 

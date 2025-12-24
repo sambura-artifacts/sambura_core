@@ -111,7 +111,7 @@ void main() {
 
       final account = AccountEntity.restore(
         id: 1,
-        externalId: 'ext-123',
+        externalId: '01234567-89ab-cdef-0123-456789abcdef',
         username: username,
         email: 'test@example.com',
         password: 'hashed_password',
@@ -136,7 +136,7 @@ void main() {
 
       final account = AccountEntity.restore(
         id: 42,
-        externalId: 'ext-123',
+        externalId: '01234567-89ab-cdef-0123-456789abcdef',
         username: username,
         email: 'test@example.com',
         password: 'hashed_password',

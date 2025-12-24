@@ -194,7 +194,6 @@ void main() {
         const keyHash = 'secret-hash';
         final intruderId = UuidV7().generate();
 
-        // Hacker tentando apagar chave do ID 1
         accountRepository.save(
           AccountEntity.restore(
             id: 10,
@@ -213,8 +212,8 @@ void main() {
           prefix: 'sb_',
         );
 
-        expect(
-          () => usecase.execute(
+        expectLater(
+          usecase.execute(
             key: keyHash,
             requestUserId: intruderId,
             requestUserRole: 'user',

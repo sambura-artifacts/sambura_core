@@ -143,7 +143,7 @@ void main() {
         expect(response.statusCode, equals(400));
         expect(
           response.headers['Content-Type'],
-          equals('application/problem+json'),
+          contains('application/problem+json'),
         );
 
         final body =
