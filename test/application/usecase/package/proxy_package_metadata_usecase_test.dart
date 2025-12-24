@@ -1,5 +1,3 @@
-import 'package:http/http.dart' as http;
-import 'package:http/testing.dart';
 import 'package:sambura_core/application/usecase/package/proxy_package_metadata_usecase.dart';
 import 'package:test/test.dart';
 import 'dart:convert';

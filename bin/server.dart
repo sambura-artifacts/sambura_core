@@ -166,7 +166,6 @@ void main() async {
     GetArtifactByIdUseCase(artifactRepo),
     getArtifactDownloadStreamUsecase,
     generateApiKeyUsecase,
-    getPackageMetadataUseCase,
     proxyPackageMetadataUseCase,
   );
 

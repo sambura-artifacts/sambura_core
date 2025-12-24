@@ -11,7 +11,6 @@ import 'package:sambura_core/config/logger.dart';
 import 'package:sambura_core/domain/entities/account_entity.dart';
 import 'package:sambura_core/domain/exceptions/domain_exception.dart';
 import 'package:sambura_core/infrastructure/api/helpers/package_path_parser.dart';
-import 'package:sambura_core/infrastructure/api/presenter/artifact/npm_packument_presenter.dart';
 import 'package:shelf/shelf.dart';
 import 'package:sambura_core/application/usecase/artifact/get_artifact_usecase.dart';
 import 'package:sambura_core/application/usecase/artifact/create_artifact_usecase.dart';
@@ -26,7 +25,6 @@ class ArtifactController {
   final GetArtifactByIdUseCase _getByIdUseCase;
   final GetArtifactDownloadStreamUsecase _getArtifactDownloadStreamUsecase;
   final GenerateApiKeyUsecase _generateApiKeyUsecase;
-  final GetPackageMetadataUseCase _getPackageMetadataUseCase;
   final ProxyPackageMetadataUseCase _proxyPackageMetadataUseCase;
   final Logger _log = LoggerConfig.getLogger('ArtifactController');
 
@@ -38,7 +36,6 @@ class ArtifactController {
     this._getByIdUseCase,
     this._getArtifactDownloadStreamUsecase,
     this._generateApiKeyUsecase,
-    this._getPackageMetadataUseCase,
     this._proxyPackageMetadataUseCase,
   );
 
