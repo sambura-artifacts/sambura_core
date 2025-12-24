@@ -11,25 +11,21 @@ class PostgresAccountRepository implements AccountRepository {
   PostgresAccountRepository(this._connector);
 
   @override
-  Future<void> create({
-    required String username,
-    required String passwordHash,
-    required String email,
-    required String role,
-  }) async {
+  Future<void> create(AccountEntity account) async {
     const sql = '''
-      INSERT INTO accounts (username, password_hash, email, role)
-      VALUES (@username, @passwordHash, @email, @role)
+      INSERT INTO accounts (external_id, username, password_hash, email, role)
+      VALUES (@externalId, @username, @password, @email, @role)
     ''';
 
     try {
       await _connector.query(sql, {
-        'username': username,
-        'passwordHash': passwordHash,
-        'email': email,
-        'role': role,
+        'externalId': account.externalId.value,
+        'username': account.username.value,
+        'password': account.password.value,
+        'email': account.email.value,
+        'role': account.role.value,
       });
-      _log.info('✅ Usuário registrado: $username');
+      _log.info('✅ Usuário registrado: ${account.username}');
     } catch (e) {
       _log.severe('🔥 Erro ao criar conta no Postgres: $e');
       rethrow;
@@ -45,6 +41,7 @@ class PostgresAccountRepository implements AccountRepository {
     if (result.isEmpty) return null;
 
     final row = result.first.toColumnMap();
+
     return _mapToEntity(row);
   }
 
@@ -57,17 +54,32 @@ class PostgresAccountRepository implements AccountRepository {
     if (result.isEmpty) return null;
 
     final row = result.first.toColumnMap();
+
     return _mapToEntity(row);
   }
 
   AccountEntity _mapToEntity(Map<String, dynamic> row) {
     return AccountEntity.restore(
       id: row['id'],
+      externalId: row['external_id'],
       username: row['username'],
-      passwordHash: row['password_hash'],
+      password: row['password_hash'],
       email: row['email'],
       role: row['role'],
       createdAt: row['created_at'],
     );
+  }
+
+  @override
+  Future<AccountEntity?> findByExternalId(String externalId) async {
+    const sql = 'SELECT * FROM accounts WHERE external_id = @externalId';
+
+    final result = await _connector.query(sql, {'externalId': externalId});
+
+    if (result.isEmpty) return null;
+
+    final row = result.first.toColumnMap();
+
+    return _mapToEntity(row);
   }
 }

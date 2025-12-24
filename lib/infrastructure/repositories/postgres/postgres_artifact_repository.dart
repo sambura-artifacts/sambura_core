@@ -1,5 +1,6 @@
 import 'package:logging/logging.dart';
 import 'package:sambura_core/config/logger.dart';
+import 'package:sambura_core/domain/entities/blob_entity.dart';
 import 'package:sambura_core/domain/repositories/artifact_repository.dart';
 import 'package:sambura_core/domain/entities/artifact_entity.dart';
 import 'package:sambura_core/infrastructure/database/postgres_connector.dart';
@@ -60,10 +61,7 @@ class PostgresArtifactRepository implements ArtifactRepository {
         return null;
       }
       _log.fine('Artifact encontrado no banco');
-      return ArtifactEntity.fromRepository(
-        res.first.toColumnMap(),
-        res.first.toColumnMap(),
-      );
+      return _fromRepository(res.first.toColumnMap(), res.first.toColumnMap());
     } catch (e, stackTrace) {
       _log.severe('Erro ao buscar artifact por path', e, stackTrace);
       rethrow;
@@ -87,12 +85,7 @@ class PostgresArtifactRepository implements ArtifactRepository {
 
       _log.info('${res.length} versões encontradas para package $packageId');
       return res
-          .map(
-            (row) => ArtifactEntity.fromRepository(
-              row.toColumnMap(),
-              row.toColumnMap(),
-            ),
-          )
+          .map((row) => _fromRepository(row.toColumnMap(), row.toColumnMap()))
           .toList();
     } catch (e, stackTrace) {
       _log.severe('Erro ao listar artifacts por package', e, stackTrace);
@@ -112,10 +105,7 @@ class PostgresArtifactRepository implements ArtifactRepository {
       {'extId': externalId},
     );
     if (res.isEmpty) return null;
-    return ArtifactEntity.fromRepository(
-      res.first.toColumnMap(),
-      res.first.toColumnMap(),
-    );
+    return _fromRepository(res.first.toColumnMap(), res.first.toColumnMap());
   }
 
   @override
@@ -132,12 +122,7 @@ class PostgresArtifactRepository implements ArtifactRepository {
       {'namespace': namespace},
     );
     return res
-        .map(
-          (row) => ArtifactEntity.fromRepository(
-            row.toColumnMap(),
-            row.toColumnMap(),
-          ),
-        )
+        .map((row) => _fromRepository(row.toColumnMap(), row.toColumnMap()))
         .toList();
   }
 
@@ -203,7 +188,7 @@ class PostgresArtifactRepository implements ArtifactRepository {
     if (result.isEmpty) return null;
 
     final row = result.first.toColumnMap();
-    return ArtifactEntity.fromMap(row);
+    return _fromMap(row);
   }
 
   @override
@@ -230,7 +215,7 @@ class PostgresArtifactRepository implements ArtifactRepository {
     return results.map((row) {
       final map = row.toColumnMap();
 
-      final artifact = ArtifactEntity.fromMap({
+      final artifact = _fromMap({
         'id': map['id'],
         'external_id': '${map['external_id'] ?? ''}',
         'package_id': map['package_id'],
@@ -261,5 +246,56 @@ class PostgresArtifactRepository implements ArtifactRepository {
     await _db.execute('DELETE FROM artifacts WHERE id = @id', {
       'id': artifact.id.toString(),
     });
+  }
+
+  ArtifactEntity _fromMap(Map<String, dynamic> map, {BlobEntity? blob}) {
+    return ArtifactEntity.restore(
+      id: map['id'] as int,
+      externalId: map['external_id'] as String,
+      packageId: map['package_id'] as int,
+      namespace: map['namespace'] as String? ?? '',
+      packageName: (map['package_name'] ?? map['name']) as String,
+      version: map['version'] as String,
+      path: map['path'] as String,
+      blobId: map['blob_id'] as int?,
+      blob:
+          blob ??
+          (map['blob_data'] != null
+              ? BlobEntity.fromMap(map['blob_data'])
+              : null),
+      createdAt: map['created_at'] is DateTime
+          ? map['created_at'] as DateTime
+          : DateTime.parse(map['created_at'].toString()),
+    );
+  }
+
+  ArtifactEntity _fromRepository(
+    Map<String, dynamic> artifactRow,
+    Map<String, dynamic> blobRow,
+  ) {
+    return ArtifactEntity.restore(
+      id: artifactRow['id'] as int,
+      externalId: artifactRow['external_id'] as String,
+      packageId: artifactRow['package_id'] as int,
+      namespace: artifactRow['namespace'] as String? ?? '',
+      packageName:
+          (artifactRow['package_name'] ?? artifactRow['name']) as String,
+      version: artifactRow['version'] as String,
+      path: artifactRow['path'] as String,
+      blobId: artifactRow['blob_id'] as int?,
+      // Reconstrói o BlobEntity usando o restore dele
+      blob: BlobEntity.restore(
+        blobRow['id'] as int,
+        blobRow['hash_value'] as String,
+        blobRow['size_bytes'] as int,
+        blobRow['mime_type'] as String,
+        blobRow['created_at'] is DateTime
+            ? blobRow['created_at'] as DateTime
+            : DateTime.parse(blobRow['created_at'].toString()),
+      ),
+      createdAt: artifactRow['created_at'] is DateTime
+          ? artifactRow['created_at'] as DateTime
+          : DateTime.parse(artifactRow['created_at'].toString()),
+    );
   }
 }
