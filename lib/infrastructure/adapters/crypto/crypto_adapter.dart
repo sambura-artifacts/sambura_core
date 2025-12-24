@@ -6,7 +6,7 @@ import 'package:logging/logging.dart';
 import 'package:sambura_core/config/logger.dart';
 import 'package:sambura_core/application/ports/hash_port.dart';
 
-/// Adapter para operações de hash e criptografia implementando IHashPort.
+/// Adapter para operações de hash e criptografia implementando HashPort.
 ///
 /// Segue o padrão Hexagonal Architecture (Ports & Adapters).
 class CryptoAdapter implements HashPort {

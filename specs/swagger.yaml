@@ -52,6 +52,8 @@ servers:
 tags:
   - name: Auth
     description: Autenticação e registro de usuários
+  - name: Health
+    description: Verificação de saúde e disponibilidade do sistema
   - name: Admin - Repositories
     description: Gerenciamento de repositórios (requer autenticação)
   - name: Admin - Packages
@@ -97,6 +99,41 @@ components:
         instance:
           type: string
           description: Path da requisição
+    
+    HealthStatus:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [healthy, unhealthy]
+          description: Status geral do sistema
+          example: "healthy"
+        timestamp:
+          type: string
+          format: date-time
+          description: Timestamp da verificação
+        services:
+          type: object
+          properties:
+            database:
+              type: string
+              enum: [up, down]
+              description: Status do PostgreSQL
+              example: "up"
+            storage:
+              type: string
+              enum: [up, down]
+              description: Status do MinIO/S3
+              example: "up"
+    
+    LivenessStatus:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [alive]
+          description: Indica que o processo está ativo
+          example: "alive"
         
     Account:
       type: object
@@ -235,6 +272,65 @@ components:
             type: string
 
 paths:
+  # ===== HEALTH CHECK =====
+  /health:
+    get:
+      summary: Readiness probe - Verifica saúde do sistema
+      description: |
+        Endpoint para verificação de readiness (prontidão) do sistema.
+        Valida se as dependências críticas (PostgreSQL e MinIO/S3) estão funcionando corretamente.
+        Retorna HTTP 200 se todas as dependências estão saudáveis, ou HTTP 503 se alguma falhar.
+        
+        Usado por Kubernetes/Docker para determinar se o container está pronto para receber tráfego.
+      tags:
+        - Health
+      responses:
+        '200':
+          description: Sistema saudável - todas as dependências estão funcionando
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthStatus'
+              example:
+                status: "healthy"
+                timestamp: "2024-12-24T21:46:20.332Z"
+                services:
+                  database: "up"
+                  storage: "up"
+        '503':
+          description: Sistema não saudável - uma ou mais dependências falharam
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthStatus'
+              example:
+                status: "unhealthy"
+                timestamp: "2024-12-24T21:46:20.332Z"
+                services:
+                  database: "up"
+                  storage: "down"
+  
+  /health/liveness:
+    get:
+      summary: Liveness probe - Verifica se o processo está ativo
+      description: |
+        Endpoint para verificação de liveness (vivacidade) do sistema.
+        Valida se o processo Dart está ativo e respondendo.
+        Sempre retorna HTTP 200 se o servidor estiver em execução.
+        
+        Usado por Kubernetes/Docker para determinar se o container precisa ser reiniciado.
+      tags:
+        - Health
+      responses:
+        '200':
+          description: Processo está ativo e respondendo
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LivenessStatus'
+              example:
+                status: "alive"
+
   # ===== PUBLIC - AUTH =====
   /api/v1/public/auth/register:
     post:
