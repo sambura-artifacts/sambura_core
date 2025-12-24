@@ -1,12 +1,15 @@
 import 'dart:convert';
-import 'package:http/http.dart' as http;
 import 'package:logging/logging.dart';
 import 'package:sambura_core/config/app_config.dart';
 import 'package:sambura_core/config/logger.dart';
+import 'package:sambura_core/application/ports/http_client_port.dart';
 
 class ProxyPackageMetadataUseCase {
   final Logger _log = LoggerConfig.getLogger('ProxyPackageMetadataUseCase');
   final String remoteHost = 'registry.npmjs.org';
+  final HttpClientPort _client;
+
+  ProxyPackageMetadataUseCase(this._client);
 
   Future<dynamic> execute(
     String path, {
@@ -18,10 +21,10 @@ class ProxyPackageMetadataUseCase {
       '🌐 Proxy Request: path=$path, repo=$repoName, pkg=$packageName, params=$queryParams',
     );
     try {
-      final uri = Uri.https(remoteHost, path, queryParams);
+      final uri = _client.makeUri(remoteHost, path, queryParams);
       _log.info('🌐 Proxy Request: $uri');
 
-      final response = await http.get(
+      final response = await _client.get(
         uri,
         headers: {'Accept': 'application/json'},
       );

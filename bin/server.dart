@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:logging/logging.dart';
 import 'package:minio/minio.dart';
 import 'package:sambura_core/application/usecase/package/proxy_package_metadata_usecase.dart';
+import 'package:sambura_core/infrastructure/adapters/http/http_client_adapter.dart';
 import 'package:shelf/shelf.dart';
 import 'package:shelf/shelf_io.dart' as io;
 
@@ -112,6 +113,10 @@ void main() async {
   final authService = AuthService(authSecrets['jwt_secret']);
   final npmProxy = NpmProxy(siloBlobRepo);
 
+  // Adapters
+
+  final clientPort = HttpClientAdapter();
+
   // UseCases
   final loginUsecase = LoginUsecase(
     accountRepo,
@@ -122,8 +127,7 @@ void main() async {
   final generateApiKeyUsecase = GenerateApiKeyUsecase(apiKeyRepo);
   final listApiKeysUsecase = ListApiKeysUsecase(apiKeyRepo);
   final revokeApiKeyUsecase = RevokeApiKeyUsecase(apiKeyRepo, accountRepo);
-  final getPackageMetadataUseCase = GetPackageMetadataUseCase(artifactRepo);
-  final proxyPackageMetadataUseCase = ProxyPackageMetadataUseCase();
+  final proxyPackageMetadataUseCase = ProxyPackageMetadataUseCase(clientPort);
 
   final getArtifactUseCase = GetArtifactUseCase(
     artifactRepo,

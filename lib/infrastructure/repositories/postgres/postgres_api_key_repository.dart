@@ -149,6 +149,7 @@ class PostgresApiKeyRepository implements ApiKeyRepository {
     }
   }
 
+  @override
   Future<void> delete(int id) async {
     _log.info('Deletando API key: id=$id');
 

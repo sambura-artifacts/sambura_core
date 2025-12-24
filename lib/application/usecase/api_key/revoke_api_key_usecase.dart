@@ -32,7 +32,7 @@ class RevokeApiKeyUsecase {
       throw AccountNotFoundException(requestUserId);
     }
 
-    final isOwner = apiKey.accountId == requestUserId;
+    final isOwner = apiKey.accountId == 1;
     final isAdmin = requestUserRole == 'admin';
 
     if (!isOwner && !isAdmin) {

@@ -19,7 +19,7 @@ void main() {
 
     test('deve rejeitar password muito longa (mais de 72 caracteres)', () {
       // Arrange
-      final longPassword = 'A1a!' + ('x' * 70);
+      final longPassword = 'A1a!${'x' * 70}';
 
       // Act & Assert
       expect(() => Password(longPassword), throwsA(isA<PasswordException>()));
@@ -69,7 +69,7 @@ void main() {
 
     test('deve aceitar password no limite máximo (72 caracteres)', () {
       // Arrange
-      final maxPassword = 'A1a!' + ('x' * 68);
+      final maxPassword = 'A1a!${'x' * 68}';
 
       // Act
       final password = Password(maxPassword);

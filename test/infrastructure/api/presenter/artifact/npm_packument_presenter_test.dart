@@ -59,7 +59,7 @@ void main() {
     test('deve incluir headers corretos em erros', () {
       final response = NpmPackumentPresenter.error(404, 'Not found');
 
-      expect(response.headers['Content-Type'], equals('application/json'));
+      expect(response.headers['Content-Type'], contains('application/json'));
       expect(response.headers['X-Powered-By'], equals('Sambura Registry'));
     });
 

@@ -1,13 +1,50 @@
+import 'package:mocktail/mocktail.dart';
+import 'package:http/http.dart' as http;
+import 'package:sambura_core/application/ports/http_client_port.dart';
 import 'package:sambura_core/application/usecase/package/proxy_package_metadata_usecase.dart';
 import 'package:test/test.dart';
 import 'dart:convert';
 
+// Criamos o Mock para o Client HTTP
+class MockClient implements HttpClientPort {
+  @override
+  Future<dynamic> get(uri, {Map<String, String>? headers}) async {
+    return {
+      'name': 'lodash',
+      'versions': {
+        '4.17.21': {'version': '4.17.21'},
+      },
+    };
+  }
+
+  @override
+  Future<dynamic> post({
+    required String uri,
+    Map<String, String>? headers,
+    data,
+  }) {
+    throw UnimplementedError();
+  }
+
+  @override
+  Uri makeUri(
+    String authority, [
+    String? unencodedPath,
+    Map<String, dynamic>? queryParameters,
+  ]) {
+    unencodedPath ?? '';
+    return Uri();
+  }
+}
+
 void main() {
   group('ProxyPackageMetadataUseCase', () {
     late ProxyPackageMetadataUseCase usecase;
+    late MockClient mockClient;
 
     setUp(() {
-      usecase = ProxyPackageMetadataUseCase();
+      mockClient = MockClient();
+      usecase = ProxyPackageMetadataUseCase(mockClient);
     });
 
     test('deve buscar metadados de pacote sem escopo com sucesso', () async {
@@ -16,104 +53,66 @@ void main() {
       final mockResponse = {
         'name': packageName,
         'versions': {
-          '4.17.21': {
-            'name': packageName,
-            'version': '4.17.21',
-            'description': 'Lodash modular utilities.',
-          },
+          '4.17.21': {'version': '4.17.21'},
         },
-        'dist-tags': {'latest': '4.17.21'},
       };
 
-      // Mock HTTP client não é possível nessa estrutura simples
-      // Vamos testar o comportamento esperado
+      when(
+        () => mockClient.get(any(), headers: any(named: 'headers')),
+      ).thenAnswer((_) async => http.Response(jsonEncode(mockResponse), 200));
 
-      // Este teste requer mock do http.get, que seria feito com:
-      // - Injeção de dependência do client
-      // - Ou uso de package mockito/mocktail
-    });
-
-    test('deve buscar metadados de pacote com escopo (@scope/name)', () async {
-      // Arrange
-      const packageName = '@sambura/core';
+      // Act
+      final result = await usecase.execute(
+        packageName,
+        repoName: 'npm-registry',
+      );
 
       // Assert
-      // Verifica que o nome é encodado corretamente para %2f
-      expect(packageName.replaceFirst('/', '%2f'), equals('@sambura%2fcore'));
+      expect(result, isNotNull);
+      expect(result!['name'], equals(packageName));
+      verify(
+        () => mockClient.get(any(), headers: any(named: 'headers')),
+      ).called(1);
     });
 
-    test('deve retornar null quando pacote não existe (404)', () async {
-      // Este teste requer mock do HTTP client
-      // No mundo real, usaríamos mockito/mocktail para mockar http.get
-    });
-
-    test('deve lançar exceção em caso de erro do servidor', () async {
-      // Este teste requer mock do HTTP client
-    });
-
-    test('deve fazer encoding correto de pacotes com escopo', () {
-      const packageName = '@types/node';
+    test('deve fazer encoding correto de pacotes com escopo (@scope/name)', () {
+      const packageName = '@sambura/core';
+      // O UseCase deve tratar isso internamente, aqui validamos a lógica
       final encoded = packageName.replaceFirst('/', '%2f');
-
-      expect(encoded, equals('@types%2fnode'));
+      expect(encoded, equals('@sambura%2fcore'));
     });
 
-    test('deve manter pacotes sem escopo inalterados', () {
+    test('deve retornar null quando o pacote não existe (404)', () async {
+      // Arrange
+      when(
+        () => mockClient.get(any(), headers: any(named: 'headers')),
+      ).thenAnswer((_) async => http.Response('Not Found', 404));
+
+      // Act
+      final result = await usecase.execute(
+        'pacote-inexistente',
+        repoName: 'npm-registry',
+      );
+
+      // Assert
+      expect(result, isNull);
+    });
+
+    test('deve manter pacotes sem escopo inalterados no encoding', () {
       const packageName = 'express';
-      final encoded = packageName.replaceFirst('/', '%2f');
+      final encoded = packageName.contains('/')
+          ? packageName.replaceFirst('/', '%2f')
+          : packageName;
 
       expect(encoded, equals('express'));
     });
 
-    test('deve processar resposta JSON válida', () {
-      final jsonString = jsonEncode({
-        'name': 'test-package',
-        'versions': {
-          '1.0.0': {'name': 'test-package', 'version': '1.0.0'},
-        },
-        'dist-tags': {'latest': '1.0.0'},
-      });
-
-      final decoded = jsonDecode(jsonString);
-
-      expect(decoded['name'], equals('test-package'));
-      expect(decoded['versions'], isNotNull);
-      expect(decoded['dist-tags'], isNotNull);
-    });
-
     test('deve construir URL correta para registry NPM', () {
-      const remoteRegistry = 'https://registry.npmjs.org';
-      const packageName = '@sambura%2fcore';
-      final url = '$remoteRegistry/$packageName';
+      const remoteRegistry = 'registry.npmjs.org';
+      const packageName = '@sambura/core';
+      final uri = Uri.https(remoteRegistry, '/$packageName');
 
-      expect(url, equals('https://registry.npmjs.org/@sambura%2fcore'));
-    });
-
-    test('deve lidar com caracteres especiais no nome do pacote', () {
-      const packageName = '@scope/package-name';
-      final encoded = packageName.replaceFirst('/', '%2f');
-
-      expect(encoded, equals('@scope%2fpackage-name'));
-    });
-  });
-
-  group('ProxyPackageMetadataUseCase - Integration Tests', () {
-    test('deve validar estrutura de resposta esperada', () {
-      final expectedStructure = {
-        'name': isA<String>(),
-        'versions': isA<Map>(),
-        'dist-tags': isA<Map>(),
-      };
-
-      final sampleResponse = {
-        'name': 'lodash',
-        'versions': {'4.17.21': {}},
-        'dist-tags': {'latest': '4.17.21'},
-      };
-
-      expect(sampleResponse['name'], expectedStructure['name']);
-      expect(sampleResponse['versions'], expectedStructure['versions']);
-      expect(sampleResponse['dist-tags'], expectedStructure['dist-tags']);
+      expect(uri.toString(), contains('registry.npmjs.org'));
     });
   });
 }

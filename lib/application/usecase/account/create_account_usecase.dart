@@ -30,6 +30,7 @@ class CreateAccountUsecase {
         username: username,
         password: passwordHash,
         email: email,
+        role: role,
       );
 
       _log.fine('Salvando conta no repositório');

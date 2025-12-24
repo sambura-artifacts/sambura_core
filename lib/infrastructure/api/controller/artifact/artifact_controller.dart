@@ -5,7 +5,6 @@ import 'package:logging/logging.dart';
 import 'package:sambura_core/application/usecase/api_key/generate_api_key_usecase.dart';
 import 'package:sambura_core/application/usecase/artifact/get_artifact_by_id_usecase.dart';
 import 'package:sambura_core/application/usecase/artifact/get_artifact_download_stream_usecase.dart';
-import 'package:sambura_core/application/usecase/package/get_package_metadata_usecase.dart';
 import 'package:sambura_core/application/usecase/package/proxy_package_metadata_usecase.dart';
 import 'package:sambura_core/config/logger.dart';
 import 'package:sambura_core/domain/entities/account_entity.dart';
@@ -158,6 +157,7 @@ class ArtifactController {
     }
   }
 
+  // ignore: unintended_html_in_doc_comment
   /// GET /<repositoryName>/<packageName>/<version>
   /// Este método "resolve" a localização do artefato (Banco ou Proxy NPM)
   Future<Response> resolve(
@@ -219,6 +219,7 @@ class ArtifactController {
     }
   }
 
+  // ignore: unintended_html_in_doc_comment
   /// GET /artifacts/<externalId>
   /// Busca os metadados de um artefato específico pelo seu UUID
   Future<Response> getByExternalId(Request request, String externalId) async {
@@ -303,8 +304,7 @@ class ArtifactController {
         headers: {
           'Content-Type': result.blob.mimeType,
           'Content-Length': result.blob.sizeBytes.toString(),
-          'Content-Disposition':
-              'attachment; filename="${name}-${version}.tgz"',
+          'Content-Disposition': 'attachment; filename="$name-$version.tgz"',
         },
       );
     } catch (e, stack) {
@@ -329,7 +329,7 @@ class ArtifactController {
       '[REQ:$requestId] POST /generate-api-key - Usuário: ${user.username}, Role: ${user.role}',
     );
 
-    // Só admin ou o próprio dono pode gerar (Regra de negócio)
+    // ignore: unrelated_type_equality_checks
     if (user.role != 'admin') {
       _log.warning(
         '[REQ:$requestId] ✗ Acesso negado para gerar API key: usuário não é admin',

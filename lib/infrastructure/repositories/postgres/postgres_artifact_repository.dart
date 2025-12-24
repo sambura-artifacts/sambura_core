@@ -1,5 +1,4 @@
 import 'package:logging/logging.dart';
-import 'package:postgres/postgres.dart';
 import 'package:sambura_core/config/logger.dart';
 import 'package:sambura_core/domain/entities/blob_entity.dart';
 import 'package:sambura_core/domain/repositories/artifact_repository.dart';

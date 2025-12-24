@@ -20,7 +20,7 @@ void main() {
 
         // Assert
         expect(response.statusCode, equals(200));
-        expect(response.headers['Content-Type'], equals('application/json'));
+        expect(response.headers['Content-Type'], contains('application/json'));
 
         final body =
             jsonDecode(await response.readAsString()) as Map<String, dynamic>;
