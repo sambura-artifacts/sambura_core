@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'package:sambura_core/domain/entities/package_entity.dart';
 
 class PackagePresenter {
   static String renderList(

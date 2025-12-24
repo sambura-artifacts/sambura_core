@@ -1,22 +1,19 @@
 import 'dart:convert';
 
 import 'package:logging/logging.dart';
-import 'package:sambura_core/application/usecase/generate_api_key_usecase.dart';
-import 'package:sambura_core/application/usecase/get_artifact_by_id_usecase.dart';
-import 'package:sambura_core/application/usecase/get_artifact_download_stream_usecase.dart';
-import 'package:sambura_core/application/usecase/get_package_metadata_usecase.dart';
+import 'package:sambura_core/application/usecase/api_key/generate_api_key_usecase.dart';
+import 'package:sambura_core/application/usecase/artifact/get_artifact_by_id_usecase.dart';
+import 'package:sambura_core/application/usecase/artifact/get_artifact_download_stream_usecase.dart';
+import 'package:sambura_core/application/usecase/package/get_package_metadata_usecase.dart';
 import 'package:sambura_core/config/logger.dart';
 import 'package:sambura_core/domain/entities/account_entity.dart';
 import 'package:sambura_core/domain/exceptions/domain_exception.dart';
-import 'package:sambura_core/infrastructure/services/hash_service.dart';
-import 'package:sambura_core/utils/crypto_utils.dart';
 import 'package:shelf/shelf.dart';
-import 'package:sambura_core/application/usecase/get_artifact_usecase.dart';
-import 'package:sambura_core/application/usecase/create_artifact_usecase.dart';
-import 'package:sambura_core/infrastructure/api/presenter/artifact_presenter.dart';
+import 'package:sambura_core/application/usecase/artifact/get_artifact_usecase.dart';
+import 'package:sambura_core/application/usecase/artifact/create_artifact_usecase.dart';
+import 'package:sambura_core/infrastructure/api/presenter/artifact/artifact_presenter.dart';
 import 'package:sambura_core/infrastructure/api/presenter/error_presenter.dart';
 import 'package:sambura_core/infrastructure/api/dtos/artifact_input.dart';
-import 'package:shelf_router/shelf_router.dart';
 
 class ArtifactController {
   final CreateArtifactUsecase _createUsecase;
@@ -111,11 +108,12 @@ class ArtifactController {
     String packageName,
     String version,
   ) async {
+    final requestId = DateTime.now().millisecondsSinceEpoch.toString();
     final baseUrl = request.requestedUri.origin;
     final instance = request.url.path;
 
     _log.info(
-      'Buscando artefato: repo=$repositoryName, pkg=$packageName, version=$version',
+      '[REQ:$requestId] GET /$repositoryName/$packageName/$version - Buscando artefato',
     );
 
     try {
@@ -127,7 +125,7 @@ class ArtifactController {
 
       if (artifact == null) {
         _log.warning(
-          'Artefato não encontrado: $packageName@$version no repo $repositoryName',
+          '[REQ:$requestId] ✗ Artefato não encontrado: $packageName@$version no repo $repositoryName',
         );
         return ErrorPresenter.notFound(
           'O pacote $packageName na versão $version não foi encontrado no repositório $repositoryName.',
@@ -136,10 +134,16 @@ class ArtifactController {
         );
       }
 
-      _log.info('Artefato encontrado: id=${artifact.externalId}');
+      _log.info(
+        '[REQ:$requestId] ✓ Artefato encontrado: id=${artifact.externalId}',
+      );
       return ArtifactPresenter.createArtifact(artifact, baseUrl);
     } catch (e, stack) {
-      _log.severe('Erro ao resolver artefato $packageName@$version', e, stack);
+      _log.severe(
+        '[REQ:$requestId] ✗ Erro ao resolver artefato $packageName@$version',
+        e,
+        stack,
+      );
       return ErrorPresenter.internalServerError(
         "Erro ao resolver artefato.",
         instance,
@@ -158,15 +162,16 @@ class ArtifactController {
     String packageName,
     String version,
   ) async {
+    final requestId = DateTime.now().millisecondsSinceEpoch.toString();
     final baseUrl = request.requestedUri.origin;
     final instance = request.url.path;
 
     _log.info(
-      'Resolvendo localização de $repositoryName/$packageName@$version',
+      '[REQ:$requestId] Resolvendo localização de $repositoryName/$packageName@$version',
     );
 
     try {
-      _log.fine('Executando usecase de resolução');
+      _log.fine('[REQ:$requestId] Executando usecase de resolução');
       final artifact = await _getArtifactUseCase.execute(
         repositoryName: repositoryName,
         packageName: packageName,
@@ -175,7 +180,7 @@ class ArtifactController {
 
       if (artifact == null) {
         _log.warning(
-          'Artefato não encontrado após resolução: $packageName@$version',
+          '[REQ:$requestId] ✗ Artefato não encontrado após resolução: $packageName@$version',
         );
         return ErrorPresenter.notFound(
           'O pacote $packageName na versão $version não foi encontrado no repositório $repositoryName.',
@@ -184,17 +189,19 @@ class ArtifactController {
         );
       }
 
-      _log.info('Resolução bem-sucedida: artifact_id=${artifact.externalId}');
+      _log.info(
+        '[REQ:$requestId] ✓ Resolução bem-sucedida: artifact_id=${artifact.externalId}',
+      );
       return ArtifactPresenter.success(artifact);
     } on RepositoryNotFoundException catch (e) {
-      _log.warning(e.message);
+      _log.warning('[REQ:$requestId] ✗ ${e.message}');
       return ErrorPresenter.notFound(e.message, instance, baseUrl);
     } on ArtifactNotFoundException catch (e) {
-      _log.warning(e.message);
+      _log.warning('[REQ:$requestId] ✗ ${e.message}');
       return ErrorPresenter.notFound(e.message, instance, baseUrl);
     } catch (e, stack) {
       _log.severe(
-        'Erro crítico ao resolver artefato $packageName@$version',
+        '[REQ:$requestId] ✗ Erro crítico ao resolver artefato $packageName@$version',
         e,
         stack,
       );
@@ -211,15 +218,20 @@ class ArtifactController {
   /// GET /artifacts/<externalId>
   /// Busca os metadados de um artefato específico pelo seu UUID
   Future<Response> getByExternalId(Request request, String externalId) async {
+    final requestId = DateTime.now().millisecondsSinceEpoch.toString();
     final baseUrl = request.requestedUri.origin;
 
-    _log.info('Buscando artefato por ID: $externalId');
+    _log.info(
+      '[REQ:$requestId] GET /artifacts/$externalId - Buscando artefato por ID',
+    );
 
     try {
       final artifact = await _getByIdUseCase.execute(externalId);
 
       if (artifact == null) {
-        _log.warning('Artefato não encontrado para ID: $externalId');
+        _log.warning(
+          '[REQ:$requestId] ✗ Artefato não encontrado para ID: $externalId',
+        );
         return ErrorPresenter.notFound(
           'Artefato não encontrado.',
           request.url.path,
@@ -228,14 +240,18 @@ class ArtifactController {
       }
 
       _log.info(
-        'Artefato encontrado: ${artifact.packageName}@${artifact.version}',
+        '[REQ:$requestId] ✓ Artefato encontrado: ${artifact.packageName}@${artifact.version}',
       );
       return Response.ok(
         ArtifactPresenter.createArtifact(artifact, baseUrl),
         headers: {'Content-Type': 'application/json'},
       );
     } catch (e, stackTrace) {
-      _log.severe('Erro ao buscar artefato por ID: $externalId', e, stackTrace);
+      _log.severe(
+        '[REQ:$requestId] ✗ Erro ao buscar artefato por ID: $externalId',
+        e,
+        stackTrace,
+      );
       return ErrorPresenter.internalServerError(
         "Erro ao buscar",
         request.url.path,
@@ -250,7 +266,13 @@ class ArtifactController {
     String name,
     String version,
   ) async {
+    final requestId = DateTime.now().millisecondsSinceEpoch.toString();
     final baseUrl = request.requestedUri.origin;
+
+    _log.info(
+      '[REQ:$requestId] GET /download/$namespace/$name/$version - Iniciando download',
+    );
+
     try {
       final result = await _getArtifactDownloadStreamUsecase.execute(
         namespace: namespace,
@@ -259,6 +281,9 @@ class ArtifactController {
       );
 
       if (result == null) {
+        _log.warning(
+          '[REQ:$requestId] ✗ Artefato não localizado: $namespace/$name@$version',
+        );
         return ErrorPresenter.notFound(
           "Artefato não localizado.",
           request.url.path,
@@ -266,6 +291,9 @@ class ArtifactController {
         );
       }
 
+      _log.info(
+        '[REQ:$requestId] ✓ Download iniciado: $name@$version, ${result.blob.sizeBytes} bytes',
+      );
       return Response.ok(
         result.stream,
         headers: {
@@ -276,7 +304,11 @@ class ArtifactController {
         },
       );
     } catch (e, stack) {
-      _log.severe('Erro no controller de download', e, stack);
+      _log.severe(
+        '[REQ:$requestId] ✗ Erro no controller de download',
+        e,
+        stack,
+      );
       return ErrorPresenter.internalServerError(
         "Erro interno.",
         request.url.path,
@@ -286,31 +318,51 @@ class ArtifactController {
   }
 
   Future<Response> generateApiKey(Request request) async {
+    final requestId = DateTime.now().millisecondsSinceEpoch.toString();
     final user = request.context['user'] as AccountEntity;
+
+    _log.info(
+      '[REQ:$requestId] POST /generate-api-key - Usuário: ${user.username}, Role: ${user.role}',
+    );
 
     // Só admin ou o próprio dono pode gerar (Regra de negócio)
     if (user.role != 'admin') {
+      _log.warning(
+        '[REQ:$requestId] ✗ Acesso negado para gerar API key: usuário não é admin',
+      );
       return Response.forbidden(
         jsonEncode({'error': 'Só o admin pode gerar ApiKey!'}),
       );
     }
 
-    final payload = jsonDecode(await request.readAsString());
-    final keyName = payload['name'] ?? 'default-key';
+    try {
+      final payload = jsonDecode(await request.readAsString());
+      final keyName = payload['name'] ?? 'default-key';
 
-    // Chama o Usecase que a gente acabou de criar
-    final result = await _generateApiKeyUsecase.execute(
-      accountId: user.id!,
-      keyName: keyName,
-    );
+      _log.info('[REQ:$requestId] Gerando API key com nome: $keyName');
 
-    return Response.ok(
-      jsonEncode({
-        'message': 'Guarda isso num lugar seguro!',
-        'api_key': result.plainKey,
-        'name': result.name,
-      }),
-    );
+      // Chama o Usecase que a gente acabou de criar
+      final result = await _generateApiKeyUsecase.execute(
+        accountId: user.id!,
+        keyName: keyName,
+      );
+
+      _log.info(
+        '[REQ:$requestId] ✓ API key gerada com sucesso: ${result.name}',
+      );
+      return Response.ok(
+        jsonEncode({
+          'message': 'Guarda isso num lugar seguro!',
+          'api_key': result.plainKey,
+          'name': result.name,
+        }),
+      );
+    } catch (e, stack) {
+      _log.severe('[REQ:$requestId] ✗ Erro ao gerar API key', e, stack);
+      return Response.internalServerError(
+        body: jsonEncode({'error': 'Erro ao gerar chave: $e'}),
+      );
+    }
   }
 
   Future<Response> getPackageMetadata(
@@ -318,22 +370,40 @@ class ArtifactController {
     String repo,
     String packageName,
   ) async {
+    final requestId = DateTime.now().millisecondsSinceEpoch.toString();
     final decodedName = Uri.decodeComponent(packageName);
 
-    _log.info('📦 Buscando metadata para: $decodedName no repo: $repo');
-
-    final metadata = await _getPackageMetadataUseCase.execute(
-      repo,
-      decodedName,
+    _log.info(
+      '[REQ:$requestId] GET /$repo/$packageName - Buscando metadata do pacote',
     );
 
-    if (metadata == null) {
-      return Response.notFound(jsonEncode({'error': 'Package not found'}));
+    try {
+      final metadata = await _getPackageMetadataUseCase.execute(
+        repo,
+        decodedName,
+      );
+
+      if (metadata == null) {
+        _log.warning(
+          '[REQ:$requestId] ✗ Package não encontrado: $decodedName no repo: $repo',
+        );
+        return Response.notFound(jsonEncode({'error': 'Package not found'}));
+      }
+
+      _log.info('[REQ:$requestId] ✓ Metadata encontrado para: $decodedName');
+      return Response.ok(
+        jsonEncode(metadata),
+        headers: {'Content-Type': 'application/json'},
+      );
+    } catch (e, stack) {
+      _log.severe(
+        '[REQ:$requestId] ✗ Erro ao buscar metadata do pacote: $decodedName',
+        e,
+        stack,
+      );
+      return Response.internalServerError(
+        body: jsonEncode({'error': 'Erro ao buscar metadata: $e'}),
+      );
     }
-
-    return Response.ok(
-      jsonEncode(metadata),
-      headers: {'Content-Type': 'application/json'},
-    );
   }
 }

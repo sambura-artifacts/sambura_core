@@ -5,7 +5,7 @@ import 'package:shelf/shelf.dart';
 import 'package:sambura_core/domain/entities/repository_entity.dart';
 import 'package:sambura_core/domain/repositories/repository_repository.dart';
 import 'package:sambura_core/infrastructure/api/presenter/error_presenter.dart';
-import 'package:sambura_core/infrastructure/api/presenter/repository_presenter.dart';
+import 'package:sambura_core/infrastructure/api/presenter/artifact/repository_presenter.dart';
 
 class RepositoryController {
   final RepositoryRepository _repository;
