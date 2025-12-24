@@ -2,7 +2,7 @@
 ///
 /// Define o contrato para operações de cache distribuído.
 /// Pode ser implementado com Redis, Memcached, ou cache em memória.
-abstract class ICachePort {
+abstract class CachePort {
   /// Armazena um valor no cache com tempo de expiração.
   ///
   /// [key] - Chave única

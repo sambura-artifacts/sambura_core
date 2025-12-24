@@ -6,7 +6,7 @@ import 'package:sambura_core/application/ports/cache_port.dart';
 /// Adapter para Redis implementando ICachePort.
 ///
 /// Segue o padrão Hexagonal Architecture (Ports & Adapters).
-class RedisAdapter implements ICachePort {
+class RedisAdapter implements CachePort {
   final String _host;
   final int _port;
   final Logger _log = LoggerConfig.getLogger('RedisAdapter');

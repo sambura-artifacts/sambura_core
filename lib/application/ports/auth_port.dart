@@ -1,7 +1,7 @@
 /// Port (Interface) para serviço de autenticação e autorização.
 ///
 /// Define o contrato para operações de JWT e autenticação.
-abstract class IAuthPort {
+abstract class AuthPort {
   /// Gera um token JWT para um usuário.
   ///
   /// [userId] - ID do usuário

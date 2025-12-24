@@ -6,7 +6,7 @@ import 'package:sambura_core/application/ports/auth_port.dart';
 /// Adapter para JWT implementando IAuthPort.
 ///
 /// Segue o padrão Hexagonal Architecture (Ports & Adapters).
-class JwtAdapter implements IAuthPort {
+class JwtAdapter implements AuthPort {
   final String _secret;
   final Duration _tokenDuration;
   final Logger _log = LoggerConfig.getLogger('JwtAdapter');

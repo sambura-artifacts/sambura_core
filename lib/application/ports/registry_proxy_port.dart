@@ -1,7 +1,7 @@
 /// Port (Interface) para proxy de registries externos (NPM, PyPI, Maven, etc).
 ///
 /// Define o contrato para buscar e cachear pacotes de registries upstream.
-abstract class IRegistryProxyPort {
+abstract class RegistryProxyPort {
   /// Busca metadados de um pacote no registry externo.
   ///
   /// [packageName] - Nome do pacote

@@ -1,7 +1,7 @@
 /// Port (Interface) para serviço de hash e criptografia.
 ///
 /// Define o contrato para operações criptográficas.
-abstract class IHashPort {
+abstract class HashPort {
   /// Gera hash de uma senha com salt e pepper.
   ///
   /// [password] - Senha em texto plano

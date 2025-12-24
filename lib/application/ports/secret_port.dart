@@ -2,7 +2,7 @@
 ///
 /// Define o contrato para acesso a segredos sensíveis.
 /// Pode ser implementado com HashiCorp Vault, AWS Secrets Manager, etc.
-abstract class ISecretPort {
+abstract class SecretPort {
   /// Recupera um conjunto de segredos de um caminho específico.
   ///
   /// [path] - Caminho do segredo (ex: "sambura/database")
