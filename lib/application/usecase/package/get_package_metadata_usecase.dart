@@ -47,10 +47,10 @@ class GetPackageMetadataUseCase {
 
         versions[a.versionValue] = {
           "name": packageName,
-          "version": a.version,
+          "version": a.version.value,
           "dist": {
             "tarball":
-                "http://localhost:8080/api/v1/download/$repoName/$packageName/${a.version}",
+                "http://localhost:8080/api/v1/download/$repoName/$packageName/${a.version.value}",
             "integrity": integrity,
             "shasum": hexHash,
           },
@@ -62,7 +62,7 @@ class GetPackageMetadataUseCase {
         return null;
       }
 
-      final latestVersion = artifacts.last.version;
+      final latestVersion = artifacts.last.version.value;
       _log.info(
         '✓ Metadata gerado: ${versions.length} versões, latest=$latestVersion',
       );

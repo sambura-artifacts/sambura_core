@@ -1,4 +1,5 @@
 import 'package:logging/logging.dart';
+import 'package:postgres/postgres.dart';
 import 'package:sambura_core/config/logger.dart';
 import 'package:sambura_core/domain/entities/blob_entity.dart';
 import 'package:sambura_core/domain/repositories/artifact_repository.dart';
@@ -22,8 +23,8 @@ class PostgresArtifactRepository implements ArtifactRepository {
     final params = {
       'packageId': artifact.packageId,
       'blobId': artifact.blob!.id,
-      'externalId': artifact.externalId,
-      'version': artifact.version,
+      'externalId': artifact.externalId.value,
+      'version': artifact.version.value,
       'path': artifact.path,
       'createdAt': artifact.createdAt,
     };
@@ -217,12 +218,12 @@ class PostgresArtifactRepository implements ArtifactRepository {
 
       final artifact = _fromMap({
         'id': map['id'],
-        'external_id': '${map['external_id'] ?? ''}',
+        'external_id': map['external_id'].toString(),
         'package_id': map['package_id'],
         'repo_namespace': (map['repo_name'] ?? '').toString(),
         'namespace': (map['repo_name'] ?? '').toString(),
         'package_name': (map['pkg_name'] ?? '').toString(),
-        'version': (map['version'] ?? '').toString(),
+        'version': map['version'].toString(),
         'path': (map['path'] ?? '').toString(),
         'blob_id': map['blob_id'],
         'created_at': (map['created_at'] ?? DateTime.now()).toString(),
@@ -251,11 +252,11 @@ class PostgresArtifactRepository implements ArtifactRepository {
   ArtifactEntity _fromMap(Map<String, dynamic> map, {BlobEntity? blob}) {
     return ArtifactEntity.restore(
       id: map['id'] as int,
-      externalId: map['external_id'] as String,
+      externalId: map['external_id'].toString(),
       packageId: map['package_id'] as int,
       namespace: map['namespace'] as String? ?? '',
       packageName: (map['package_name'] ?? map['name']) as String,
-      version: map['version'] as String,
+      version: map['version'].toString(),
       path: map['path'] as String,
       blobId: map['blob_id'] as int?,
       blob:
@@ -275,7 +276,7 @@ class PostgresArtifactRepository implements ArtifactRepository {
   ) {
     return ArtifactEntity.restore(
       id: artifactRow['id'] as int,
-      externalId: artifactRow['external_id'] as String,
+      externalId: artifactRow['external_id'].toString(),
       packageId: artifactRow['package_id'] as int,
       namespace: artifactRow['namespace'] as String? ?? '',
       packageName:

@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:logging/logging.dart';
 import 'package:minio/minio.dart';
+import 'package:sambura_core/application/usecase/package/proxy_package_metadata_usecase.dart';
 import 'package:shelf/shelf.dart';
 import 'package:shelf/shelf_io.dart' as io;
 
@@ -122,6 +123,7 @@ void main() async {
   final listApiKeysUsecase = ListApiKeysUsecase(apiKeyRepo);
   final revokeApiKeyUsecase = RevokeApiKeyUsecase(apiKeyRepo, accountRepo);
   final getPackageMetadataUseCase = GetPackageMetadataUseCase(artifactRepo);
+  final proxyPackageMetadataUseCase = ProxyPackageMetadataUseCase();
 
   final getArtifactUseCase = GetArtifactUseCase(
     artifactRepo,
@@ -129,6 +131,9 @@ void main() async {
     repositoryRepo,
     npmProxy,
   );
+
+  final getMetadataUseCase = GetPackageMetadataUseCase(artifactRepo);
+
   final getArtifactDownloadStreamUsecase = GetArtifactDownloadStreamUsecase(
     artifactRepo,
     siloBlobRepo,
@@ -162,10 +167,11 @@ void main() async {
     getArtifactDownloadStreamUsecase,
     generateApiKeyUsecase,
     getPackageMetadataUseCase,
+    proxyPackageMetadataUseCase,
   );
 
   final repositoryController = RepositoryController(repositoryRepo);
-  final packageController = PackageController(packageRepo);
+  final packageController = PackageController(packageRepo, getMetadataUseCase);
   final blobController = BlobController(siloBlobRepo);
   final uploadController = UploadController(uploadArtifactUsecase);
 

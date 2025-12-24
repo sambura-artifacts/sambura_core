@@ -16,7 +16,7 @@ SILO_SECRET_KEY=sambura_silo_secret
 
 # Dados para criação do repositório inicial
 REPO_URL=$(API_URL)/admin/repositories
-REPO_DATA='{"name": "npm-proxy", "namespace": "npm", "is_public": true, "type": "proxy"}'
+REPO_DATA='{"name": "npm-registry", "namespace": "npm", "is_public": true, "type": "proxy"}'
 
 # Carrega .env se existir
 ifneq ("$(wildcard .env)","")
@@ -24,7 +24,7 @@ ifneq ("$(wildcard .env)","")
     export $(shell sed 's/=.*//' .env)
 endif
 
-.PHONY: help up down dev db-init db-reset db-refresh vault-seed auth-register auth-login create-repo setup-all check test test-watch test-coverage
+.PHONY: help up down dev db-init db-reset db-shell vault-seed auth-register auth-login create-repo setup-s3 setup-all check test test-watch test-coverage clean
 
 # ==============================================================================
 # HELP & INFO
@@ -57,7 +57,7 @@ db-init: ## Cria as tabelas do zero usando o script SQL
 
 db-reset: ## Limpa os dados das tabelas (TRUNCATE)
 	@echo "⚠️  Limpando dados..."
-	@docker exec -i sambura_db psql -U sambura -d sambura_metadata -c "TRUNCATE TABLE artifacts, packages, repositories, blobs, accounts RESTART IDENTITY CASCADE;"
+	@docker exec -i sambura_db psql -U sambura -d sambura_metadata -c "TRUNCATE TABLE artifacts, packages, repositories, blobs, accounts, api_keys RESTART IDENTITY CASCADE;"
 	@echo "✨ Banco limpo!"
 
 db-shell: ## Abre o terminal psql dentro do container
@@ -67,7 +67,7 @@ db-shell: ## Abre o terminal psql dentro do container
 # VAULT (Segredos) - Com Token de Root
 # ==============================================================================
 vault-seed: ## Injeta os segredos manuais usando o token de root
-	@echo "🔐 Injetando pimenta e chaves no Vault..."
+	@echo "🔐 Injetando chaves no Vault..."
 	@docker exec -e VAULT_ADDR='http://127.0.0.1:8200' -e VAULT_TOKEN='root_token_sambura' sambura_vault \
 		vault kv put -mount=secret sambura/database password="sambura_db_secret"
 	@docker exec -e VAULT_ADDR='http://127.0.0.1:8200' -e VAULT_TOKEN='root_token_sambura' sambura_vault \
@@ -75,7 +75,7 @@ vault-seed: ## Injeta os segredos manuais usando o token de root
 	@echo "✅ Vault populado com sucesso!"
 
 # ==============================================================================
-# AUTENTICAÇÃO (O fluxo do JWT)
+# AUTENTICAÇÃO
 # ==============================================================================
 auth-register: ## Registra o usuário administrador inicial
 	@echo "👤 Registrando: $(ADMIN_USER)..."
@@ -89,14 +89,19 @@ auth-login: ## Faz login e extrai o JWT puro para o arquivo .token
 	@curl -s -X POST $(API_URL)/auth/login \
 		-H "Content-Type: application/json" \
 		-d '{"username":"$(ADMIN_USER)", "password":"$(ADMIN_PASS)"}' > .token_raw.json
-	@cat .token_raw.json | sed -n 's/.*"token":"\([^"]*\)".*/\1/p' > .token
-	@echo "🎫 JWT extraído e salvo no arquivo .token"
+	@if grep -q "token" .token_raw.json; then \
+		cat .token_raw.json | sed -n 's/.*"token":"\([^"]*\)".*/\1/p' > .token; \
+		echo "🎫 JWT extraído e salvo no arquivo .token"; \
+	else \
+		echo "❌ Erro no login. Verifique as credenciais."; \
+		exit 1; \
+	fi
 
 # ==============================================================================
 # REPOSITÓRIOS & STORAGE
 # ==============================================================================
 create-repo: ## Cria o repositório npm-proxy usando o token JWT
-	@if [ ! -f .token ]; then echo "❌ Erro: Cadê o token? Roda 'make auth-login' primeiro, cria!"; exit 1; fi
+	@if [ ! -f .token ]; then echo "❌ Erro: Cadê o token? Roda 'make auth-login' primeiro!"; exit 1; fi
 	@echo "🏗️  Criando repositório: npm-proxy..."
 	@curl -s -X POST $(REPO_URL) \
 		-H "Authorization: Bearer $$(cat .token)" \
@@ -105,31 +110,33 @@ create-repo: ## Cria o repositório npm-proxy usando o token JWT
 	@echo "\n✅ Repositório pronto para cachear pacotes!"
 
 setup-s3: ## Garante que o bucket do MinIO existe
-	@echo "📥 Configurando bucket S3..."
-	@AWS_ACCESS_KEY_ID=$(SILO_ACCESS_KEY) AWS_SECRET_ACCESS_KEY=$(SILO_SECRET_KEY) \
-	aws --endpoint-url=http://$(SILO_HOST):$(SILO_PORT_API) s3 mb s3://$(BUCKET_NAME) 2>/dev/null || echo "✅ Bucket já existe."
+	@echo "📥 Configurando bucket S3 via Docker..."
+	@docker run --rm -e AWS_ACCESS_KEY_ID=$(SILO_ACCESS_KEY) -e AWS_SECRET_ACCESS_KEY=$(SILO_SECRET_KEY) amazon/aws-cli --endpoint-url=http://host.docker.internal:9000 s3 mb s3://$(BUCKET_NAME) 2>/dev/null || echo "✅ Bucket já existe."
 
 # ==============================================================================
-# COMANDOS DE EXECUÇÃO
+# COMANDOS DE EXECUÇÃO & TESTES
 # ==============================================================================
 dev: ## Roda o servidor Dart com hot reload
-	env $$(cat .env | xargs) dart --observe bin/server.dart
+	dart bin/server.dart
 
 test: ## Roda todos os testes unitários
-	@echo "🧪 Rodando testes unitários..."
+	@echo "🧪 Rodando testes..."
 	@dart test --reporter=expanded
 
-test-watch: ## Roda testes em modo watch
-	@echo "👀 Rodando testes em modo watch..."
-	@dart test --reporter=expanded --watch
-
-test-coverage: ## Gera relatório de cobertura de testes
-	@echo "📊 Gerando cobertura de testes..."
+test-coverage: ## Gera relatório de cobertura de testes LCOV
+	@echo "📊 Gerando cobertura..."
 	@dart test --coverage=coverage
-	@dart pub global activate coverage
 	@dart pub global run coverage:format_coverage --lcov --in=coverage --out=coverage/lcov.info --packages=.dart_tool/package_config.json --report-on=lib
 
-setup-all: db-init vault-seed auth-register auth-login create-repo setup-s3 ## Setup COMPLETO do ambiente
+clean: ## Remove artefatos temporários e tokens
+	@rm -f .token .token_raw.json
+	@rm -rf coverage/
+	@echo "🧹 Limpeza concluída."
+
+setup-all: up db-init vault-seed auth-register auth-login create-repo setup-s3 ## Setup COMPLETO do ambiente
+	@echo "🚀 SAMBURÁ ESTÁ PRONTO PRO COMBATE, CRIA!"
+
+setup-check: db-init vault-seed auth-register auth-login create-repo setup-s3 ## Setup COMPLETO do ambiente
 	@echo "🚀 SAMBURÁ ESTÁ PRONTO PRO COMBATE, CRIA!"
 
 check: ## Testa a resolução de um pacote (express)

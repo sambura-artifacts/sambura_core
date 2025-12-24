@@ -5,9 +5,11 @@ import 'package:sambura_core/application/usecase/api_key/generate_api_key_usecas
 import 'package:sambura_core/application/usecase/artifact/get_artifact_by_id_usecase.dart';
 import 'package:sambura_core/application/usecase/artifact/get_artifact_download_stream_usecase.dart';
 import 'package:sambura_core/application/usecase/package/get_package_metadata_usecase.dart';
+import 'package:sambura_core/application/usecase/package/proxy_package_metadata_usecase.dart';
 import 'package:sambura_core/config/logger.dart';
 import 'package:sambura_core/domain/entities/account_entity.dart';
 import 'package:sambura_core/domain/exceptions/domain_exception.dart';
+import 'package:sambura_core/infrastructure/api/presenter/artifact/npm_packument_presenter.dart';
 import 'package:shelf/shelf.dart';
 import 'package:sambura_core/application/usecase/artifact/get_artifact_usecase.dart';
 import 'package:sambura_core/application/usecase/artifact/create_artifact_usecase.dart';
@@ -22,6 +24,7 @@ class ArtifactController {
   final GetArtifactDownloadStreamUsecase _getArtifactDownloadStreamUsecase;
   final GenerateApiKeyUsecase _generateApiKeyUsecase;
   final GetPackageMetadataUseCase _getPackageMetadataUseCase;
+  final ProxyPackageMetadataUseCase _proxyPackageMetadataUseCase;
   final Logger _log = LoggerConfig.getLogger('ArtifactController');
 
   // No construtor, a gente recebe os UseCases.
@@ -33,6 +36,7 @@ class ArtifactController {
     this._getArtifactDownloadStreamUsecase,
     this._generateApiKeyUsecase,
     this._getPackageMetadataUseCase,
+    this._proxyPackageMetadataUseCase,
   );
 
   /// POST /:repository/:namespace/:package/:version
@@ -367,43 +371,47 @@ class ArtifactController {
 
   Future<Response> getPackageMetadata(
     Request request,
-    String repo,
+    String repoName,
     String packageName,
   ) async {
     final requestId = DateTime.now().millisecondsSinceEpoch.toString();
     final decodedName = Uri.decodeComponent(packageName);
 
     _log.info(
-      '[REQ:$requestId] GET /$repo/$packageName - Buscando metadata do pacote',
+      '[REQ:$requestId] GET /$repoName/$packageName - Buscando metadata do pacote',
     );
 
     try {
       final metadata = await _getPackageMetadataUseCase.execute(
-        repo,
-        decodedName,
+        repoName,
+        packageName,
       );
 
-      if (metadata == null) {
-        _log.warning(
-          '[REQ:$requestId] ✗ Package não encontrado: $decodedName no repo: $repo',
-        );
-        return Response.notFound(jsonEncode({'error': 'Package not found'}));
+      if (metadata != null) {
+        return NpmPackumentPresenter.success(metadata);
       }
 
-      _log.info('[REQ:$requestId] ✓ Metadata encontrado para: $decodedName');
-      return Response.ok(
-        jsonEncode(metadata),
-        headers: {'Content-Type': 'application/json'},
+      final remoteMetadata = await _proxyPackageMetadataUseCase.execute(
+        packageName,
       );
-    } catch (e, stack) {
-      _log.severe(
-        '[REQ:$requestId] ✗ Erro ao buscar metadata do pacote: $decodedName',
-        e,
-        stack,
-      );
-      return Response.internalServerError(
-        body: jsonEncode({'error': 'Erro ao buscar metadata: $e'}),
-      );
+
+      if (remoteMetadata is Map<String, dynamic>) {
+        return NpmPackumentPresenter.success(remoteMetadata);
+      }
+
+      if (remoteMetadata is List<int>) {
+        return Response.ok(
+          remoteMetadata,
+          headers: {
+            'Content-Type': 'application/octet-stream',
+            'Content-Disposition':
+                'attachment; filename="${packageName.split('/').last}"',
+          },
+        );
+      }
+      return NpmPackumentPresenter.error(404, 'Package not found');
+    } catch (e) {
+      return NpmPackumentPresenter.error(500, 'Internal server failure');
     }
   }
 }

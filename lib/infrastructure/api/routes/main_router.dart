@@ -45,7 +45,7 @@ class MainRouter {
   Handler get handler {
     final mainRouter = Router();
 
-    // 1. Definição dos Routers Secundários
+    // 1. Definição do Router Público (Registro, Login, Health)
     final publicRouter = PublicRouter(
       _authController,
       _artifactController,
@@ -56,6 +56,7 @@ class MainRouter {
       _hashService,
     );
 
+    // 2. Definição do Router Protegido (Admin, Upload, Gestão)
     final adminRouter = AdminRouter(
       _repositoryController,
       _packageController,
@@ -64,36 +65,47 @@ class MainRouter {
       _uploadController,
     );
 
-    // 2. Pipeline de Autenticação para Rotas Protegidas
-    final authenticatedPipeline = Pipeline().addMiddleware(
-      authMiddleware(_accountRepo, _authService, _apiKeyRepo, _hashService),
-    );
-
-    // --- ROTAS PÚBLICAS / NPM ---
-    // Montamos o publicRouter na raiz ou prefixo /api/v1
-    mainRouter.mount('/api/v1', publicRouter.router.call);
-
-    // --- ROTAS PROTEGIDAS (Admin / Download) ---
     final protectedRouter = Router();
+
+    // Sub-rotas do Admin
     protectedRouter.mount('/admin', adminRouter.router.call);
 
+    // Gestão de Artefatos e Upload
     protectedRouter.get(
       '/download/<repo>/<name|.*>/<version>',
       _artifactController.downloadByVersion,
     );
-
     protectedRouter.get(
       '/resolve/<repository>/<package>/<version>',
       _artifactController.resolve,
     );
 
+    // Suporte a PUT e POST para Upload/Publish
+    protectedRouter.put('/upload', _uploadController.handle);
     protectedRouter.post('/upload', _uploadController.handle);
 
-    // Monta tudo que é protegido sob o pipeline de auth
-    mainRouter.mount(
-      '/api/v1',
-      authenticatedPipeline.addHandler(protectedRouter.call),
+    // Use o regex <name|.*> para permitir que o Router aceite a barra do scope
+    protectedRouter.put(
+      '/npm/private-repo/<name|.*>',
+      _uploadController.handle,
     );
+    protectedRouter.get(
+      '/npm/private-repo/<name|.*>',
+      _packageController.getMetadata,
+    );
+
+    // 3. Montagem da Árvore de Rotas
+    // Rotas Públicas
+    mainRouter.mount('/api/v1', publicRouter.router.call);
+
+    // Rotas Protegidas sob Middleware de Autenticação (JWT ou API Key)
+    final authenticatedHandler = Pipeline()
+        .addMiddleware(
+          authMiddleware(_accountRepo, _authService, _apiKeyRepo, _hashService),
+        )
+        .addHandler(protectedRouter.call);
+
+    mainRouter.mount('/api/v1', authenticatedHandler);
 
     return mainRouter.call;
   }

@@ -3,12 +3,12 @@ import 'package:sambura_core/domain/exceptions/domain_exception.dart';
 class SemVer {
   final String value;
 
-  SemVer(String val) : value = val.trim() {
+  SemVer(String value) : value = value.trim() {
     _validate(value);
   }
 
-  void _validate(String val) {
-    if (val.isEmpty) {
+  void _validate(String value) {
+    if (value.isEmpty) {
       throw SemVerException('A versão não pode estar vazia.');
     }
 
@@ -18,9 +18,9 @@ class SemVer {
       r"^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d*|\d*[a-zA-Z-][a-zA-Z0-9-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][a-zA-Z0-9-]*))*))?(?:\+([0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$",
     );
 
-    if (!regex.hasMatch(val)) {
+    if (!regex.hasMatch(value)) {
       throw SemVerException(
-        'Versão inválida: "$val". Use o padrão Semantic Versioning (ex: 1.0.0).',
+        'Versão inválida: "$value". Use o padrão Semantic Versioning (ex: 1.0.0).',
       );
     }
   }
