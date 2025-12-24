@@ -34,7 +34,10 @@ jobs:
         uses: dart-lang/setup-dart@v1
         with:
           sdk: stable
-
+      
+      - name: 🔍 Verify Dart Version
+        run: dart --version 
+        
       - name: 📦 Install Dependencies
         run: dart pub get
 
