@@ -54,8 +54,7 @@ jobs:
         id: test_count
         if: always()
         run: |
-          # Extrai apenas os testes que passaram com sucesso
-          PASSED=$(jq -s '[.[] | select(.type=="testDone" and .result=="success")] | length' test-results.json)
+          PASSED=$(grep "^[ \t]*{" test-results.json | jq -s '[.[] | select(.type=="testDone" and .result=="success")] | length' || echo "0")
           echo "total=$PASSED" >> $GITHUB_OUTPUT
 
       - name: 🛡️ Create Test Badge
