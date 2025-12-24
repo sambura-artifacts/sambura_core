@@ -1,4 +1,4 @@
-// lib/infrastructure/services/hash_service.dart
+// lib/infrastructure/services/auth/hash_service.dart
 import 'package:bcrypt/bcrypt.dart';
 
 class HashService {
