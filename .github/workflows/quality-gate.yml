@@ -34,7 +34,10 @@ jobs:
         uses: dart-lang/setup-dart@v1
         with:
           sdk: stable
-
+      
+      - name: 🔍 Verify Dart Version
+        run: dart --version 
+        
       - name: 📦 Install Dependencies
         run: dart pub get
 
@@ -45,4 +48,22 @@ jobs:
         run: dart analyze --fatal-infos
 
       - name: ⚡ Run Unit Tests
-        run: dart test --reporter=expanded --exclude-tags=integration
+        run: dart test --reporter=json --exclude-tags=integration > test-results.json
+      
+      - name: 📊 Get Test Count
+        id: test_count
+        if: always()
+        run: |
+          PASSED=$(grep "^[ \t]*{" test-results.json | jq -s '[.[] | select(.type=="testDone" and .result=="success")] | length' || echo "0")
+          echo "total=$PASSED" >> $GITHUB_OUTPUT
+
+      - name: 🛡️ Create Test Badge
+        if: always()
+        uses: schneegans/dynamic-badges-action@v1.7.0
+        with:
+          auth: ${{ secrets.GIST_SECRET }}
+          gistID: d089a6ba4882701dbca635367b01e9b2
+          filename: test-results.json
+          label: Tests
+          message: "${{ steps.test_count.outputs.total }} passed"
+          color: green

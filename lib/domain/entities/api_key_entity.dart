@@ -40,4 +40,9 @@ class ApiKeyEntity {
       createdAt: createdAt ?? this.createdAt,
     );
   }
+
+  bool get isExpired {
+    if (expiresAt == null) return false;
+    return expiresAt!.isBefore(DateTime.now());
+  }
 }

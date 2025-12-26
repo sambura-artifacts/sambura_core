@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:logging/logging.dart';
@@ -8,14 +9,26 @@ import 'package:sambura_core/application/ports/storage_port.dart';
 /// Adapter para MinIO/S3 implementando IStoragePort.
 ///
 /// Segue o padrão Hexagonal Architecture (Ports & Adapters).
-class MinioAdapter implements IStoragePort {
+class MinioStorageAdapter implements StoragePort {
   final Minio _client;
   final String _bucket;
   final Logger _log = LoggerConfig.getLogger('MinioAdapter');
 
-  MinioAdapter({required Minio client, required String bucket})
-    : _client = client,
-      _bucket = bucket;
+  MinioStorageAdapter({
+    required String endPoint,
+    required int port,
+    required String accessKey,
+    required String secretKey,
+    required String bucket,
+    bool useSSL = false,
+  }) : _client = Minio(
+         endPoint: endPoint,
+         port: port,
+         useSSL: useSSL,
+         accessKey: accessKey,
+         secretKey: secretKey,
+       ),
+       _bucket = bucket;
 
   @override
   Future<void> store({
@@ -43,7 +56,7 @@ class MinioAdapter implements IStoragePort {
   }
 
   @override
-  Future<Stream<List<int>>> retrieve(String path) async {
+  Future<StreamView<List<int>>> retrieve(String path) async {
     try {
       _log.fine('📥 Retrieving object: $_bucket/$path');
 
@@ -100,5 +113,27 @@ class MinioAdapter implements IStoragePort {
       _log.severe('❌ Failed to get metadata: $path', e, stack);
       throw Exception('Failed to get object metadata: $e');
     }
+  }
+
+  @override
+  Future<bool> isHealthy() async {
+    try {
+      // Tenta listar os buckets. Se o MinIO estiver fora ou
+      // se as credenciais (Key/Secret) estiverem erradas, isso estoura um erro.
+      await _client.listBuckets();
+      return true;
+    } catch (e) {
+      _log.severe('❌ Storage Health Check falhou: $e');
+      return false;
+    }
+  }
+
+  @override
+  Future<dynamic> statObject(
+    String bucket,
+    String object, {
+    bool retrieveAcls = true,
+  }) {
+    return _client.statObject(bucket, object);
   }
 }

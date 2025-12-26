@@ -3,6 +3,7 @@ import 'package:sambura_core/config/logger.dart';
 import 'package:sambura_core/domain/entities/account_entity.dart';
 import 'package:sambura_core/domain/repositories/account_repository.dart';
 import 'package:sambura_core/infrastructure/database/postgres_connector.dart';
+import 'package:sambura_core/infrastructure/mappers/account_mapper.dart';
 
 class PostgresAccountRepository implements AccountRepository {
   final PostgresConnector _connector;
@@ -13,18 +14,21 @@ class PostgresAccountRepository implements AccountRepository {
   @override
   Future<void> create(AccountEntity account) async {
     const sql = '''
-      INSERT INTO accounts (external_id, username, password_hash, email, role)
+      INSERT INTO accounts (external_id, username, password, email, role)
       VALUES (@externalId, @username, @password, @email, @role)
     ''';
 
     try {
-      await _connector.query(sql, {
-        'externalId': account.externalId.value,
-        'username': account.username.value,
-        'password': account.password.value,
-        'email': account.email.value,
-        'role': account.role.value,
-      });
+      await _connector.query(
+        sql,
+        substitutionValues: {
+          'externalId': account.externalId.value,
+          'username': account.username.value,
+          'password': account.password!.value,
+          'email': account.email.value,
+          'role': account.role.value,
+        },
+      );
       _log.info('✅ Usuário registrado: ${account.username}');
     } catch (e) {
       _log.severe('🔥 Erro ao criar conta no Postgres: $e');
@@ -36,7 +40,10 @@ class PostgresAccountRepository implements AccountRepository {
   Future<AccountEntity?> findByUsername(String username) async {
     const sql = 'SELECT * FROM accounts WHERE username = @username';
 
-    final result = await _connector.query(sql, {'username': username});
+    final result = await _connector.query(
+      sql,
+      substitutionValues: {'username': username},
+    );
 
     if (result.isEmpty) return null;
 
@@ -49,7 +56,7 @@ class PostgresAccountRepository implements AccountRepository {
   Future<AccountEntity?> findById(int id) async {
     const sql = 'SELECT * FROM accounts WHERE id = @id';
 
-    final result = await _connector.query(sql, {'id': id});
+    final result = await _connector.query(sql, substitutionValues: {'id': id});
 
     if (result.isEmpty) return null;
 
@@ -63,7 +70,7 @@ class PostgresAccountRepository implements AccountRepository {
       id: row['id'],
       externalId: row['external_id'],
       username: row['username'],
-      password: row['password_hash'],
+      password: row['password'],
       email: row['email'],
       role: row['role'],
       createdAt: row['created_at'],
@@ -72,14 +79,37 @@ class PostgresAccountRepository implements AccountRepository {
 
   @override
   Future<AccountEntity?> findByExternalId(String externalId) async {
-    const sql = 'SELECT * FROM accounts WHERE external_id = @externalId';
+    try {
+      // Certifique-se de que a coluna se chama external_id e é do tipo UUID ou VARCHAR
+      final result = await _connector.query(
+        'SELECT * FROM accounts WHERE external_id = @externalId',
+        substitutionValues: {'externalId': externalId},
+      );
 
-    final result = await _connector.query(sql, {'externalId': externalId});
+      if (result.isEmpty) {
+        _log.warning('👤 Usuário não encontrado para o UUID: $externalId');
+        return null;
+      }
 
-    if (result.isEmpty) return null;
+      // Use o seu Mapper ou o construtor manual
+      return AccountMapper.fromMap(result.first.toColumnMap());
+    } catch (e, stack) {
+      _log.severe('💥 Erro ao buscar usuário por UUID: $externalId', e, stack);
+      return null;
+    }
+  }
 
-    final row = result.first.toColumnMap();
+  @override
+  Future<bool> existsByRole(String role) async {
+    const sql = 'select 1 from accounts WHERE role = @role;';
 
-    return _mapToEntity(row);
+    final result = await _connector.query(
+      sql,
+      substitutionValues: {'role': role},
+    );
+
+    if (result.isEmpty) return false;
+
+    return true;
   }
 }

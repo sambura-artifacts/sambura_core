@@ -118,7 +118,10 @@ class PostgresApiKeyRepository implements ApiKeyRepository {
     try {
       final query = 'SELECT * FROM api_keys WHERE account_id = @accountId';
 
-      final result = await _connector.query(query, {'accountId': accountId});
+      final result = await _connector.query(
+        query,
+        substitutionValues: {'accountId': accountId},
+      );
 
       print("affectedRows: ${result.affectedRows}");
 
@@ -170,7 +173,10 @@ class PostgresApiKeyRepository implements ApiKeyRepository {
     ''';
 
     try {
-      final result = await _connector.query(sql, {'account_id': accountId});
+      final result = await _connector.query(
+        sql,
+        substitutionValues: {'account_id': accountId},
+      );
 
       final row = result.first.toColumnMap();
 

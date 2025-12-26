@@ -1,10 +1,10 @@
 import 'dart:typed_data';
 import 'package:logging/logging.dart';
+import 'package:sambura_core/application/ports/cache_port.dart';
 import 'package:sambura_core/config/logger.dart';
 import 'package:sambura_core/domain/entities/blob_entity.dart';
 import 'package:sambura_core/domain/repositories/artifact_repository.dart';
 import 'package:sambura_core/domain/repositories/blob_repository.dart';
-import 'package:sambura_core/infrastructure/services/cache/redis_service.dart';
 
 class ArtifactDownloadResult {
   final Stream<Uint8List> stream;
@@ -16,7 +16,7 @@ class ArtifactDownloadResult {
 class GetArtifactDownloadStreamUsecase {
   final ArtifactRepository _artifactRepo;
   final BlobRepository _blobRepo;
-  final RedisService _redis;
+  final CachePort _cache;
 
   final Logger _log = LoggerConfig.getLogger(
     'GetArtifactDownloadStreamUsecase',
@@ -25,7 +25,7 @@ class GetArtifactDownloadStreamUsecase {
   GetArtifactDownloadStreamUsecase(
     this._artifactRepo,
     this._blobRepo,
-    this._redis,
+    this._cache,
   );
 
   Future<ArtifactDownloadResult?> execute({
@@ -39,7 +39,7 @@ class GetArtifactDownloadStreamUsecase {
       final cacheKey = 'hash:$namespace:$name:$version';
 
       _log.fine('Verificando cache Redis: $cacheKey');
-      final cachedHash = await _redis.get(cacheKey);
+      final cachedHash = await _cache.get(cacheKey);
 
       if (cachedHash != null) {
         _log.info(
@@ -63,7 +63,7 @@ class GetArtifactDownloadStreamUsecase {
       _log.fine(
         'Hash encontrado: ${hash.substring(0, 12)}..., atualizando cache',
       );
-      await _redis.set(cacheKey, hash, expirySeconds: 86400);
+      await _cache.set(cacheKey, hash, ttl: Duration(hours: 24));
       _log.fine('Cache atualizado com TTL de 24h');
 
       return _fetchFromSilo(hash);

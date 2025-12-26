@@ -22,11 +22,14 @@ class PostgresBlobRepository implements BlobRepository {
         RETURNING id, hash, size_bytes, mime_type, created_at;
       ''';
 
-      final result = await _db.query(sql, {
-        'hash': blob.hashValue,
-        'size': blob.sizeBytes,
-        'mime': blob.mimeType,
-      });
+      final result = await _db.query(
+        sql,
+        substitutionValues: {
+          'hash': blob.hashValue,
+          'size': blob.sizeBytes,
+          'mime': blob.mimeType,
+        },
+      );
 
       final row = result.first.toColumnMap();
       return _mapRow(row);
@@ -59,31 +62,37 @@ class PostgresBlobRepository implements BlobRepository {
 
   @override
   Future<BlobEntity?> findByHash(String hashValue) async {
-    final result = await _db.query('SELECT * FROM blobs WHERE hash = @hash', {
-      'hash': hashValue,
-    });
+    final result = await _db.query(
+      'SELECT * FROM blobs WHERE hash = @hash',
+      substitutionValues: {'hash': hashValue},
+    );
     return result.isEmpty ? null : _mapRow(result.first.toColumnMap());
   }
 
   @override
   Future<BlobEntity?> findById(int id) async {
-    final result = await _db.query('SELECT * FROM blobs WHERE id = @id', {
-      'id': id,
-    });
+    final result = await _db.query(
+      'SELECT * FROM blobs WHERE id = @id',
+      substitutionValues: {'id': id},
+    );
     return result.isEmpty ? null : _mapRow(result.first.toColumnMap());
   }
 
   @override
   Future<bool> exists(String hashValue) async {
-    final result = await _db.query('SELECT 1 FROM blobs WHERE hash = @hash', {
-      'hash': hashValue,
-    });
+    final result = await _db.query(
+      'SELECT 1 FROM blobs WHERE hash = @hash',
+      substitutionValues: {'hash': hashValue},
+    );
     return result.isNotEmpty;
   }
 
   @override
   Future<void> delete(int id) async {
-    await _db.query('DELETE FROM blobs WHERE id = @id', {'id': id});
+    await _db.query(
+      'DELETE FROM blobs WHERE id = @id',
+      substitutionValues: {'id': id},
+    );
   }
 
   // Helper pra não repetir código de mapeamento

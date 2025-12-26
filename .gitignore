@@ -49,6 +49,14 @@ ios/Flutter/Generated.xcconfig
 # ----------------------------------
 # 3. DOCKER & INFRA (Não comitar volumes/logs)
 # ----------------------------------
+
+# Logs da aplicação
+logs/
+*.log
+
+# Volumes do Docker (dados persistentes)
+docker/volumes/
+# ----------------------------------
 volumes/
 db_data/
 storage_data/

@@ -22,7 +22,7 @@ void main() {
         // Assert
         expect(account.id, isNull);
         expect(account.username.value, equals(username));
-        expect(account.password.value, equals(password));
+        expect(account.password!.value, equals(password));
         expect(account.email.value, equals(email));
         expect(account.role.value, equals(role));
         expect(account.externalId.value, isNotEmpty);
@@ -91,7 +91,7 @@ void main() {
         expect(account.id, equals(id));
         expect(account.externalId.value, equals(externalId));
         expect(account.username.value, equals(username));
-        expect(account.password.value, equals(password));
+        expect(account.password!.value, equals(password));
         expect(account.email.value, equals(email));
         expect(account.role.value, equals(role));
         expect(account.createdAt, equals(createdAt));
@@ -137,7 +137,7 @@ void main() {
         final updatedAccount = originalAccount.changePassword(newPassword);
 
         // Assert
-        expect(updatedAccount.password.value, equals(newPassword));
+        expect(updatedAccount.password!.value, equals(newPassword));
         expect(updatedAccount.id, equals(originalAccount.id));
         expect(
           updatedAccount.username.value,
@@ -167,7 +167,7 @@ void main() {
         originalAccount.changePassword('NewHash456!');
 
         // Assert
-        expect(originalAccount.password.value, equals(originalPassword));
+        expect(originalAccount.password!.value, equals(originalPassword));
       });
     });
 
@@ -219,7 +219,7 @@ void main() {
         );
 
         // Act & Assert
-        expect(account.passwordHash, equals(password));
+        expect(account.password!.value, equals(password));
       });
 
       test('usernameValue deve retornar o valor do username', () {
@@ -232,7 +232,7 @@ void main() {
         );
 
         // Act & Assert
-        expect(account.usernameValue, equals(username));
+        expect(account.username.value, equals(username));
       });
 
       test('externalIdValue deve retornar o valor do externalId', () {
@@ -249,7 +249,7 @@ void main() {
         );
 
         // Act & Assert
-        expect(account.externalIdValue, equals(externalId));
+        expect(account.externalId.value, equals(externalId));
       });
 
       test('roleValue deve retornar o valor da role', () {
@@ -263,7 +263,7 @@ void main() {
         );
 
         // Act & Assert
-        expect(account.roleValue, equals(role));
+        expect(account.role.value, equals(role));
       });
     });
   });

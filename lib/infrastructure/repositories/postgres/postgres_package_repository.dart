@@ -121,11 +121,14 @@ class PostgresPackageRepository implements PackageRepository {
     ''';
 
     try {
-      final res = await _db.query(sql, {
-        'namespace': namespace,
-        'limit': limit,
-        'offset': offset,
-      });
+      final res = await _db.query(
+        sql,
+        substitutionValues: {
+          'namespace': namespace,
+          'limit': limit,
+          'offset': offset,
+        },
+      );
 
       _log.info('Encontrados ${res.length} pacotes no namespace $namespace');
 
@@ -175,10 +178,10 @@ class PostgresPackageRepository implements PackageRepository {
         AND p.name = @packageName
     ''';
 
-    final result = await _db.query(sql, {
-      'repoName': repoName,
-      'packageName': packageName,
-    });
+    final result = await _db.query(
+      sql,
+      substitutionValues: {'repoName': repoName, 'packageName': packageName},
+    );
 
     return result.map((row) {
       final data = row.toColumnMap();

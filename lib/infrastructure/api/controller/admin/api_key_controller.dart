@@ -133,7 +133,7 @@ class ApiKeyController {
     try {
       await _revokeApiKeyUsecase.execute(
         key: id,
-        requestUserId: user.externalIdValue,
+        requestUserId: user.externalId.value,
       );
       _log.info('[REQ:$requestId] ✓ API key revogada com sucesso: ID=$keyId');
       return ApiKeyPresenter.revoked(keyId);

@@ -2,8 +2,8 @@
 # VARIÁVEIS DE AMBIENTE
 # ==============================================================================
 API_URL=http://localhost:8080/api/v1
-ADMIN_USER=cria_root
-ADMIN_PASS=senha_braba_123
+ADMIN_USER=admin
+ADMIN_PASS=rH45|D3V1qY%]{Rdfe]md.]YM<q|AEXG
 ADMIN_EMAIL=admin@sambura.io
 
 # Configurações de Infra
@@ -79,14 +79,14 @@ vault-seed: ## Injeta os segredos manuais usando o token de root
 # ==============================================================================
 auth-register: ## Registra o usuário administrador inicial
 	@echo "👤 Registrando: $(ADMIN_USER)..."
-	@curl -s -X POST $(API_URL)/auth/register \
+	@curl -s -X POST $(API_URL)/public/auth/register \
 		-H "Content-Type: application/json" \
 		-d '{"username":"$(ADMIN_USER)", "password":"$(ADMIN_PASS)", "email":"$(ADMIN_EMAIL)", "role":"admin"}'
 	@echo "\n✅ Registro finalizado."
 
 auth-login: ## Faz login e extrai o JWT puro para o arquivo .token
 	@echo "🔑 Fazendo login..."
-	@curl -s -X POST $(API_URL)/auth/login \
+	@curl -s -X POST $(API_URL)/public/auth/login \
 		-H "Content-Type: application/json" \
 		-d '{"username":"$(ADMIN_USER)", "password":"$(ADMIN_PASS)"}' > .token_raw.json
 	@if grep -q "token" .token_raw.json; then \
@@ -118,6 +118,7 @@ setup-s3: ## Garante que o bucket do MinIO existe
 # ==============================================================================
 dev: ## Roda o servidor Dart com hot reload
 	@clear
+	@echo "🚀 SAMBURÁ em ambiente local!"
 	@dart bin/server.dart
 
 test: ## Roda todos os testes unitários
