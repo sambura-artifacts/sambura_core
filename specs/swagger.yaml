@@ -1,38 +1,38 @@
 openapi: 3.0.3
 info:
-  title: Samburá Docs - API de Elite
+  title: Samburá Core - API de Gerenciamento de Artefatos
   description: |
-    Proxy de artefatos NPM com persistência em S3 e Postgres.
+    Proxy de artefatos NPM com persistência em S3/MinIO e PostgreSQL.
+    
+    ## ⚠️ ESTADO ATUAL DA IMPLEMENTAÇÃO
+    
+    Esta API está em desenvolvimento ativo. Nem todas as funcionalidades documentadas
+    estão conectadas e disponíveis para uso.
+    
+    ### ✅ Rotas Funcionais (Conectadas no MainRouter)
+    - `POST /api/v1/auth/register` - Registro de usuários (requer autenticação)
+    - `POST /api/v1/auth/login` - Login e geração de JWT
+    - `GET  /api/v1/system/*` - Health check e status do sistema
+    
+    ### 🚧 Controllers Implementados mas NÃO Conectados
+    Os seguintes controllers estão prontos mas não foram montados no MainRouter:
+    - **ApiKeyController**: Gerenciamento de API Keys (CRUD completo)
+    - **RepositoryController**: CRUD de repositórios
+    - **PackageController**: Listagem de pacotes e metadados NPM
+    - **ArtifactController**: Resolução e download de artefatos
+    - **BlobController**: Download direto de blobs pelo hash
+    - **UploadController**: Upload multipart e npm publish
+    
+    ### 📝 Próximos Passos para Conexão
+    1. Edite: `lib/infrastructure/api/routes/main_router.dart`
+    2. Injete os controllers no construtor
+    3. Monte as rotas usando `.mount()` ou handlers diretos
+    4. Teste cada endpoint
     
     ## Autenticação
-    A maioria dos endpoints requer autenticação via JWT Token ou API Key:
-    - **Bearer Token**: Use `Authorization: Bearer <token>` para endpoints autenticados
-    - **API Key**: Use `X-API-Key: <api_key>` para integração de sistemas
-    
-    ## Fluxo de Uso
-    1. Registre um usuário via `/api/v1/public/auth/register`
-    2. Faça login via `/api/v1/public/auth/login` para obter o token JWT
-    3. Crie uma API Key via `/api/v1/admin/api-keys` para upload automatizado
-    4. Crie repositórios via `/api/v1/admin/repositories`
-    5. Faça upload de artefatos via `/api/v1/admin/upload` ou `/api/v1/upload`
-    6. Resolva artefatos via `/api/v1/public/{repositoryName}/{packageName}/{version}`
-    7. Baixe artefatos via `/api/v1/public/download/{namespace}/{name}/{version}`
-    
-    ## Estrutura de Rotas
-    
-    ### Rotas Públicas (sem autenticação)
-    - `/api/v1/public/auth/*` - Autenticação (registro e login)
-    - `/api/v1/public/docs` - Documentação Swagger UI
-    
-    ### Rotas Protegidas (requer autenticação)
-    - `/api/v1/public/{repo}/{package}/{version}` - Resolução de artefatos
-    - `/api/v1/public/download/*` - Download de artefatos
-    - `/api/v1/public/blobs/*` - Download direto de blobs
-    - `/api/v1/admin/*` - Gerenciamento de recursos
-    - `/api/v1/npm/*` - Compatibilidade com NPM Registry (metadata e search)
-    - `/api/v1/download/*` - Download alternativo de artefatos
-    - `/api/v1/resolve/*` - Resolução alternativa de artefatos
-    - `/api/v1/upload` - Upload de pacotes (POST/PUT)
+    A maioria dos endpoints requer autenticação via:
+    - **Bearer Token**: `Authorization: Bearer <token>`
+    - **API Key**: `X-API-Key: <api_key>` (quando implementado)
     
   version: 1.0.0
   contact:
@@ -43,33 +43,27 @@ servers:
   - url: http://localhost:8080
     description: Servidor Local
   - url: https://dev.api.sambura.io
-    description: Servidor de Desenvolvimento
-  - url: https://hml.api.sambura.io
-    description: Servidor de Homologação
+    description: Desenvolvimento
   - url: https://api.sambura.io
-    description: Servidor de Produção
+    description: Produção
 
 tags:
   - name: Auth
-    description: Autenticação e registro de usuários
-  - name: Admin - Repositories
-    description: Gerenciamento de repositórios (requer autenticação)
-  - name: Admin - Packages
-    description: Listagem de pacotes (requer autenticação)
-  - name: Admin - Artifacts
-    description: Gerenciamento de artefatos (requer autenticação)
+    description: Autenticação e registro (funcional)
+  - name: System
+    description: Health check e status (funcional)
   - name: Admin - API Keys
-    description: Gerenciamento de chaves de API (requer autenticação)
-  - name: Artifacts
-    description: Resolução e download de artefatos
+    description: Gerenciamento de API Keys (implementado, não conectado)
+  - name: Admin - Repositories
+    description: CRUD de repositórios (implementado, não conectado)
+  - name: Admin - Packages
+    description: Listagem de pacotes (implementado, não conectado)
   - name: NPM
-    description: Endpoints compatíveis com NPM Registry
+    description: Metadados NPM (implementado, não conectado)
   - name: Upload
-    description: Upload de artefatos (requer autenticação)
-  - name: Blobs
-    description: Download de blobs binários
-  - name: Docs
-    description: Documentação da API
+    description: Upload de artefatos (implementado, não conectado)
+  - name: Artifacts
+    description: Resolução e download (implementado, não conectado)
 
 components:
   securitySchemes:
@@ -82,7 +76,7 @@ components:
       type: apiKey
       in: header
       name: X-API-Key
-      description: API Key para integração de sistemas
+      description: API Key para integração (quando conectado)
 
   schemas:
     Error:
@@ -90,64 +84,42 @@ components:
       properties:
         error:
           type: string
-          description: Mensagem de erro
         message:
           type: string
-          description: Descrição detalhada
         instance:
           type: string
-          description: Path da requisição
-        
+          
     Account:
       type: object
       properties:
         username:
           type: string
-          example: "matheus"
         email:
           type: string
           format: email
-          example: "matheus@sambura.io"
-        password:
-          type: string
-          format: password
-          example: "senha123"
         role:
           type: string
           enum: [admin, developer]
-          default: developer
           
     LoginResponse:
       type: object
       properties:
         token:
           type: string
-          description: Token JWT para autenticação
         username:
           type: string
-          description: Nome do usuário
           
     Repository:
       type: object
-      required:
-        - name
-        - namespace
       properties:
         id:
           type: integer
-          description: ID do repositório
         name:
           type: string
-          example: "my-repo"
-          description: Nome do repositório
         namespace:
           type: string
-          example: "@sambura"
-          description: Namespace do repositório
         is_public:
           type: boolean
-          default: false
-          description: Se o repositório é público
         created_at:
           type: string
           format: date-time
@@ -159,137 +131,25 @@ components:
           type: integer
         name:
           type: string
-          example: "@sambura/core"
         repository_id:
           type: integer
         versions:
           type: array
           items:
             type: string
-          example: ["1.0.0", "1.0.1", "1.1.0"]
-          
-    Artifact:
-      type: object
-      properties:
-        external_id:
-          type: string
-          format: uuid
-          description: UUID do artefato
-        namespace:
-          type: string
-          example: "@sambura"
-        package_name:
-          type: string
-          example: "core-lib"
-        version:
-          type: string
-          example: "1.0.0"
-        path:
-          type: string
-          example: "/libs/core-lib-1.0.0.tgz"
-        repository_id:
-          type: integer
-        package_id:
-          type: integer
-        blob_id:
-          type: integer
-        created_at:
-          type: string
-          format: date-time
-          
-    ApiKey:
-      type: object
-      properties:
-        id:
-          type: integer
-        name:
-          type: string
-          example: "minha-chave-de-upload"
-        prefix:
-          type: string
-          example: "smb_"
-          description: Prefixo da chave
-        api_key:
-          type: string
-          description: Chave completa (retornada apenas na criação)
-        last_used_at:
-          type: string
-          format: date-time
-        created_at:
-          type: string
-          format: date-time
-          
-    NPMMetadata:
-      type: object
-      description: Metadados no formato do NPM Registry
-      properties:
-        name:
-          type: string
-        versions:
-          type: object
-          additionalProperties:
-            type: object
-        dist-tags:
-          type: object
-          additionalProperties:
-            type: string
 
 paths:
-  # ===== PUBLIC - AUTH =====
-  /api/v1/public/auth/register:
+  # ========================================
+  # ROTAS FUNCIONAIS (CONECTADAS)
+  # ========================================
+  
+  /api/v1/auth/login:
     post:
-      summary: Registra um novo usuário
-      description: Cria uma nova conta no sistema
-      tags:
-        - Auth
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required:
-                - username
-                - password
-                - email
-              properties:
-                username:
-                  type: string
-                  example: "matheus"
-                password:
-                  type: string
-                  format: password
-                  example: "senha123"
-                email:
-                  type: string
-                  format: email
-                  example: "matheus@sambura.io"
-                role:
-                  type: string
-                  enum: [admin, developer]
-                  default: developer
-      responses:
-        '200':
-          description: Usuário criado com sucesso
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                    example: "Usuário criado com sucesso, cria!"
-        '500':
-          description: Erro no cadastro
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-
-  /api/v1/public/auth/login:
-    post:
-      summary: Faz login no sistema
-      description: Autentica o usuário e retorna um token JWT
+      summary: Login no sistema
+      description: |
+        ✅ **FUNCIONAL** - Rota conectada e operacional.
+        
+        Autentica o usuário e retorna um JWT para uso nas demais rotas protegidas.
       tags:
         - Auth
       requestBody:
@@ -318,286 +178,19 @@ paths:
                 $ref: '#/components/schemas/LoginResponse'
         '403':
           description: Credenciais inválidas
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
         '500':
           description: Erro no servidor
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
 
-  # ===== ADMIN - REPOSITORIES =====
-  /api/v1/admin/repositories:
-    get:
-      summary: Lista todos os repositórios
-      description: Retorna uma lista paginada de repositórios
-      tags:
-        - Admin - Repositories
-      security:
-        - BearerAuth: []
-        - ApiKeyAuth: []
-      parameters:
-        - name: limit
-          in: query
-          schema:
-            type: integer
-            default: 10
-            minimum: 1
-            maximum: 100
-          description: Número de itens por página
-        - name: offset
-          in: query
-          schema:
-            type: integer
-            default: 0
-            minimum: 0
-          description: Offset para paginação
-      responses:
-        '200':
-          description: Lista de repositórios
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  items:
-                    type: array
-                    items:
-                      $ref: '#/components/schemas/Repository'
-                  total:
-                    type: integer
-                  limit:
-                    type: integer
-                  offset:
-                    type: integer
-        '401':
-          description: Não autenticado
-        '500':
-          description: Erro no servidor
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-    
+  /api/v1/auth/register:
     post:
-      summary: Cria um novo repositório
-      description: Cria um repositório para armazenar pacotes
+      summary: Registro de novo usuário
+      description: |
+        ✅ **FUNCIONAL** - Rota conectada mas requer autenticação prévia.
+        
+        Cria uma nova conta no sistema. Atualmente montada no `protectedRouter`,
+        ou seja, requer um token JWT válido.
       tags:
-        - Admin - Repositories
-      security:
-        - BearerAuth: []
-        - ApiKeyAuth: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required:
-                - name
-                - namespace
-              properties:
-                name:
-                  type: string
-                  example: "my-repo"
-                namespace:
-                  type: string
-                  example: "@sambura"
-                is_public:
-                  type: boolean
-                  default: false
-      responses:
-        '200':
-          description: Repositório criado com sucesso
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Repository'
-        '400':
-          description: Dados inválidos
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-        '401':
-          description: Não autenticado
-        '500':
-          description: Erro no servidor
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-
-  # ===== ADMIN - PACKAGES =====
-  /api/v1/admin/packages:
-    get:
-      summary: Lista todos os pacotes do sistema
-      description: Retorna uma lista global de todos os pacotes
-      tags:
-        - Admin - Packages
-      security:
-        - BearerAuth: []
-        - ApiKeyAuth: []
-      parameters:
-        - name: limit
-          in: query
-          schema:
-            type: integer
-            default: 50
-            minimum: 1
-            maximum: 100
-        - name: offset
-          in: query
-          schema:
-            type: integer
-            default: 0
-            minimum: 0
-      responses:
-        '200':
-          description: Lista de pacotes
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  items:
-                    type: array
-                    items:
-                      $ref: '#/components/schemas/Package'
-                  total:
-                    type: integer
-                  limit:
-                    type: integer
-                  offset:
-                    type: integer
-        '401':
-          description: Não autenticado
-        '500':
-          description: Erro no servidor
-
-  /api/v1/admin/repositories/{repoName}/packages:
-    get:
-      summary: Lista pacotes de um repositório específico
-      description: Retorna todos os pacotes de um repositório
-      tags:
-        - Admin - Packages
-      security:
-        - BearerAuth: []
-        - ApiKeyAuth: []
-      parameters:
-        - name: repoName
-          in: path
-          required: true
-          schema:
-            type: string
-          description: Nome do repositório
-          example: "my-repo"
-        - name: limit
-          in: query
-          schema:
-            type: integer
-            default: 20
-            minimum: 1
-            maximum: 100
-        - name: offset
-          in: query
-          schema:
-            type: integer
-            default: 0
-            minimum: 0
-      responses:
-        '200':
-          description: Lista de pacotes do repositório
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  items:
-                    type: array
-                    items:
-                      $ref: '#/components/schemas/Package'
-        '401':
-          description: Não autenticado
-        '404':
-          description: Repositório não encontrado
-        '500':
-          description: Erro no servidor
-
-  # ===== ADMIN - ARTIFACTS =====
-  /api/v1/admin/artifacts/{externalId}:
-    get:
-      summary: Busca artefato por ID
-      description: Retorna os metadados de um artefato específico pelo UUID
-      tags:
-        - Admin - Artifacts
-      security:
-        - BearerAuth: []
-        - ApiKeyAuth: []
-      parameters:
-        - name: externalId
-          in: path
-          required: true
-          schema:
-            type: string
-            format: uuid
-          description: UUID do artefato
-      responses:
-        '200':
-          description: Artefato encontrado
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Artifact'
-        '401':
-          description: Não autenticado
-        '404':
-          description: Artefato não encontrado
-        '500':
-          description: Erro no servidor
-
-  # ===== ADMIN - API KEYS =====
-  /api/v1/admin/api-keys:
-    get:
-      summary: Lista as API Keys do usuário
-      description: Retorna todas as chaves de API do usuário autenticado
-      tags:
-        - Admin - API Keys
-      security:
-        - BearerAuth: []
-      responses:
-        '200':
-          description: Lista de API Keys
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  type: object
-                  properties:
-                    id:
-                      type: integer
-                    name:
-                      type: string
-                    prefix:
-                      type: string
-                    last_used_at:
-                      type: string
-                      format: date-time
-                    created_at:
-                      type: string
-                      format: date-time
-        '401':
-          description: Não autenticado
-    
-    post:
-      summary: Cria uma nova API Key
-      description: Gera uma nova chave de API para o usuário autenticado
-      tags:
-        - Admin - API Keys
+        - Auth
       security:
         - BearerAuth: []
       requestBody:
@@ -607,15 +200,25 @@ paths:
             schema:
               type: object
               required:
-                - name
+                - username
+                - password
+                - email
               properties:
-                name:
+                username:
                   type: string
-                  example: "minha-chave-de-upload"
-                  description: Nome descritivo para a chave
+                password:
+                  type: string
+                  format: password
+                email:
+                  type: string
+                  format: email
+                role:
+                  type: string
+                  enum: [admin, developer]
+                  default: developer
       responses:
         '200':
-          description: Chave criada com sucesso
+          description: Usuário criado
           content:
             application/json:
               schema:
@@ -623,23 +226,87 @@ paths:
                 properties:
                   message:
                     type: string
-                    example: "Chave forjada com sucesso! Guarda bem, ela não aparece de novo."
-                  name:
-                    type: string
-                  api_key:
-                    type: string
-                    description: Chave completa - salve em local seguro!
-        '400':
-          description: Nome da chave não fornecido
         '401':
           description: Não autenticado
         '500':
-          description: Erro ao gerar a chave
+          description: Erro no servidor
+
+  /api/v1/system/health:
+    get:
+      summary: Health check do sistema
+      description: |
+        ✅ **FUNCIONAL** - Rota pública conectada via SystemController.
+        
+        Verifica o status do servidor e dependências (DB, MinIO, etc).
+      tags:
+        - System
+      responses:
+        '200':
+          description: Sistema operacional
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  timestamp:
+                    type: string
+                    format: date-time
+        '500':
+          description: Sistema com problemas
+
+  # ========================================
+  # ROTAS NÃO CONECTADAS (IMPLEMENTADAS)
+  # ========================================
+  
+  /api/v1/admin/api-keys:
+    get:
+      summary: Lista API Keys do usuário
+      description: |
+        🚧 **NÃO CONECTADO** - Controller implementado, precisa ser montado no MainRouter.
+        
+        ```dart
+        // Adicione no MainRouter:
+        protectedRouter.mount('/admin/api-keys', _apiKeyController.router.call);
+        ```
+      tags:
+        - Admin - API Keys
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Lista de chaves
+        '401':
+          description: Não autenticado
+          
+    post:
+      summary: Cria nova API Key
+      description: |
+        🚧 **NÃO CONECTADO** - Controller implementado.
+      tags:
+        - Admin - API Keys
+      security:
+        - BearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+              properties:
+                name:
+                  type: string
+      responses:
+        '200':
+          description: Chave criada
 
   /api/v1/admin/api-keys/{id}:
     delete:
       summary: Revoga uma API Key
-      description: Deleta/revoga uma chave de API específica
+      description: |
+        🚧 **NÃO CONECTADO**
       tags:
         - Admin - API Keys
       security:
@@ -650,610 +317,180 @@ paths:
           required: true
           schema:
             type: integer
-          description: ID da chave a ser revogada
       responses:
         '200':
-          description: Chave revogada com sucesso
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                    example: "Chave incinerada com sucesso!"
-        '400':
-          description: ID inválido
-        '401':
-          description: Não autenticado
-        '404':
-          description: Chave não encontrada
+          description: Chave revogada
 
-  # ===== ADMIN - UPLOAD =====
-  /api/v1/admin/upload:
-    post:
-      summary: Faz upload de um artefato
-      description: Upload de artefatos via multipart/form-data
-      tags:
-        - Upload
-      security:
-        - BearerAuth: []
-        - ApiKeyAuth: []
-      requestBody:
-        required: true
-        content:
-          multipart/form-data:
-            schema:
-              type: object
-              required:
-                - file
-                - package
-                - version
-              properties:
-                file:
-                  type: string
-                  format: binary
-                  description: Arquivo .tgz do pacote
-                package:
-                  type: string
-                  example: "@sambura/core"
-                version:
-                  type: string
-                  example: "1.0.0"
-                repository:
-                  type: string
-                  default: "default"
-                  example: "my-repo"
-      responses:
-        '200':
-          description: Artefato enviado com sucesso
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                    example: "Artefato no ninho! 🚀"
-        '400':
-          description: Dados incompletos ou formato inválido
-        '401':
-          description: Não autenticado
-        '500':
-          description: Erro no processamento
-
-  # ===== ARTIFACTS - RESOLVE & DOWNLOAD (PUBLIC com Auth) =====
-  /api/v1/public/{repositoryName}/{packageName}/{version}:
+  /api/v1/admin/repositories:
     get:
-      summary: Resolve a localização de um artefato
-      description: Busca artefato no banco ou faz proxy do NPM Registry
-      tags:
-        - Artifacts
-      security:
-        - BearerAuth: []
-        - ApiKeyAuth: []
-      parameters:
-        - name: repositoryName
-          in: path
-          required: true
-          schema:
-            type: string
-          example: "my-repo"
-          description: Nome do repositório
-        - name: packageName
-          in: path
-          required: true
-          schema:
-            type: string
-          example: "@sambura/core"
-          description: Nome do pacote (pode incluir namespace)
-        - name: version
-          in: path
-          required: true
-          schema:
-            type: string
-          example: "1.0.0"
-          description: Versão do pacote
-      responses:
-        '200':
-          description: Artefato encontrado
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Artifact'
-        '401':
-          description: Não autenticado
-        '404':
-          description: Artefato não encontrado
-        '500':
-          description: Erro no servidor
-
-  /api/v1/public/download/{namespace}/{name}/{version}:
-    get:
-      summary: Download de artefato
-      description: Faz o download do arquivo binário do artefato
-      tags:
-        - Artifacts
-      security:
-        - BearerAuth: []
-        - ApiKeyAuth: []
-      parameters:
-        - name: namespace
-          in: path
-          required: true
-          schema:
-            type: string
-          example: "@sambura"
-          description: Namespace do pacote (escopo)
-        - name: name
-          in: path
-          required: true
-          schema:
-            type: string
-          example: "core"
-          description: Nome do pacote sem namespace
-        - name: version
-          in: path
-          required: true
-          schema:
-            type: string
-          example: "1.0.0"
-          description: Versão do pacote
-      responses:
-        '200':
-          description: Download iniciado
-          content:
-            application/octet-stream:
-              schema:
-                type: string
-                format: binary
-          headers:
-            Content-Type:
-              schema:
-                type: string
-            Content-Length:
-              schema:
-                type: integer
-            Content-Disposition:
-              schema:
-                type: string
-        '401':
-          description: Não autenticado
-        '404':
-          description: Artefato não encontrado
-        '500':
-          description: Erro no servidor
-
-  /api/v1/public/blobs/{hash}:
-    get:
-      summary: Download de blob por hash
-      description: Faz o download direto de um blob binário pelo seu hash
-      tags:
-        - Blobs
-      security:
-        - BearerAuth: []
-        - ApiKeyAuth: []
-      parameters:
-        - name: hash
-          in: path
-          required: true
-          schema:
-            type: string
-          description: Hash SHA-256 do blob
-          example: "a3b2c1d4e5f6..."
-      responses:
-        '200':
-          description: Download do blob
-          content:
-            application/octet-stream:
-              schema:
-                type: string
-                format: binary
-          headers:
-            Content-Type:
-              schema:
-                type: string
-            Content-Length:
-              schema:
-                type: integer
-            Content-Disposition:
-              schema:
-                type: string
-        '401':
-          description: Não autenticado
-        '404':
-          description: Blob não encontrado
-        '500':
-          description: Erro no servidor
-
-  /api/v1/public/npm/{repo}/{packageName}:
-    get:
-      summary: Obtém metadados do pacote NPM (público)
-      description: Retorna metadados no formato do NPM Registry sem autenticação
-      tags:
-        - NPM
-      parameters:
-        - name: repo
-          in: path
-          required: true
-          schema:
-            type: string
-          example: "my-repo"
-        - name: packageName
-          in: path
-          required: true
-          schema:
-            type: string
-          description: Nome do pacote (pode conter escopo com @)
-          example: "@sambura/core"
-      responses:
-        '200':
-          description: Metadados do pacote
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/NPMMetadata'
-        '404':
-          description: Pacote não encontrado
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  error:
-                    type: string
-                    example: "Package not found"
-
-  # ===== SWAGGER UI =====
-  /api/v1/public/docs:
-    get:
-      summary: Documentação Swagger UI
-      description: Interface gráfica da documentação da API
-      tags:
-        - Docs
-      responses:
-        '200':
-          description: Página HTML do Swagger UI
-
-  # ===== NPM COMPATIBLE (Autenticado) =====
-  /api/v1/npm/{repo}/-/v1/search:
-    get:
-      summary: Busca pacotes no NPM (npm search)
+      summary: Lista repositórios
       description: |
-        Encaminha a consulta para o registro oficial do NPM e retorna resultados filtrados.
-        Compatível com `npm search` e ferramentas que usam a API de search do NPM.
+        🚧 **NÃO CONECTADO** - RepositoryController implementado.
       tags:
-        - NPM
+        - Admin - Repositories
       security:
         - BearerAuth: []
-        - ApiKeyAuth: []
       parameters:
-        - name: repo
-          in: path
-          required: true
-          schema:
-            type: string
-          example: "my-repo"
-          description: Nome do repositório
-        - name: text
-          in: query
-          schema:
-            type: string
-          description: Termo de busca
-          example: "lodash"
-        - name: size
+        - name: limit
           in: query
           schema:
             type: integer
-            default: 20
-          description: Número de resultados
-        - name: from
+            default: 10
+        - name: offset
           in: query
           schema:
             type: integer
             default: 0
-          description: Offset para paginação
       responses:
         '200':
-          description: Resultados da busca
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  objects:
-                    type: array
-                    items:
-                      type: object
-                      properties:
-                        package:
-                          type: object
-                          properties:
-                            name:
-                              type: string
-                            version:
-                              type: string
-                            description:
-                              type: string
-                  total:
-                    type: integer
-        '401':
-          description: Não autenticado
-        '500':
-          description: Erro no servidor
-
-  /api/v1/npm/{repo}/{packageName}:
-    get:
-      summary: Obtém metadados do pacote NPM (autenticado)
-      description: Retorna metadados no formato do NPM Registry para compatibilidade com clientes NPM
+          description: Lista de repositórios
+          
+    post:
+      summary: Cria repositório
+      description: |
+        🚧 **NÃO CONECTADO**
       tags:
-        - NPM
+        - Admin - Repositories
       security:
         - BearerAuth: []
-        - ApiKeyAuth: []
-      parameters:
-        - name: repo
-          in: path
-          required: true
-          schema:
-            type: string
-          example: "my-repo"
-        - name: packageName
-          in: path
-          required: true
-          schema:
-            type: string
-          description: Nome do pacote (pode conter escopo com @)
-          example: "@sambura/core"
-      responses:
-        '200':
-          description: Metadados do pacote
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/NPMMetadata'
-        '401':
-          description: Não autenticado
-        '404':
-          description: Pacote não encontrado
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  error:
-                    type: string
-                    example: "Package not found"
-
-    put:
-      summary: Publica/atualiza um pacote NPM
-      description: Endpoint compatível com `npm publish` para publicar pacotes
-      tags:
-        - NPM
-      security:
-        - BearerAuth: []
-        - ApiKeyAuth: []
-      parameters:
-        - name: repo
-          in: path
-          required: true
-          schema:
-            type: string
-          example: "my-repo"
-        - name: packageName
-          in: path
-          required: true
-          schema:
-            type: string
-          description: Nome do pacote (pode conter escopo com @)
-          example: "@sambura/core"
       requestBody:
-        required: true
         content:
           application/json:
             schema:
               type: object
-              description: Payload do npm publish (formato packument)
+              required:
+                - name
+                - namespace
+              properties:
+                name:
+                  type: string
+                namespace:
+                  type: string
+                is_public:
+                  type: boolean
       responses:
         '200':
-          description: Pacote publicado com sucesso
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                    example: "Artefato no ninho! 🚀"
-        '400':
-          description: Dados inválidos
-        '401':
-          description: Não autenticado
-        '500':
-          description: Erro no servidor
+          description: Repositório criado
 
-  # ===== ROUTES ALTERNATIVAS AUTENTICADAS =====
-  /api/v1/download/{repo}/{name}/{version}:
+  /api/v1/admin/packages:
     get:
-      summary: Download alternativo de artefato
-      description: Rota alternativa para download de artefatos com autenticação
+      summary: Lista todos os pacotes
+      description: |
+        🚧 **NÃO CONECTADO** - PackageController implementado.
       tags:
-        - Artifacts
+        - Admin - Packages
       security:
         - BearerAuth: []
-        - ApiKeyAuth: []
-      parameters:
-        - name: repo
-          in: path
-          required: true
-          schema:
-            type: string
-          example: "my-repo"
-        - name: name
-          in: path
-          required: true
-          schema:
-            type: string
-          example: "@sambura/core"
-          description: Nome do pacote (pode incluir namespace)
-        - name: version
-          in: path
-          required: true
-          schema:
-            type: string
-          example: "1.0.0"
       responses:
         '200':
-          description: Download iniciado
-          content:
-            application/octet-stream:
-              schema:
-                type: string
-                format: binary
-        '401':
-          description: Não autenticado
-        '404':
-          description: Artefato não encontrado
+          description: Lista de pacotes
 
-  /api/v1/resolve/{repository}/{package}/{version}:
+  /api/v1/npm/private-repo/{packageName}:
     get:
-      summary: Resolve artefato (rota alternativa)
-      description: Rota alternativa para resolução de artefatos
+      summary: Metadados NPM de um pacote
+      description: |
+        🚧 **NÃO CONECTADO** - PackageController.getMetadata() implementado.
+        
+        Endpoint consultado pelo NPM CLI antes de instalar/publicar.
       tags:
-        - Artifacts
+        - NPM
       security:
         - BearerAuth: []
-        - ApiKeyAuth: []
       parameters:
-        - name: repository
+        - name: packageName
           in: path
           required: true
           schema:
             type: string
-          example: "my-repo"
-        - name: package
-          in: path
-          required: true
-          schema:
-            type: string
-          example: "@sambura/core"
-        - name: version
-          in: path
-          required: true
-          schema:
-            type: string
-          example: "1.0.0"
       responses:
         '200':
-          description: Artefato encontrado
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Artifact'
-        '401':
-          description: Não autenticado
+          description: Metadados do pacote
         '404':
-          description: Artefato não encontrado
+          description: Pacote não encontrado
 
   /api/v1/upload:
     post:
       summary: Upload de artefato (POST)
-      description: Upload de artefatos via multipart/form-data
+      description: |
+        🚧 **NÃO CONECTADO** - UploadController.handle() implementado.
+        
+        Suporta multipart/form-data e JSON (npm publish).
       tags:
         - Upload
       security:
         - BearerAuth: []
         - ApiKeyAuth: []
       requestBody:
-        required: true
         content:
           multipart/form-data:
             schema:
               type: object
-              required:
-                - file
-                - package
-                - version
               properties:
                 file:
                   type: string
                   format: binary
-                  description: Arquivo .tgz do pacote
                 package:
                   type: string
-                  example: "@sambura/core"
                 version:
                   type: string
-                  example: "1.0.0"
-                repository:
-                  type: string
-                  default: "default"
-                  example: "my-repo"
       responses:
         '200':
-          description: Artefato enviado com sucesso
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                    example: "Artefato no ninho! 🚀"
-        '400':
-          description: Dados incompletos ou formato inválido
-        '401':
-          description: Não autenticado
-        '500':
-          description: Erro no processamento
-
+          description: Upload realizado
+          
     put:
       summary: Upload de artefato (PUT)
-      description: Upload de artefatos via multipart/form-data (método PUT)
+      description: |
+        🚧 **NÃO CONECTADO** - Compatível com `npm publish`.
       tags:
         - Upload
       security:
         - BearerAuth: []
-        - ApiKeyAuth: []
       requestBody:
-        required: true
         content:
-          multipart/form-data:
+          application/json:
             schema:
               type: object
-              required:
-                - file
-                - package
-                - version
-              properties:
-                file:
-                  type: string
-                  format: binary
-                  description: Arquivo .tgz do pacote
-                package:
-                  type: string
-                  example: "@sambura/core"
-                version:
-                  type: string
-                  example: "1.0.0"
-                repository:
-                  type: string
-                  default: "default"
-                  example: "my-repo"
       responses:
         '200':
-          description: Artefato enviado com sucesso
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                    example: "Artefato no ninho! 🚀"
-        '400':
-          description: Dados incompletos ou formato inválido
-        '401':
-          description: Não autenticado
-        '500':
-          description: Erro no processamento
+          description: Pacote publicado
+
+# ========================================
+# INSTRUÇÕES PARA DESENVOLVEDORES
+# ========================================
+#
+# Para conectar os controllers não montados:
+#
+# 1. Edite: lib/infrastructure/api/routes/main_router.dart
+#
+# 2. Adicione os controllers no construtor:
+#    ```dart
+#    final ApiKeyController _apiKeyController;
+#    final RepositoryController _repositoryController;
+#    final PackageController _packageController;
+#    final UploadController _uploadController;
+#    final ArtifactController _artifactController;
+#    final BlobController _blobController;
+#    ```
+#
+# 3. Injete via DI no server.dart:
+#    ```dart
+#    final mainRouter = MainRouter(
+#      di.authController,
+#      di.systemController,
+#      di.apiKeyController,     // adicione
+#      di.repositoryController,  // adicione
+#      // ... etc
+#    );
+#    ```
+#
+# 4. Monte as rotas no handler getter:
+#    ```dart
+#    protectedRouter.mount('/admin/api-keys', _apiKeyController.router.call);
+#    protectedRouter.mount('/admin/repositories', _repositoryController.router.call);
+#    protectedRouter.post('/upload', _uploadController.handle);
+#    protectedRouter.put('/upload', _uploadController.handle);
+#    ```
+#
+# 5. Teste cada rota após conectar
+#
+# ========================================
