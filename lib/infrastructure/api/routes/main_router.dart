@@ -17,7 +17,6 @@ class MainRouter {
   final AccountRepository _accountRepo;
   final ApiKeyRepository _keyRepo;
 
-  // Redis for cache
   final CachePort _cachePort;
 
   MainRouter(
@@ -32,15 +31,13 @@ class MainRouter {
   Handler get handler {
     final apiRouter = Router();
 
-    // 1. Rotas Públicas (Documentação fora do prefixo api/v1)
     final swaggerHandler = SwaggerUI(
       'specs/swagger.yaml',
       title: 'Samburá Docs',
     );
-    // Registre sem o prefixo /api/v1 para teste, ou garanta que não tenha middleware
     apiRouter.all('/docs/<any|.*>', swaggerHandler.call);
 
-    // 2. Rotas da API v1
+    // Rotas da API v1
     final v1Router = Router();
 
     // --- Sub-roteador Público ---
@@ -53,11 +50,8 @@ class MainRouter {
     protectedActions.post('/auth/register', _authController.register);
     // Adicione mais aqui...
 
-    // 3. Montagem do v1 com os respectivos Middlewares
-    v1Router.mount(
-      '/',
-      publicActions.call,
-    ); // Público (mas passa pelo resolveIdentity se quiser)
+    // Montagem do v1 com os respectivos Middlewares
+    v1Router.mount('/', publicActions.call);
 
     v1Router.mount(
       '/',
@@ -66,7 +60,7 @@ class MainRouter {
           .addHandler(protectedActions.call),
     );
 
-    // 4. Pipeline Principal da API
+    // Pipeline Principal da API
     final apiPipeline = Pipeline()
         .addMiddleware(
           authMiddleware(_accountRepo, _keyRepo, _authProvider, _cachePort),
