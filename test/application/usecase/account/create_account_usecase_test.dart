@@ -29,6 +29,9 @@ class InMemoryAccountRepository implements AccountRepository {
   @override
   Future<AccountEntity?> findByUsername(String username) async => null;
   Future<void> update(AccountEntity account) async {}
+
+  @override
+  Future<bool> existsByRole(String role) async => false;
 }
 
 class MockHashService implements HashService {
@@ -68,7 +71,7 @@ void main() {
       expect(repository.lastCreatedAccount!.username.value, equals(username));
       expect(repository.lastCreatedAccount!.email.value, equals(email));
       expect(
-        repository.lastCreatedAccount!.password.value,
+        repository.lastCreatedAccount!.password!.value,
         equals('Hashed@Pass123!'),
       );
     });

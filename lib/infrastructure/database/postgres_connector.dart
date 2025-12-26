@@ -53,9 +53,9 @@ class PostgresConnector {
 
   // Ajusta o retorno para Future<Result> (sem o ?)
   Future<Result> query(
-    String sql,
-    Map<String, dynamic> substitutionValues,
-  ) async {
+    String sql, {
+    Map<String, dynamic>? substitutionValues,
+  }) async {
     // 1. Garante que tá conectado antes de qualquer coisa
     await connect();
 

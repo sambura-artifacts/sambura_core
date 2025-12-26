@@ -57,7 +57,14 @@ class EnvConfig extends Equatable {
   // ----------------------------------
   final String vaultUrl;
   final String vaultToken;
-  final String vaultSecretPath;
+  final String vaultAuthPath;
+  final String vaultDatabasePath;
+
+  // ----------------------------------
+  // 7. LOG
+  // ----------------------------------
+  final String logLevel;
+  final String logFilePath;
 
   const EnvConfig({
     required this.environment,
@@ -85,7 +92,10 @@ class EnvConfig extends Equatable {
     required this.keycloakClientId,
     required this.vaultUrl,
     required this.vaultToken,
-    required this.vaultSecretPath,
+    required this.vaultAuthPath,
+    required this.vaultDatabasePath,
+    required this.logFilePath,
+    required this.logLevel,
   });
 
   @override
@@ -175,11 +185,21 @@ class Env {
       ),
 
       // HASHICORP VAULT
-      vaultUrl: getString('VAULT_URL', defaultValue: 'http://localhost:8200'),
+      vaultUrl: getString('VAULT_ADDR', defaultValue: 'http://localhost:8200'),
       vaultToken: getString('VAULT_TOKEN', defaultValue: 'root_token_sambura'),
-      vaultSecretPath: getString(
-        'VAULT_SECRET_PATH',
-        defaultValue: 'secret/data/sambura/dev',
+      vaultAuthPath: getString(
+        'VAULT_AUTH_PATH',
+        defaultValue: 'secret/data/sambura/database',
+      ),
+      vaultDatabasePath: getString(
+        'VAULT_DATABASE_PATH',
+        defaultValue: 'secret/data/sambura/auth',
+      ),
+
+      logLevel: getString('LOG_LEVEL', defaultValue: 'INFO'),
+      logFilePath: getString(
+        'LOG_FILE_PATH',
+        defaultValue: '/app/logs/app.log',
       ),
     );
   }

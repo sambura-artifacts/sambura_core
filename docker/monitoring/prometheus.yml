@@ -1,0 +1,45 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    cluster: 'sambura'
+    environment: 'dev'
+
+scrape_configs:
+  # ==============================================================================
+  # Prometheus Self-Monitoring
+  # ==============================================================================
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  # ==============================================================================
+  # Samburá Core Application (quando adicionar metrics)
+  # ==============================================================================
+  - job_name: 'sambura_app'
+    static_configs:
+      - targets: ['sambura_app:8080']
+    metrics_path: '/api/v1/system/health'
+    scrape_interval: 10s
+
+  # ==============================================================================
+  # PostgreSQL Exporter (futuro)
+  # ==============================================================================
+  # - job_name: 'postgres'
+  #   static_configs:
+  #     - targets: ['postgres-exporter:9187']
+
+  # ==============================================================================
+  # Redis Exporter (futuro)
+  # ==============================================================================
+  # - job_name: 'redis'
+  #   static_configs:
+  #     - targets: ['redis-exporter:9121']
+
+  # ==============================================================================
+  # MinIO Exporter (futuro)
+  # ==============================================================================
+  # - job_name: 'minio'
+  #   static_configs:
+  #     - targets: ['minio:9000']
+  #   metrics_path: '/minio/v2/metrics/cluster'

@@ -21,7 +21,7 @@ abstract class AuthPort {
   /// [token] - Token JWT a validar
   /// Returns: Map com os claims do token
   /// Throws: Exception se token inválido ou expirado
-  Map<String, dynamic> verifyToken(String token);
+  Map<String, dynamic>? verifyToken(String token);
 
   /// Extrai o ID do usuário de um token.
   ///

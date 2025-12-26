@@ -2,8 +2,8 @@
 # VARIÁVEIS DE AMBIENTE
 # ==============================================================================
 API_URL=http://localhost:8080/api/v1
-ADMIN_USER=cria_root
-ADMIN_PASS=senha_braba_123
+ADMIN_USER=admin
+ADMIN_PASS=rH45|D3V1qY%]{Rdfe]md.]YM<q|AEXG
 ADMIN_EMAIL=admin@sambura.io
 
 # Configurações de Infra

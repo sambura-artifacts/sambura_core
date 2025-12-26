@@ -88,6 +88,8 @@ class InMemoryAccountRepository implements AccountRepository {
   @override
   Future<AccountEntity?> findByUsername(String username) async => null;
   Future<void> update(AccountEntity account) async {}
+  @override
+  Future<bool> existsByRole(String role) async => false;
 }
 
 // --- MAIN TEST ---

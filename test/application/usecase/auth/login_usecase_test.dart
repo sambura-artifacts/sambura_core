@@ -38,6 +38,9 @@ class MockAccountRepository implements AccountRepository {
   Future<void> update(AccountEntity account) async {
     throw UnimplementedError();
   }
+
+  @override
+  Future<bool> existsByRole(String role) async => false;
 }
 
 class MockHashService implements HashService {

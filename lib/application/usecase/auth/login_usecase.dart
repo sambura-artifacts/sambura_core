@@ -32,7 +32,7 @@ class LoginUsecase {
       }
 
       _log.fine('Verificando hash da senha');
-      final isValid = _hashService.verify(password, account.passwordHash);
+      final isValid = _hashService.verify(password, account.password!.value);
 
       if (!isValid) {
         _log.warning('✗ Senha inválida para usuário: $username');
@@ -41,14 +41,13 @@ class LoginUsecase {
 
       _log.fine('Gerando JWT token');
       final payload = {
-        'sub': account.externalId.value, // .value extrai a String
-        'username': account.username.value,
+        'sub': account.externalId.value,
         'role': account.role.value,
       };
       final jwt = JWT(
         payload,
         issuer: 'sambura-auth',
-        subject: account.id.toString(),
+        subject: account.externalId.value,
       );
 
       final token = jwt.sign(
@@ -59,7 +58,7 @@ class LoginUsecase {
       _log.info(
         '✓ Autenticação bem-sucedida: $username (role: ${account.role})',
       );
-      return LoginResult(token, account.usernameValue);
+      return LoginResult(token, account.username.value);
     } catch (e, stack) {
       _log.severe('✗ Erro durante autenticação para: $username', e, stack);
       rethrow;

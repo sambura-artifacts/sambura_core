@@ -19,17 +19,18 @@ class PostgresArtifactRepository implements ArtifactRepository {
     RETURNING id
   ''';
 
-    final params = {
-      'packageId': artifact.packageId,
-      'blobId': artifact.blob!.id,
-      'externalId': artifact.externalId.value,
-      'version': artifact.version.value,
-      'path': artifact.path,
-      'createdAt': artifact.createdAt,
-    };
-
     try {
-      final result = await _connection.query(sql, params);
+      final result = await _connection.query(
+        sql,
+        substitutionValues: {
+          'packageId': artifact.packageId,
+          'blobId': artifact.blob!.id,
+          'externalId': artifact.externalId.value,
+          'version': artifact.version.value,
+          'path': artifact.path,
+          'createdAt': artifact.createdAt,
+        },
+      );
       final id = result.first[0] as int;
       _log.info('Artifact salvo no banco: id=$id, version=${artifact.version}');
       return artifact.copyWith(id: id);
@@ -53,7 +54,7 @@ class PostgresArtifactRepository implements ArtifactRepository {
           WHERE r.namespace = @namespace AND a.path = @path
           LIMIT 1
         ''',
-        {'namespace': namespace, 'path': path},
+        substitutionValues: {'namespace': namespace, 'path': path},
       );
 
       if (res.isEmpty) {
@@ -80,7 +81,7 @@ class PostgresArtifactRepository implements ArtifactRepository {
           WHERE a.package_id = @pkgId
           ORDER BY a.created_at DESC
         ''',
-        {'pkgId': packageId},
+        substitutionValues: {'pkgId': packageId},
       );
 
       _log.info('${res.length} versões encontradas para package $packageId');
@@ -102,7 +103,7 @@ class PostgresArtifactRepository implements ArtifactRepository {
         JOIN blobs b ON a.blob_id = b.id 
         WHERE a.external_id = @extId
       ''',
-      {'extId': externalId},
+      substitutionValues: {'extId': externalId},
     );
     if (res.isEmpty) return null;
     return _fromRepository(res.first.toColumnMap(), res.first.toColumnMap());
@@ -119,7 +120,7 @@ class PostgresArtifactRepository implements ArtifactRepository {
         JOIN blobs b ON a.blob_id = b.id
         WHERE r.namespace = @namespace
       ''',
-      {'namespace': namespace},
+      substitutionValues: {'namespace': namespace},
     );
     return res
         .map((row) => _fromRepository(row.toColumnMap(), row.toColumnMap()))
@@ -147,7 +148,11 @@ class PostgresArtifactRepository implements ArtifactRepository {
         AND a.version = @version
       LIMIT 1
     ''',
-        {'repo_name': namespace, 'package_name': name, 'version': version},
+        substitutionValues: {
+          'repo_name': namespace,
+          'package_name': name,
+          'version': version,
+        },
       );
 
       if (result.isEmpty) {
@@ -182,7 +187,11 @@ class PostgresArtifactRepository implements ArtifactRepository {
       AND a.version = @version
     LIMIT 1
     ''',
-      {'repoName': repoName, 'packageName': packageName, 'version': version},
+      substitutionValues: {
+        'repoName': repoName,
+        'packageName': packageName,
+        'version': version,
+      },
     );
 
     if (result.isEmpty) return null;
@@ -209,7 +218,7 @@ class PostgresArtifactRepository implements ArtifactRepository {
     JOIN blobs b ON a.blob_id = b.id
     WHERE p.name = @packageName AND r.name = @repoName
   ''',
-      {'packageName': packageName, 'repoName': repoName},
+      substitutionValues: {'packageName': packageName, 'repoName': repoName},
     );
 
     return results.map((row) {
@@ -303,7 +312,7 @@ class PostgresArtifactRepository implements ArtifactRepository {
   Future<bool> isHealthy() async {
     try {
       // Executa uma query mínima para testar a conexão
-      final result = await _connection.query('SELECT 1', {});
+      final result = await _connection.query('SELECT 1');
       return result.isNotEmpty;
     } catch (e) {
       _log.severe('❌ Database health check falhou: $e');
