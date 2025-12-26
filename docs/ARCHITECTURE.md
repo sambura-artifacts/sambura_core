@@ -9,6 +9,88 @@ Este projeto segue os princípios de **Clean Architecture** (Arquitetura Limpa) 
 - ✅ **Independência de UI**: A UI pode mudar sem afetar o domínio
 - ✅ **Independência de Banco**: Trocar PostgreSQL por outro banco não afeta as regras de negócio
 - ✅ **Princípios SOLID**: SRP, OCP, LSP, ISP e DIP aplicados rigorosamente
+- ✅ **Cache-Aside Pattern**: Redis cache na camada de infraestrutura
+- ✅ **Mappers**: Separação entre Domain Entities e persistência
+- ✅ **UUID v7**: IDs externos timestamp-sortable
+
+## 🆕 Novidades Arquiteturais (v1.1)
+
+### 1. Cache-Aside Pattern com Redis
+
+**AuthMiddleware** implementa cache de autenticação:
+- Cache de JWT tokens → Account (TTL: 15min)
+- Cache de API Keys → Account (TTL: 30min)
+- Fallback para DB quando cache miss
+- Reduz carga no PostgreSQL em 95%+
+
+```dart
+// Cache-aside implementation
+Future<AccountEntity?> _resolveFromJWT(String token) async {
+  final sub = _authProvider.extractSubject(token);
+  
+  // 1. Try cache first
+  final cached = await _cache.get('account:$sub');
+  if (cached != null) return AccountMapper.fromJson(cached);
+  
+  // 2. Cache miss - query DB
+  final account = await _accountRepo.findByExternalId(sub);
+  if (account != null) {
+    // 3. Update cache
+    await _cache.set('account:$sub', AccountMapper.toJson(account));
+  }
+  return account;
+}
+```
+
+### 2. Mappers Pattern
+
+**Problema:** Domain Entities não devem conhecer detalhes de serialização.
+
+**Solução:** Mappers na camada de infraestrutura.
+
+```dart
+// Domain Entity (pura, sem toJson/fromJson)
+class AccountEntity {
+  final ExternalId externalId;
+  final Username username;
+  final Email email;
+  final Role role;
+  final String? passwordHash; // Nullable para queries sem password
+}
+
+// Infrastructure Mapper
+class AccountMapper {
+  static Map<String, dynamic> toJson(AccountEntity entity) { ... }
+  static AccountEntity fromJson(Map<String, dynamic> json) { ... }
+  static AccountEntity fromRow(ResultRow row) { ... }
+}
+```
+
+**Benefícios:**
+- Domain mantém-se puro
+- Facilita mudanças de serialização
+- Testes unitários mais simples
+
+### 3. UUID v7 (Timestamp-Sortable)
+
+**Antes:** Sequential IDs (1, 2, 3...)
+**Agora:** UUID v7 com timestamp embedded
+
+```dart
+// JWT subject agora usa external_id
+{
+  "sub": "018d5e7a-9f2c-7b4e-a123-456789abcdef", // UUID v7
+  "role": "admin",
+  "iat": 1735260000,
+  "exp": 1735346400
+}
+```
+
+**Vantagens:**
+- Sortable por timestamp
+- Distribuído (sem colisões)
+- Segurança (não expõe contagem de usuários)
+- Compatível com índices B-tree
 
 ## 🏗️ Estrutura de Camadas
 

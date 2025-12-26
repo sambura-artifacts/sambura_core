@@ -1,18 +1,31 @@
 # Samburá Core - Docker Setup
 
-Estrutura de containers e monitoramento para o Samburá Core.
+Estrutura completa de containers, monitoramento e observabilidade para o Samburá Core.
+
+## 🎯 Stack Completa
+
+- **sambura_app**: Aplicação Dart (Samburá Core)
+- **postgres**: PostgreSQL 15 (metadados)
+- **minio**: MinIO (S3-compatible storage)
+- **redis**: Redis 7 (cache de autenticação)
+- **vault**: HashiCorp Vault (secrets)
+- **prometheus**: Métricas
+- **grafana**: Dashboards e visualização
+- **loki**: Agregação de logs
+- **promtail**: Shipping de logs
 
 ## 📁 Estrutura
 
 ```
 docker/
 ├── app/
-│   └── Dockerfile              # Build da aplicação Dart
+│   └── Dockerfile              # Build multi-stage da aplicação Dart
 ├── monitoring/
 │   ├── promtail-config.yml     # Configuração do log shipper
-│   ├── prometheus.yml          # Configuração de métricas
-│   └── grafana-datasources.yml # Datasources do Grafana
-└── docker-compose.yml          # Orquestração completa
+│   ├── prometheus.yml          # Scraping de métricas
+│   └── grafana-datasources.yml # Datasources (Prometheus, Loki)
+├── docker-compose.yml          # Orquestração completa
+└── README.md                   # Este arquivo
 ```
 
 ## 🚀 Uso Rápido

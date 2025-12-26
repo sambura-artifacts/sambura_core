@@ -31,16 +31,25 @@
 **Samburá Core** é um registry privado universal de artefatos que permite:
 
 - 📦 **Gerenciar pacotes privados** de múltiplos ecossistemas
-- 🔐 **Autenticação JWT e API Keys** para controle de acesso granular
+- 🔐 **Autenticação JWT com UUID v7** + API Keys com cache Redis
 - 💾 **Armazenamento híbrido** S3 (MinIO) + PostgreSQL + Redis
 - 🔄 **Proxy transparente com cache** para registries públicos (NPM, Maven, PyPI)
-- ⚡ **Alta performance** com cache inteligente em Redis
-- 🎨 **Clean Architecture** garantindo manutenibilidade e testabilidade
+- ⚡ **Cache-aside pattern** com Redis para autenticação (JWT + API Keys)
+- 🎨 **Clean Architecture** com SOLID rigorosamente aplicado
 - 🧪 **Cobertura de testes** de 80.1% (335/418 linhas)
-- 🐳 **Docker ready** para deploy simplificado
+- 🐳 **Docker ready** com Grafana + Prometheus + Loki
 - 🔒 **Integração com Vault** para gestão segura de credenciais
+- 🆔 **UUID v7** para IDs externos (timestamp-sortable)
+- 🗺️ **Mappers** mantendo Domain Entities puros (sem lógica de serialização)
 
 ### 🎁 Funcionalidades Principais
+
+**Autenticação Moderna (Cache-Aside)**
+- JWT com UUID v7 como subject (timestamp-sortable)
+- Cache Redis de contas autenticadas (reduz load do DB)
+- API Keys com cache em memória
+- Separação clara: AuthMiddleware resolve identidade, RequireAuthMiddleware valida
+- Mappers para manter Domain Entities puros
 
 **Proxy NPM Transparente (Uplink)**
 - Busca automática de pacotes não encontrados localmente
@@ -54,11 +63,11 @@
 - Controle de acesso por repositório
 - Metadados completos e versionamento
 
-**Autenticação e Segurança**
-- Login JWT com refresh tokens
-- API Keys com permissões granulares
-- Integração com HashiCorp Vault
-- Rate limiting e proteção contra ataques
+**Observabilidade e Monitoramento**
+- Structured logging com contexto
+- Integração Grafana + Prometheus + Loki
+- Health checks detalhados (DB, MinIO, Redis)
+- Métricas de performance e cache hit rate
 
 ## 🏗️ Arquitetura
 
@@ -68,19 +77,32 @@ O projeto segue os princípios da **Clean Architecture** com separação clara d
 ┌─────────────────────────────────────┐
 │          Presentation               │
 │  (Controllers, Routes, Presenters)  │
+│  ↓ AuthMiddleware (resolve user)    │
+│  ↓ RequireAuthMiddleware (validate) │
 ├─────────────────────────────────────┤
 │          Application                │
 │      (Use Cases, DTOs, Ports)       │
+│  ↓ Business rules & orchestration   │
 ├─────────────────────────────────────┤
 │            Domain                   │
 │  (Entities, Value Objects, Rules)   │
+│  ↓ Pure business logic (SOLID)      │
 ├─────────────────────────────────────┤
 │         Infrastructure              │
-│ (Repositories, Adapters, Services)  │
+│ (Repos, Adapters, Services, Cache)  │
+│  ↓ Redis Cache (Auth), Postgres,    │
+│     MinIO, Vault                    │
 └─────────────────────────────────────┘
 ```
 
-Para detalhes completos, veja [README_STRUCTURE.md](README_STRUCTURE.md).
+**Novidades na arquitetura:**
+- 🗺️ **Mappers**: Separam serialização do Domain (AccountMapper)
+- 🔄 **Cache-Aside**: Redis cache para auth (AuthMiddleware)
+- 🆔 **UUID v7**: IDs externos timestamp-sortable
+- 🎯 **Bootstrap Service**: Seed de dados iniciais
+- 📦 **Dependency Injection**: Container centralizado
+
+Para detalhes completos, veja [README_STRUCTURE.md](README_STRUCTURE.md) e [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
 ## 🛠️ Tecnologias
 
@@ -219,6 +241,25 @@ npm install @types/node
 Abra no navegador: `http://localhost:8080/api/v1/docs`
 
 ## 🌐 API
+
+### ⚠️ Estado Atual da API
+
+**Rotas Funcionais (Conectadas no MainRouter):**
+- ✅ `POST /api/v1/auth/login` - Login e geração de JWT
+- ✅ `POST /api/v1/auth/register` - Registro (requer autenticação)
+- ✅ `GET /api/v1/system/health` - Health check completo
+- ✅ `GET /api/v1/system/*` - Outras rotas do SystemController
+
+**Controllers Implementados mas NÃO Conectados:**
+- 🚧 ApiKeyController - CRUD de API Keys
+- 🚧 RepositoryController - CRUD de repositórios
+- 🚧 PackageController - Listagem e metadados NPM
+- 🚧 ArtifactController - Resolução e download
+- 🚧 BlobController - Download de blobs
+- 🚧 UploadController - Upload multipart/npm publish
+
+> 💡 Para conectar os controllers, edite `lib/infrastructure/api/routes/main_router.dart`
+> e siga as instruções no [swagger.yaml](specs/swagger.yaml)
 
 ### Endpoints Principais
 
@@ -418,56 +459,107 @@ Para documentação completa da API, acesse `/api/v1/docs` ou veja [specs/swagge
 ```
 sambura_core/
 ├── bin/
-│   └── server.dart          # Ponto de entrada
+│   └── server.dart              # Ponto de entrada
 ├── lib/
-│   ├── application/         # Casos de uso e DTOs
+│   ├── application/             # Casos de uso e DTOs
 │   │   ├── usecase/
 │   │   │   ├── account/
 │   │   │   ├── api_key/
 │   │   │   ├── artifact/
 │   │   │   ├── auth/
+│   │   │   ├── health/         # ✨ Health check
 │   │   │   └── package/
 │   │   ├── dtos/
-│   │   ├── ports/
+│   │   ├── ports/               # Abstrações (AuthPort)
 │   │   └── exceptions/
-│   ├── domain/              # Regras de negócio
+│   ├── domain/                  # Regras de negócio
 │   │   ├── entities/
 │   │   ├── factories/
 │   │   ├── value_objects/
 │   │   ├── repositories/
 │   │   ├── services/
 │   │   └── exceptions/
-│   ├── infrastructure/      # Implementações
+│   ├── infrastructure/          # Implementações
 │   │   ├── adapters/
-│   │   │   ├── auth/
-│   │   │   ├── cache/
-│   │   │   ├── crypto/
-│   │   │   ├── secrets/
+│   │   │   ├── auth/           # ✨ LocalAuthAdapter
+│   │   │   ├── http/
 │   │   │   └── storage/
 │   │   ├── api/
 │   │   │   ├── controller/
+│   │   │   │   ├── admin/      # ApiKeyController
+│   │   │   │   ├── artifact/   # Upload, Download, etc
+│   │   │   │   ├── auth/       # AuthController
+│   │   │   │   └── system/     # ✨ SystemController
 │   │   │   ├── presenter/
+│   │   │   │   └── auth/       # ✨ Login/Register presenters
 │   │   │   ├── middleware/
+│   │   │   │   ├── auth_middleware.dart            # ✨ Cache-aside
+│   │   │   │   ├── require_auth_middlware.dart     # ✨ Validation
+│   │   │   │   └── structured_log_middleware.dart  # ✨ Logging
 │   │   │   └── routes/
+│   │   ├── bootstrap/           # ✨ Bootstrap Service
+│   │   ├── mappers/             # ✨ AccountMapper
 │   │   ├── repositories/
 │   │   │   ├── postgres/
 │   │   │   └── blob/
 │   │   └── services/
-│   ├── shared/              # Código compartilhado
-│   └── config/              # Configurações
-├── test/                    # Testes
-├── docs/                    # Documentação
-├── sql/                     # Scripts SQL
-├── specs/                   # Swagger/OpenAPI
-├── docker-compose.yaml
-├── Dockerfile
+│   │       ├── auth/
+│   │       └── secrets/
+│   ├── shared/                  # Código compartilhado
+│   └── config/
+│       ├── app_config.dart
+│       ├── dependency_injection.dart  # ✨ DI Container
+│       ├── env.dart
+│       └── logger.dart
+├── test/                        # Testes (185 tests)
+├── docs/                        # Documentação
+│   ├── ARCHITECTURE.md
+│   ├── ci-cd.md
+│   ├── logging.md
+│   ├── namespace.md
+│   └── entitidades/
+├── docker/                      # ✨ Infraestrutura Docker
+│   ├── app/
+│   │   └── Dockerfile
+│   ├── monitoring/              # Grafana, Prometheus, Loki
+│   │   ├── grafana-datasources.yml
+│   │   ├── prometheus.yml
+│   │   └── promtail-config.yml
+│   ├── docker-compose.yml
+│   └── README.md
+├── sql/                         # Scripts SQL
+├── specs/                       # Swagger/OpenAPI
+│   └── swagger.yaml            # ✨ Atualizado com status real
 ├── Makefile
 └── pubspec.yaml
+
+✨ = Novos componentes
 ```
 
 Para detalhes completos, veja [README_STRUCTURE.md](README_STRUCTURE.md).
 
 ## 🔧 Desenvolvimento
+
+### ⚠️ Breaking Changes (v1.1)
+
+Se você está migrando de versões anteriores:
+
+1. **JWT Payload Changed**
+   - `sub` agora é UUID v7 (external_id) ao invés de sequential ID
+   - Campo `username` removido do payload (privacidade)
+   - Tokens antigos precisam ser regenerados
+
+2. **AuthMiddleware Requires Redis**
+   - Cache Redis agora é obrigatório
+   - Configure `REDIS_HOST` e `REDIS_PORT` no `.env`
+
+3. **AccountEntity.passwordHash is Nullable**
+   - Queries podem retornar accounts sem password
+   - Use `AccountMapper` para serialização
+
+4. **Docker Structure Changed**
+   - `Dockerfile` e `docker-compose.yaml` movidos para `docker/`
+   - Use `cd docker && docker-compose up`
 
 ### Comandos úteis
 

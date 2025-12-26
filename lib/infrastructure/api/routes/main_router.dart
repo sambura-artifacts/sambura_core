@@ -8,6 +8,7 @@ import 'package:sambura_core/infrastructure/api/middleware/auth_middleware.dart'
 import 'package:sambura_core/infrastructure/api/middleware/require_auth_middlware.dart';
 import 'package:shelf/shelf.dart';
 import 'package:shelf_router/shelf_router.dart';
+import 'package:shelf_swagger_ui/shelf_swagger_ui.dart';
 
 class MainRouter {
   final AuthController _authController;
@@ -29,45 +30,51 @@ class MainRouter {
   );
 
   Handler get handler {
-    final baseRouter = Router();
+    final apiRouter = Router();
 
-    // --- 1. Sub-roteador para recursos que requerem autenticação obrigatória ---
-    final protectedRouter = Router();
-    protectedRouter.post('/auth/register', _authController.register);
-    // Adicione outras rotas privadas aqui
-
-    // --- 2. Sub-roteador para recursos públicos ---
-    final publicRouter = Router();
-    publicRouter.mount('/system', _systemController.router.call);
-    publicRouter.post('/auth/login', _authController.login);
-
-    // --- 3. Composição dos Middlewares ---
-
-    // Resolve a identidade para todas as rotas (JWT ou ApiKey)
-    final resolveIdentity = authMiddleware(
-      _accountRepo,
-      _keyRepo,
-      _authProvider,
-      _cachePort,
+    // 1. Rotas Públicas (Documentação fora do prefixo api/v1)
+    final swaggerHandler = SwaggerUI(
+      'specs/swagger.yaml',
+      title: 'Samburá Docs',
     );
+    // Registre sem o prefixo /api/v1 para teste, ou garanta que não tenha middleware
+    apiRouter.all('/docs/<any|.*>', swaggerHandler.call);
 
-    // Protege o acesso (Retorna 401 se não houver usuário no context)
-    final requireAuth = RequireAuthMiddleware.check();
+    // 2. Rotas da API v1
+    final v1Router = Router();
 
-    // Montagem final sob o prefixo /api/v1
-    baseRouter.mount(
-      '/api/v1',
-      Pipeline().addMiddleware(resolveIdentity).addHandler(publicRouter.call),
-    );
+    // --- Sub-roteador Público ---
+    final publicActions = Router();
+    publicActions.mount('/system', _systemController.router.call);
+    publicActions.post('/auth/login', _authController.login);
 
-    baseRouter.mount(
-      '/api/v1',
+    // --- Sub-roteador Protegido ---
+    final protectedActions = Router();
+    protectedActions.post('/auth/register', _authController.register);
+    // Adicione mais aqui...
+
+    // 3. Montagem do v1 com os respectivos Middlewares
+    v1Router.mount(
+      '/',
+      publicActions.call,
+    ); // Público (mas passa pelo resolveIdentity se quiser)
+
+    v1Router.mount(
+      '/',
       Pipeline()
-          .addMiddleware(resolveIdentity)
-          .addMiddleware(requireAuth)
-          .addHandler(protectedRouter.call),
+          .addMiddleware(RequireAuthMiddleware.check())
+          .addHandler(protectedActions.call),
     );
 
-    return baseRouter.call;
+    // 4. Pipeline Principal da API
+    final apiPipeline = Pipeline()
+        .addMiddleware(
+          authMiddleware(_accountRepo, _keyRepo, _authProvider, _cachePort),
+        )
+        .addHandler(v1Router.call);
+
+    apiRouter.mount('/api/v1', apiPipeline);
+
+    return apiRouter.call;
   }
 }
