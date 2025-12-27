@@ -2,7 +2,13 @@
 
 ## Visão Geral
 
-Este projeto implementa um sistema de logging completo e estruturado usando o pacote `logging` do Dart. O sistema fornece rastreamento detalhado de todas as operações, facilitando debug, monitoramento e análise de problemas em produção.
+Este projeto implementa um sistema completo de **logging estruturado** e **observabilidade** usando:
+- **Logging**: Pacote `logging` do Dart para rastreamento detalhado
+- **Métricas**: Prometheus para monitoramento em tempo real
+- **Health Checks**: Verificações automatizadas de saúde dos componentes
+- **Integração**: Grafana + Prometheus + Loki para visualização
+
+O sistema fornece rastreamento detalhado de todas as operações, facilitando debug, monitoramento e análise de problemas em produção.
 
 ## Configuração
 
@@ -209,6 +215,143 @@ Isso facilita a separação de logs normais e erros em sistemas de monitoramento
 - lib/infrastructure/repositories/*
 - lib/infrastructure/services/*
 - lib/infrastructure/database/*
+- lib/infrastructure/adapters/health/* (Health checks)
+- lib/infrastructure/adapters/observability/* (Métricas Prometheus)
+- lib/infrastructure/api/middleware/* (Auth, Logging, Error Handler)
+
+## Observabilidade e Métricas
+
+### Prometheus Metrics
+
+O sistema expõe métricas no formato Prometheus através do endpoint `/metrics`:
+
+#### Métricas de Saúde (Health)
+```
+sambura_health_status{component="postgres"} 1        # 1=UP, 0=DOWN
+sambura_health_status{component="redis"} 1
+sambura_health_status{component="minio"} 1
+
+sambura_health_latency_ms{component="postgres"} 2.34
+sambura_health_latency_ms{component="redis"} 0.81
+sambura_health_latency_ms{component="minio"} 5.12
+```
+
+#### Métricas de Segurança
+```
+sambura_security_violations_total{type="path_traversal"} 3
+sambura_security_violations_total{type="invalid_package_name"} 1
+
+sambura_auth_failures_total{reason="invalid_token"} 12
+sambura_auth_failures_total{reason="expired_token"} 5
+```
+
+#### Métricas de Cache
+```
+sambura_cache_hits_total{cache_type="auth"} 8542
+sambura_cache_misses_total{cache_type="auth"} 234
+```
+
+### Health Checks
+
+O endpoint `/api/v1/system/health` retorna o status detalhado:
+
+```json
+{
+  "status": "UP",
+  "checks": {
+    "postgres": {
+      "status": "UP",
+      "latency_ms": 2.34
+    },
+    "redis": {
+      "status": "UP",
+      "latency_ms": 0.81
+    },
+    "minio": {
+      "status": "UP",
+      "latency_ms": 5.12
+    }
+  },
+  "timestamp": "2025-12-26T10:30:00Z"
+}
+```
+
+### Uso no Código
+
+#### Registrando Métricas
+
+```dart
+class AuthMiddleware {
+  final MetricsPort _metrics;
+  
+  Future<Response> call(Request request) async {
+    try {
+      final account = await _resolveAccount(request);
+      
+      if (account != null) {
+        _metrics.recordCacheHit('auth');  // Cache hit
+      } else {
+        _metrics.recordCacheMiss('auth'); // Cache miss
+      }
+      
+      return _handler(request.change(context: {'account': account}));
+    } catch (e) {
+      _metrics.recordAuthFailure('invalid_token');
+      rethrow;
+    }
+  }
+}
+```
+
+#### ErrorHandlerMiddleware com Métricas
+
+```dart
+class ErrorHandlerMiddleware {
+  final MetricsPort? _metrics;
+  
+  Future<Response> call(Request request) async {
+    try {
+      return await _handler(request);
+    } on SecurityException catch (e) {
+      _metrics?.recordSecurityViolation(e.type);
+      return Response.forbidden(jsonEncode({'error': e.message}));
+    }
+  }
+}
+```
+
+### Configuração do Prometheus
+
+Arquivo: `docker/monitoring/prometheus.yml`
+
+```yaml
+scrape_configs:
+  - job_name: 'sambura_app'
+    scrape_interval: 15s
+    static_configs:
+      - targets: ['sambura_app:8080']
+    metrics_path: '/metrics'
+```
+
+### Dashboards Grafana
+
+Queries úteis para dashboards:
+
+**Taxa de Cache Hit:**
+```promql
+rate(sambura_cache_hits_total[5m]) / 
+(rate(sambura_cache_hits_total[5m]) + rate(sambura_cache_misses_total[5m]))
+```
+
+**Latência Média por Componente:**
+```promql
+avg(sambura_health_latency_ms) by (component)
+```
+
+**Componentes com Problemas:**
+```promql
+sambura_health_status < 1
+```
 
 ## Exemplos de Logs Gerados
 

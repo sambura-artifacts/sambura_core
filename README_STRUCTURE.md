@@ -23,19 +23,31 @@ Camada de aplicação - casos de uso e lógica de orquestração
   - `api_key/` - Gerenciamento de API keys
   - `artifact/` - Operações com artefatos
   - `package/` - Operações com pacotes
+  - `health/` - ✨ Verificações de saúde
 - **`dtos/`** - Data Transfer Objects
-- **`ports/`** - Interfaces para infraestrutura (contratos)
+- **`ports/`** - Interfaces para infraestrutura (contratos):
+  - `IStoragePort`, `ICachePort`, `IAuthPort`, etc.
+  - `MetricsPort` - ✨ Porta para métricas (Prometheus)
+  - `HealthCheckPort` - ✨ Porta para health checks
+- **`services/`** - ✨ Serviços de aplicação:
+  - `health/` - `HealthCheckService` orquestra health checks
 
 ### 🏗️ `/lib/infrastructure`
 Camada de infraestrutura - implementações concretas
 
 #### `/infrastructure/adapters`
 Adaptadores para serviços externos organizados por tipo:
-- **`auth/`** - JWT adapter
+- **`auth/`** - JWT adapter, Bcrypt hash adapter
 - **`cache/`** - Redis adapter
 - **`crypto/`** - Crypto adapter
 - **`secrets/`** - Vault adapter
 - **`storage/`** - MinIO adapter
+- **`health/`** - ✨ Health check adapters:
+  - `PostgresHealthCheck` - Valida conexão com Postgres
+  - `RedisHealthCheck` - Valida conexão com Redis
+  - `BlobStorageHealthCheck` - Valida conexão com MinIO
+- **`observability/`** - ✨ Adapters de observabilidade:
+  - `PrometheusMetricsAdapter` - Implementação de MetricsPort
 
 #### `/infrastructure/api`
 Camada HTTP (Controllers, Routers, Middleware):
@@ -43,11 +55,19 @@ Camada HTTP (Controllers, Routers, Middleware):
   - `admin/` - Controllers administrativos (API keys)
   - `auth/` - Controllers de autenticação
   - `artifact/` - Controllers de artefatos, pacotes, repositórios
+  - `system/` - ✨ SystemController (health), MetricsController (Prometheus)
 - **`presenter/`** - Presenters para formatação de respostas:
   - `admin/` - Presenters administrativos
   - `artifact/` - Presenters de artefatos
-- **`middleware/`** - Middlewares de autenticação e validação
-- **`routes/`** - Definição de rotas (public, admin, main)
+- **`middleware/`** - Middlewares:
+  - `auth_middleware.dart` - ✨ Resolve identidade e registra métricas de cache
+  - `require_auth_middleware.dart` - Valida autenticação
+  - `error_handler_middleware.dart` - ✨ Captura exceções e registra métricas de segurança
+  - `structured_log_middleware.dart` - Logging estruturado
+- **`routes/`** - Definição de rotas:
+  - `public_router.dart` - ✨ Rotas públicas (incluindo /metrics)
+  - `protected_router.dart` - Rotas protegidas
+  - `main_router.dart` - Router principal
 - **`dtos/`** - DTOs específicos da API
 
 #### `/infrastructure/repositories`

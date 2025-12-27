@@ -77,3 +77,10 @@ tmp/
 
 # Coverage
 coverage
+
+
+# Possível teste NPM
+package.json
+package-lock.json
+yarn-lock.json
+node_modules/

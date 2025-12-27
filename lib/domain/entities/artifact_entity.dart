@@ -50,7 +50,7 @@ class ArtifactEntity {
   }
 
   factory ArtifactEntity.restore({
-    required int id,
+    int? id,
     required String externalId,
     required int packageId,
     required String namespace,

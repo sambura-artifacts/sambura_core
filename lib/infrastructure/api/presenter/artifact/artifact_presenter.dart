@@ -10,12 +10,12 @@ class ArtifactPresenter {
       'version': artifact.version,
       'path': artifact.path,
       'size_bytes': artifact.blob?.sizeBytes,
-      'sha256': artifact.blob?.hashValue,
+      'sha256': artifact.blob?.hash,
       'mime_type': artifact.blob?.mimeType,
       'created_at': artifact.createdAt.toIso8601String(),
       '_links': {
         'self': {'href': '/${artifact.path}'},
-        'download': {'href': '/blobs/${artifact.blob?.hashValue}'},
+        'download': {'href': '/blobs/${artifact.blob?.hash}'},
       },
     };
 
@@ -44,7 +44,7 @@ class ArtifactPresenter {
               'method': 'GET',
             },
             'download': {
-              'href': '$baseUrl/blobs/${artifact.blob?.hashValue}',
+              'href': '$baseUrl/blobs/${artifact.blob?.hash}',
               'method': 'GET',
             },
             'package': {

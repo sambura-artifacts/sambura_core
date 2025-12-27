@@ -39,7 +39,7 @@ class BlobController {
         headers: {
           'Content-Type': blob.mimeType,
           'Content-Length': blob.sizeBytes.toString(),
-          'Content-Disposition': 'attachment; filename="${blob.hashValue}"',
+          'Content-Disposition': 'attachment; filename="${blob.hash}"',
         },
       );
     } catch (e, stack) {

@@ -31,7 +31,7 @@ class FileSystemBlobRepository implements BlobRepository {
 
       // 2. Gera a entidade (calcula o hash SHA-256)
       final blob = await BlobEntity.fromStream(metadataStream);
-      final file = File('$_basePath/${blob.hashValue}');
+      final file = File('$_basePath/${blob.hash}');
 
       // 3. Deduplicação: Só escreve se o arquivo não existir
       if (!await file.exists()) {
@@ -40,13 +40,13 @@ class FileSystemBlobRepository implements BlobRepository {
         await sink.close();
         stopwatch.stop();
         print(
-          '✅ [Storage] NOVO BLOB: ${blob.hashValue.substring(0, 10)}... | '
+          '✅ [Storage] NOVO BLOB: ${blob.hash.substring(0, 10)}... | '
           'Tamanho: ${blob.sizeBytes} bytes | Tempo: ${stopwatch.elapsedMilliseconds}ms',
         );
       } else {
         stopwatch.stop();
         print(
-          '♻️ [Storage] DEDUPLICAÇÃO: Blob ${blob.hashValue.substring(0, 10)}... já existe. Gravacao ignorada.',
+          '♻️ [Storage] DEDUPLICAÇÃO: Blob ${blob.hash.substring(0, 10)}... já existe. Gravacao ignorada.',
         );
       }
 
@@ -58,13 +58,13 @@ class FileSystemBlobRepository implements BlobRepository {
   }
 
   @override
-  Future<Stream<Uint8List>> readAsStream(String hashValue) async {
-    print('📤 [Storage] Lendo blob: ${hashValue.substring(0, 10)}...');
-    final file = File('$_basePath/$hashValue');
+  Future<Stream<Uint8List>> readAsStream(String hash) async {
+    print('📤 [Storage] Lendo blob: ${hash.substring(0, 10)}...');
+    final file = File('$_basePath/$hash');
 
     if (!await file.exists()) {
       print('⚠️ [Storage] Blob não encontrado no caminho: ${file.path}');
-      throw Exception('📦 Blob não encontrado no disco: $hashValue');
+      throw Exception('📦 Blob não encontrado no disco: $hash');
     }
 
     return file.openRead().cast<Uint8List>();

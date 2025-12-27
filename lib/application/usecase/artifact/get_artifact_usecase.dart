@@ -1,25 +1,25 @@
 import 'dart:async';
 import 'package:logging/logging.dart';
+import 'package:sambura_core/application/ports/registry_proxy_port.dart';
 import 'package:sambura_core/config/logger.dart';
 import 'package:sambura_core/domain/entities/artifact_entity.dart';
 import 'package:sambura_core/domain/exceptions/domain_exception.dart';
 import 'package:sambura_core/domain/repositories/artifact_repository.dart';
 import 'package:sambura_core/domain/repositories/package_repository.dart';
 import 'package:sambura_core/domain/repositories/repository_repository.dart';
-import 'package:sambura_core/infrastructure/proxies/npm_proxy.dart';
 
 class GetArtifactUseCase {
   final ArtifactRepository _artifactRepository;
   final PackageRepository _packageRepository;
   final RepositoryRepository _repositoryRepository;
-  final NpmProxy _npmProxy;
+  final RegistryProxyPort _proxyPort;
   final Logger _log = LoggerConfig.getLogger('GetArtifactUseCase');
 
   GetArtifactUseCase(
     this._artifactRepository,
     this._packageRepository,
     this._repositoryRepository,
-    this._npmProxy,
+    this._proxyPort,
   );
 
   Future<ArtifactEntity?> execute({
@@ -60,16 +60,15 @@ class GetArtifactUseCase {
           name: packageName,
         );
 
-        final blob = await _npmProxy.fetchAndStore(packageName, version);
+        final blob = await _proxyPort.fetchAndStore(packageName, version);
 
         final newArtifact = ArtifactEntity.create(
           packageId: package.id!,
           namespace: repository.namespace,
           packageName: package.name,
           version: version,
-          path:
-              "$packageName-$version.tgz", // Aqui você define o padrão de salvamento
-          blob: blob,
+          path: "$packageName-$version.tgz",
+          blob: blob.blob!,
         );
 
         final saved = await _artifactRepository.save(newArtifact);

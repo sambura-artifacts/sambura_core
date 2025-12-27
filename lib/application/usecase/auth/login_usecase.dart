@@ -1,7 +1,7 @@
 import 'package:dart_jsonwebtoken/dart_jsonwebtoken.dart';
 import 'package:logging/logging.dart';
+import 'package:sambura_core/application/ports/hash_port.dart';
 import 'package:sambura_core/config/logger.dart';
-import 'package:sambura_core/infrastructure/services/auth/hash_service.dart';
 import 'package:sambura_core/domain/repositories/account_repository.dart';
 
 class LoginResult {
@@ -13,11 +13,11 @@ class LoginResult {
 
 class LoginUsecase {
   final AccountRepository _repo;
-  final HashService _hashService;
+  final HashPort _hash;
   final String _jwtSecret;
   final Logger _log = LoggerConfig.getLogger('LoginUsecase');
 
-  LoginUsecase(this._repo, this._hashService, this._jwtSecret);
+  LoginUsecase(this._repo, this._hash, this._jwtSecret);
 
   Future<LoginResult?> execute(String username, String password) async {
     _log.info('Executando autenticação para usuário: $username');
@@ -32,7 +32,7 @@ class LoginUsecase {
       }
 
       _log.fine('Verificando hash da senha');
-      final isValid = _hashService.verify(password, account.password!.value);
+      final isValid = _hash.verifyPassword(password, account.password!.value);
 
       if (!isValid) {
         _log.warning('✗ Senha inválida para usuário: $username');

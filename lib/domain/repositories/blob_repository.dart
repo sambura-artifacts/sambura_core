@@ -10,7 +10,7 @@ abstract class BlobRepository {
   Future<BlobEntity> saveContent(String hash, Uint8List bytes);
 
   /// Busca um Blob pelo seu Hash único (SHA-256).
-  Future<BlobEntity?> findByHash(String hashValue);
+  Future<BlobEntity?> findByHash(String hash);
 
   /// Busca um Blob pelo ID interno (Serial).
   Future<BlobEntity?> findById(int id);
@@ -19,11 +19,11 @@ abstract class BlobRepository {
   Future<void> delete(int id);
 
   /// Verifica se um Blob existe no storage físico.
-  Future<bool> exists(String hashValue);
+  Future<bool> exists(String hash);
 
   /// Salva o arquivo e retorna os metadados (já temos esse)
   Future<BlobEntity> saveFromStream(Stream<List<int>> byteStream);
 
   /// NOVO: Abre o arquivo físico para leitura via Stream usando o Hash como chave
-  Future<Stream<Uint8List>> readAsStream(String hashValue);
+  Future<Stream<Uint8List>> readAsStream(String hash);
 }

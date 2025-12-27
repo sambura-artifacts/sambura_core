@@ -1,66 +1,140 @@
-import 'dart:async';
+import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:logging/logging.dart';
+import 'package:sambura_core/application/ports/registry_proxy_port.dart';
 import 'package:sambura_core/config/logger.dart';
+import 'package:sambura_core/domain/entities/entities.dart';
+import 'package:sambura_core/domain/exceptions/domain_exception.dart';
 import 'package:sambura_core/domain/repositories/blob_repository.dart';
-import 'package:sambura_core/domain/entities/blob_entity.dart';
+import 'package:sambura_core/domain/repositories/package_repository.dart';
 
-class NpmProxy {
+class NpmProxy implements RegistryProxyPort {
   final BlobRepository _blobRepository;
+  final PackageRepository _packageRepository;
   final String _registryUrl = "https://registry.npmjs.org";
   final Logger _log = LoggerConfig.getLogger('NpmProxyService');
 
-  NpmProxy(this._blobRepository);
+  NpmProxy(this._blobRepository, this._packageRepository);
 
-  Future<BlobEntity> fetchAndStore(String packageName, String version) async {
-    final client = http.Client();
-    final url = Uri.parse(
-      "$_registryUrl/$packageName/-/$packageName-$version.tgz",
-    );
-    final stopwatch = Stopwatch()..start();
-
-    _log.info('Solicitando upstream: $url');
+  @override
+  Future<Map<String, dynamic>?> fetchPackageMetadata(String packageName) async {
+    final url = Uri.parse("$_registryUrl/$packageName");
+    _log.info('🌐 Upstream Metadata: $url');
 
     try {
-      final request = http.Request('GET', url);
-      final http.StreamedResponse response = await client.send(request);
-
+      final response = await http.get(url);
+      if (response.statusCode == 404) return null;
       if (response.statusCode != 200) {
-        _log.warning(
-          'Registry retornou erro ${response.statusCode} para $packageName@$version',
-        );
-        throw Exception("Falha no Upstream NPM: ${response.statusCode}");
+        throw Exception("Erro Upstream NPM: ${response.statusCode}");
       }
-
-      final contentLength = response.contentLength ?? 0;
-      final sizeDesc = contentLength > 0
-          ? '${(contentLength / 1024).toStringAsFixed(2)} KB'
-          : 'tamanho desconhecido';
-
-      _log.info('Download iniciado | Tamanho esperado: $sizeDesc');
-
-      // O segredo pra não dar erro de Sink: asBroadcastStream resolve o problema de múltiplas leituras
-      final Stream<List<int>> cleanStream = response.stream.asBroadcastStream();
-
-      // Salva no storage (Silo/FileSystem)
-      _log.fine('Salvando blob a partir do stream de resposta');
-      final blob = await _blobRepository.saveFromStream(cleanStream);
-
-      stopwatch.stop();
-      _log.info(
-        'Sincronização concluída | Hash: ${blob.hashValue.substring(0, 12)}... | Tempo: ${stopwatch.elapsedMilliseconds}ms',
-      );
-
-      return blob;
-    } catch (e, stack) {
-      _log.severe(
-        'Erro fatal ao fazer fetch de $packageName@$version',
-        e,
-        stack,
-      );
-      rethrow;
-    } finally {
-      client.close();
+      return jsonDecode(response.body) as Map<String, dynamic>;
+    } catch (e) {
+      _log.severe('❌ Erro ao buscar metadados de $packageName', e);
+      return null;
     }
+  }
+
+  @override
+  Future<Stream<List<int>>?> fetchArtifact(
+    String packageName,
+    String fileName,
+  ) async {
+    final url = Uri.parse("$_registryUrl/$packageName/-/$fileName");
+    _log.info('🌐 Upstream Tarball: $url');
+
+    try {
+      final client = http.Client();
+      final request = http.Request('GET', url);
+      final response = await client.send(request);
+
+      if (response.statusCode == 404) return null;
+      if (response.statusCode != 200) return null;
+
+      return response.stream;
+    } catch (e) {
+      _log.severe('❌ Erro ao buscar tarball $fileName', e);
+      return null;
+    }
+  }
+
+  @override
+  Future<ArtifactEntity> fetchTarball({
+    required String packageName,
+    required String fileName,
+    required String repositoryName,
+  }) async {
+    _log.info('🌐 Proxy Fetch: $packageName/$fileName');
+
+    final stream = await fetchArtifact(packageName, fileName);
+    if (stream == null) {
+      throw ArtifactNotFoundException('Upstream não encontrou: $fileName');
+    }
+
+    final blob = await _blobRepository.saveFromStream(stream);
+
+    final package = await _packageRepository.getOrCreate(
+      repositoryName: repositoryName,
+      packageName: packageName,
+    );
+
+    return ArtifactEntity.create(
+      packageId: package.id!,
+      namespace: repositoryName,
+      packageName: packageName,
+      version: _extractVersion(fileName),
+      blob: blob,
+      path: fileName,
+    );
+  }
+
+  String _extractVersion(String fileName) {
+    final match = RegExp(r'-(\d+\.\d+\.\d+.*)\.tgz$').firstMatch(fileName);
+    return match?.group(1) ?? '0.0.0-proxy';
+  }
+
+  @override
+  Future<ArtifactEntity> fetchAndStore(
+    String packageName,
+    String version,
+  ) async {
+    final metadata = await fetchPackageMetadata(packageName);
+
+    if (metadata == null || !metadata.containsKey('versions')) {
+      throw ArtifactNotFoundException(packageName);
+    }
+
+    final versionData = metadata['versions'][version];
+    if (versionData == null) {
+      throw ArtifactNotFoundException('$packageName@$version');
+    }
+
+    final String tarballUrl = versionData['dist']['tarball'];
+    final fileName = tarballUrl.split('/').last;
+
+    return await fetchTarball(
+      packageName: packageName,
+      fileName: fileName,
+      repositoryName: 'npm-proxy',
+    );
+  }
+
+  @override
+  Future<bool> packageExists(String packageName) async {
+    final url = Uri.parse("$_registryUrl/$packageName");
+
+    try {
+      final response = await http.head(url);
+      return response.statusCode == 200 ? true : false;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  @override
+  Future<List<String>> listVersions(String packageName) async {
+    final metadata = await fetchPackageMetadata(packageName);
+    if (metadata == null || !metadata.containsKey('versions')) return [];
+    final versionsMap = metadata['versions'] as Map<String, dynamic>;
+    return versionsMap.keys.toList();
   }
 }

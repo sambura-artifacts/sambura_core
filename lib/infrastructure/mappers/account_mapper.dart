@@ -34,7 +34,7 @@ class AccountMapper {
       password: map['password'] as String?,
       email: map['email'] as String,
       role: map['role'] as String,
-      createdAt: map['created_at'] as DateTime,
+      createdAt: map['created_at'] as DateTime?,
       lastLoginAt: map['last_login'] as DateTime?,
     );
   }

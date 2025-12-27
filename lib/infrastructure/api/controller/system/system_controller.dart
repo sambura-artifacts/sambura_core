@@ -3,7 +3,6 @@ import 'package:shelf/shelf.dart';
 import 'package:shelf_router/shelf_router.dart';
 import 'package:sambura_core/application/usecase/health/get_server_health_usecase.dart';
 
-/// Gerencia endpoints relacionados ao estado e metadados do servidor.
 class SystemController {
   final GetServerHealthUseCase _getHealthUseCase;
 
@@ -15,27 +14,29 @@ class SystemController {
     // GET /api/v1/system/health
     router.get('/health', _healthHandler);
 
-    // GET /api/v1/system/liveness
-    router.get('/liveness', _livenessHandler);
-
     return router;
   }
 
   Future<Response> _healthHandler(Request request) async {
-    final health = await _getHealthUseCase.execute();
-    final isHealthy = health['status'] == 'healthy';
+    try {
+      final healthReport = await _getHealthUseCase.execute();
 
-    return Response(
-      isHealthy ? 200 : 503,
-      body: jsonEncode(health),
-      headers: {'content-type': 'application/json'},
-    );
+      final isHealthy = healthReport['status'] == 'HEALTHY';
+
+      return Response(
+        isHealthy ? 200 : 503,
+        body: jsonEncode(healthReport),
+        headers: {'content-type': 'application/json'},
+      );
+    } catch (e) {
+      return Response.internalServerError(
+        body: jsonEncode({'status': 'error', 'message': e.toString()}),
+        headers: {'content-type': 'application/json'},
+      );
+    }
   }
 
-  Response _livenessHandler(Request request) {
-    return Response.ok(
-      jsonEncode({'status': 'alive'}),
-      headers: {'content-type': 'application/json'},
-    );
+  Future<void> refreshMetrics() async {
+    await _getHealthUseCase.execute();
   }
 }

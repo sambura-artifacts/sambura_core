@@ -4,12 +4,12 @@ import 'package:test/test.dart';
 void main() {
   group('ApplicationException', () {
     test('deve criar exceção com mensagem', () {
-      final exception = ApplicationException('Test message');
+      final exception = ApplicationException(message: 'Test message');
       expect(exception.message, 'Test message');
     });
 
     test('deve ser uma Exception', () {
-      final exception = ApplicationException('Test');
+      final exception = ApplicationException(message: 'Test');
       expect(exception, isA<Exception>());
     });
   });

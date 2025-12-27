@@ -1,5 +1,5 @@
 import 'package:sambura_core/application/ports/auth_port.dart';
-import 'package:sambura_core/infrastructure/services/auth/auth_service.dart';
+import 'package:sambura_core/application/services/auth/auth_service.dart';
 
 class LocalAuthAdapter implements AuthPort {
   final AuthService _internalService;
@@ -41,7 +41,6 @@ class LocalAuthAdapter implements AuthPort {
       final payload = _internalService.verifyToken(token);
       if (payload == null) return null;
 
-      // Tenta extrair do 'sub' (padrão do seu AuthService refatorado)
       return int.tryParse(payload['sub']?.toString() ?? '');
     } catch (_) {
       return null;
@@ -50,7 +49,6 @@ class LocalAuthAdapter implements AuthPort {
 
   @override
   bool isTokenExpired(String token) {
-    // O seu AuthService já loga e retorna null se expirar
     return _internalService.verifyToken(token) == null;
   }
 
@@ -62,7 +60,6 @@ class LocalAuthAdapter implements AuthPort {
       throw Exception('Não é possível renovar um token inválido ou expirado');
     }
 
-    // Remove claims temporais para que o sign() gere novos (iat, exp, nbf)
     payload.remove('exp');
     payload.remove('iat');
     payload.remove('nbf');

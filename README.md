@@ -66,8 +66,12 @@
 **Observabilidade e Monitoramento**
 - Structured logging com contexto
 - Integração Grafana + Prometheus + Loki
-- Health checks detalhados (DB, MinIO, Redis)
-- Métricas de performance e cache hit rate
+- Health checks detalhados (Postgres, Redis, MinIO)
+- Métricas Prometheus:
+  - Health: status e latência por componente
+  - Security: violações e falhas de autenticação
+  - Cache: hit/miss ratio e performance
+- Endpoint `/metrics` para scraping do Prometheus
 
 ## 🏗️ Arquitetura
 
@@ -247,7 +251,8 @@ Abra no navegador: `http://localhost:8080/api/v1/docs`
 **Rotas Funcionais (Conectadas no MainRouter):**
 - ✅ `POST /api/v1/auth/login` - Login e geração de JWT
 - ✅ `POST /api/v1/auth/register` - Registro (requer autenticação)
-- ✅ `GET /api/v1/system/health` - Health check completo
+- ✅ `GET /api/v1/system/health` - Health check completo (Postgres, Redis, MinIO)
+- ✅ `GET /metrics` - Métricas Prometheus (saúde, segurança, cache)
 - ✅ `GET /api/v1/system/*` - Outras rotas do SystemController
 
 **Controllers Implementados mas NÃO Conectados:**
@@ -452,6 +457,36 @@ npm install express            # Vem do NPM público
 GET /api/v1/npm/{repo}/{packageName}
 ```
 
+#### Observabilidade
+```bash
+# Health Check - Status de todos os componentes
+GET /api/v1/system/health
+Response:
+{
+  "status": "UP",
+  "checks": {
+    "postgres": {"status": "UP", "latency_ms": 2.3},
+    "redis": {"status": "UP", "latency_ms": 0.8},
+    "minio": {"status": "UP", "latency_ms": 5.1}
+  },
+  "timestamp": "2025-12-26T10:30:00Z"
+}
+
+# Métricas Prometheus (formato texto)
+GET /metrics
+Response:
+# HELP sambura_health_status Component health status (1=UP, 0=DOWN)
+# TYPE sambura_health_status gauge
+sambura_health_status{component="postgres"} 1
+sambura_health_status{component="redis"} 1
+sambura_health_status{component="minio"} 1
+
+# HELP sambura_health_latency_ms Component check latency in milliseconds
+# TYPE sambura_health_latency_ms gauge
+sambura_health_latency_ms{component="postgres"} 2.3
+...
+```
+
 Para documentação completa da API, acesse `/api/v1/docs` ou veja [specs/swagger.yaml](specs/swagger.yaml).
 
 ## 📁 Estrutura do Projeto
@@ -470,7 +505,8 @@ sambura_core/
 │   │   │   ├── health/         # ✨ Health check
 │   │   │   └── package/
 │   │   ├── dtos/
-│   │   ├── ports/               # Abstrações (AuthPort)
+│   │   ├── ports/               # Abstrações (AuthPort, MetricsPort, HealthCheckPort)
+│   │   ├── services/            # ✨ HealthCheckService
 │   │   └── exceptions/
 │   ├── domain/                  # Regras de negócio
 │   │   ├── entities/
@@ -481,15 +517,17 @@ sambura_core/
 │   │   └── exceptions/
 │   ├── infrastructure/          # Implementações
 │   │   ├── adapters/
-│   │   │   ├── auth/           # ✨ LocalAuthAdapter
+│   │   │   ├── auth/           # ✨ LocalAuthAdapter, BcryptHashAdapter
+│   │   │   ├── health/         # ✨ Postgres, Redis, BlobStorage Health Checks
 │   │   │   ├── http/
+│   │   │   ├── observability/  # ✨ PrometheusMetricsAdapter
 │   │   │   └── storage/
 │   │   ├── api/
 │   │   │   ├── controller/
 │   │   │   │   ├── admin/      # ApiKeyController
 │   │   │   │   ├── artifact/   # Upload, Download, etc
 │   │   │   │   ├── auth/       # AuthController
-│   │   │   │   └── system/     # ✨ SystemController
+│   │   │   │   └── system/     # ✨ SystemController, MetricsController
 │   │   │   ├── presenter/
 │   │   │   │   └── auth/       # ✨ Login/Register presenters
 │   │   │   ├── middleware/
@@ -712,11 +750,19 @@ Veja [CONTRIBUTING.md](CONTRIBUTING.md) para mais detalhes.
 - [x] Documentação Swagger/OpenAPI
 - [x] Deploy Docker com docker-compose
 
-### 🚧 Em Desenvolvimento (v1.1)
+### ✅ Concluído (v1.1)
+- [x] Métricas e observabilidade (Prometheus)
+- [x] Health checks por componente (Postgres, Redis, MinIO)
+- [x] PrometheusMetricsAdapter com métricas de saúde, segurança e cache
+- [x] HealthCheckService orquestrando adapters
+- [x] Middlewares atualizados com métricas
+
+### 🚧 Em Desenvolvimento (v1.2)
+- [ ] Dashboards Grafana pré-configurados
+- [ ] Alertas automáticos via Prometheus AlertManager
 - [ ] Suporte a Maven (Java)
 - [ ] Suporte a PyPI (Python)
-- [ ] Interface Web (dashboard)
-- [ ] Métricas e observabilidade (Prometheus/Grafana)
+- [ ] Interface Web (dashboard administrativo)
 - [ ] Replicação entre instâncias
 
 ### 🔮 Planejado (v2.0)

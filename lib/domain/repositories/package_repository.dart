@@ -34,4 +34,9 @@ abstract class PackageRepository {
   });
 
   Future<List<dynamic>> listAll({int limit = 50, int offset = 0});
+
+  Future<PackageEntity> getOrCreate({
+    required String repositoryName,
+    required String packageName,
+  });
 }

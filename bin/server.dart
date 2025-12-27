@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'package:sambura_core/infrastructure/bootstrap/bootstrap_service.dart';
 import 'package:shelf/shelf.dart';
@@ -22,7 +23,7 @@ void main() async {
     log.info('🔧 Inicializando dependências...');
     final di = await DependencyInjection.init(env);
 
-    // 2. Executa o Bootstrap
+    // Executa o Bootstrap
     final bootstrap = BootstrapService(
       di.accountRepository,
       di.createAccountUsecase,
@@ -32,12 +33,14 @@ void main() async {
     await bootstrap.run();
 
     final mainRouter = MainRouter(
-      di.authController,
-      di.systemController,
-      di.authProvider,
+      env,
+      di.publicRouter,
+      di.protectedRouter,
       di.accountRepository,
       di.apiKeyRepository,
+      di.authProvider,
       di.cachePort,
+      di.metricsPort,
     );
 
     final handler = const Pipeline()
@@ -50,6 +53,15 @@ void main() async {
       '🚀 SAMBURÁ ONLINE | http://${server.address.host}:${server.port}',
     );
     log.info('🌍 Environment: ${env.environment.name}');
+
+    // No arquivo main.dart ou após inicializar o servidor
+    Timer.periodic(Duration(seconds: 30), (timer) async {
+      try {
+        await di.systemController.refreshMetrics();
+      } catch (e) {
+        print('Polling de métricas falhou: $e');
+      }
+    });
   } catch (e, stack) {
     log.severe('💥 Erro fatal durante o boot:', e, stack);
     exit(1);

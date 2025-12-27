@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:logging/logging.dart';
+import 'package:sambura_core/application/exceptions/application_exception.dart';
 import 'package:sambura_core/config/app_config.dart';
 import 'package:sambura_core/config/logger.dart';
 import 'package:sambura_core/application/ports/http_client_port.dart';
@@ -21,19 +22,31 @@ class ProxyPackageMetadataUseCase {
       '🌐 Proxy Request: path=$path, repo=$repoName, pkg=$packageName, params=$queryParams',
     );
     try {
-      final uri = _client.makeUri(remoteHost, path, queryParams);
-      _log.info('🌐 Proxy Request: $uri');
-
-      final response = await _client.get(
-        uri,
-        headers: {'Accept': 'application/json'},
+      final baseUri = _client.makeUri(remoteHost);
+      final uri = baseUri.replace(
+        path: '${baseUri.path}/$path'.replaceAll('//', '/'),
+        queryParameters: queryParams,
       );
+      _log.info('🌐 Proxy Request: $uri');
+      // lib/infrastructure/adapters/proxy/npm_registry_adapter.dart
 
-      if (response.statusCode != 200) {
-        _log.warning(
-          '⚠️ Remote Registry respondeu: ${response.statusCode}, ${response.body}',
+      final response = await _client.get(uri);
+
+      if (response.statusCode == 404) {
+        throw ExternalResourceNotFoundException(packageName!);
+      }
+
+      if (response.statusCode == 401 || response.statusCode == 403) {
+        throw ExternalRegistryAuthException(
+          details: {'status': response.statusCode},
         );
-        return null;
+      }
+
+      if (response.statusCode >= 500) {
+        throw ExternalServiceUnavailableException(
+          'NPM Registry',
+          details: {'status': response.statusCode},
+        );
       }
 
       if (path.endsWith('.tgz') || (packageName?.endsWith('.tgz') ?? false)) {

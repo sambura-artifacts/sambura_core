@@ -28,23 +28,23 @@ class SiloBlobRepository implements BlobRepository {
 
     try {
       // 2. Verifica se o binário já existe no Storage (Deduplicação)
-      final exists = await _storagePort.exists(blobWithId.hashValue);
+      final exists = await _storagePort.exists(blobWithId.hash);
 
       if (exists) {
         _log.info(
-          '📦 Blob duplicado (já no storage): ${blobWithId.hashValue.substring(0, 12)}',
+          '📦 Blob duplicado (já no storage): ${blobWithId.hash.substring(0, 12)}',
         );
         return blobWithId;
       }
 
       // 3. Salva o binário real
       await _storagePort.store(
-        path: blobWithId.hashValue,
+        path: blobWithId.hash,
         stream: storageStream,
         sizeBytes: blobWithId.sizeBytes,
       );
 
-      _log.info('✅ Blob armazenado: ${blobWithId.hashValue.substring(0, 12)}');
+      _log.info('✅ Blob armazenado: ${blobWithId.hash.substring(0, 12)}');
     } catch (e) {
       _log.severe('❌ Erro ao persistir binário: $e');
       rethrow;
@@ -79,7 +79,7 @@ class SiloBlobRepository implements BlobRepository {
     final saved = await _dbRepository.save(entity);
 
     await _storagePort.store(
-      path: saved.hashValue,
+      path: saved.hash,
       stream: Stream.value(bytes),
       sizeBytes: saved.sizeBytes,
     );
@@ -116,9 +116,9 @@ class SiloBlobRepository implements BlobRepository {
 
       if (blob == null) return;
 
-      await _storagePort.delete(blob.hashValue);
+      await _storagePort.delete(blob.hash);
 
-      _log.info('🗑️ Blob deletado: ${blob.hashValue.substring(0, 12)}');
+      _log.info('🗑️ Blob deletado: ${blob.hash.substring(0, 12)}');
     } catch (e) {
       _log.severe('❌ Falha ao deletar blob: $e');
       rethrow;

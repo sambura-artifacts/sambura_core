@@ -51,4 +51,6 @@ abstract class StoragePort {
     String object, {
     bool retrieveAcls = true,
   });
+
+  Future<bool> bucketExists(String bucketName);
 }

@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 class HttpClientResponse {
   final int statusCode;
   final List<int> bodyBytes;
@@ -18,9 +20,14 @@ abstract class HttpClientPort {
     dynamic data,
   });
 
+  Future<({Stream<Uint8List> stream, int? length})> stream(
+    Uri uri, {
+    Map<String, String>? headers,
+  });
+
   Uri makeUri(
-    String authority, [
-    String unencodedPath,
+    String host, {
+    String? path,
     Map<String, dynamic>? queryParameters,
-  ]);
+  });
 }

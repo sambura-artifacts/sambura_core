@@ -43,13 +43,13 @@ class PackageEntity {
     );
   }
 
-  static PackageEntity restore(
-    int id,
-    int repositoryId,
-    String name,
-    String description,
-    DateTime createdAt,
-  ) {
+  static PackageEntity restore({
+    required int? id,
+    required int repositoryId,
+    required String name,
+    required String? description,
+    required DateTime createdAt,
+  }) {
     return PackageEntity._(
       id: id,
       repositoryId: repositoryId,

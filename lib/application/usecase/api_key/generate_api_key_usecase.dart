@@ -22,6 +22,7 @@ class GenerateApiKeyUsecase {
   Future<GenerateApiKeyResult> execute({
     required int accountId,
     required String keyName,
+    required int expiresInDays,
   }) async {
     _log.info('Gerando nova API key: accountId=$accountId, name=$keyName');
 
@@ -42,6 +43,7 @@ class GenerateApiKeyUsecase {
         name: keyName,
         keyHash: hash,
         prefix: 'sb_live_',
+        expiresAt: DateTime.now().add(Duration(days: expiresInDays)),
       );
 
       _log.info('✓ API key gerada com sucesso: name=$keyName, prefix=sb_live_');

@@ -1,7 +1,7 @@
+import 'package:sambura_core/application/ports/hash_port.dart';
 import 'package:sambura_core/application/usecase/account/create_account_usecase.dart';
 import 'package:sambura_core/domain/entities/account_entity.dart';
 import 'package:sambura_core/domain/repositories/account_repository.dart';
-import 'package:sambura_core/infrastructure/services/auth/hash_service.dart';
 import 'package:test/test.dart';
 
 // Implementação InMemory para testes consistentes
@@ -34,19 +34,37 @@ class InMemoryAccountRepository implements AccountRepository {
   Future<bool> existsByRole(String role) async => false;
 }
 
-class MockHashService implements HashService {
+class MockHashService implements HashPort {
   String hashToReturn = 'Hashed@Pass123!';
   @override
   String hashPassword(String password) => hashToReturn;
+
   @override
-  bool verify(String password, String hash) => true;
+  List<int> generateRandomBytes(int length) {
+    throw UnimplementedError();
+  }
+
+  @override
+  String generateRandomString(int length) {
+    throw UnimplementedError();
+  }
+
+  @override
+  String sha256Hash(List<int> data) {
+    throw UnimplementedError();
+  }
+
+  @override
+  bool verifyPassword(String password, String hash) {
+    throw UnimplementedError();
+  }
 }
 
 void main() {
   group('CreateAccountUsecase', () {
     late CreateAccountUsecase usecase;
     late InMemoryAccountRepository repository;
-    late MockHashService hashService;
+    late HashPort hashService;
 
     // Senha com alta entropia para evitar PasswordException
     const strongPassword = 'Complex@Password#2025!ExtraChars';

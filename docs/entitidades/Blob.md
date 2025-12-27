@@ -5,7 +5,7 @@ O **Blob** representa o conteúdo binário bruto. Sua identidade é definida pel
 
 ## 2. Atributos da Entidade
 * **id:** Chave primária sequencial para performance de JOINs.
-* **hashValue:** Identificador único gerado via SHA-256 (ex: `sha256:e3b0c4...`).
+* **hash:** Identificador único gerado via SHA-256 (ex: `sha256:e3b0c4...`).
 * **sizeBytes:** Tamanho exato do arquivo em bytes.
 * **mimeType:** Classificação do tipo de mídia detectada via *Magic Numbers*.
 

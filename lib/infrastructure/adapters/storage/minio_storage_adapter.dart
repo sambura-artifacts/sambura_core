@@ -136,4 +136,14 @@ class MinioStorageAdapter implements StoragePort {
   }) {
     return _client.statObject(bucket, object);
   }
+
+  @override
+  Future<bool> bucketExists(String bucketName) async {
+    try {
+      return await _client.bucketExists(bucketName);
+    } catch (e) {
+      _log.severe('Erro ao verificar existência do bucket: $bucketName', e);
+      return false;
+    }
+  }
 }

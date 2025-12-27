@@ -44,7 +44,7 @@ class CreateArtifactUsecase {
       _log.fine('Salvando blob a partir do stream de dados');
       final blob = await _blobRepository.saveFromStream(fileStream);
       _log.info(
-        'Blob salvo: ${blob.hashValue.substring(0, 12)}... (${blob.sizeBytes} bytes)',
+        'Blob salvo: ${blob.hash.substring(0, 12)}... (${blob.sizeBytes} bytes)',
       );
 
       // 3. Garantir que o Pacote existe (Busca ou Cria via Upsert)

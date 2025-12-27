@@ -53,7 +53,7 @@ class DownloadController {
       );
       final stream = await _fileService.getFileStream(artifact.path);
 
-      final hash = artifact.blob?.hashValue ?? '';
+      final hash = artifact.blob?.hash ?? '';
       final mimeType = artifact.blob?.mimeType ?? 'application/octet-stream';
       _log.info(
         '[REQ:$requestId] ✓ Download iniciado: mime=$mimeType, hash=${hash.substring(0, 12)}...',

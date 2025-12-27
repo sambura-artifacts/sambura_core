@@ -40,7 +40,7 @@ class GetPackageMetadataUseCase {
           continue;
         }
 
-        final hexHash = blob.hashValue;
+        final hexHash = blob.hash;
         final bytes = hex.decode(hexHash);
         final base64Hash = base64.encode(bytes);
         final integrity = "sha256-$base64Hash";

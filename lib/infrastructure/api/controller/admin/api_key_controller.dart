@@ -60,9 +60,16 @@ class ApiKeyController {
         '[REQ:$requestId] Gerando API key para usuário: ${user.username}, nome da chave: $keyName',
       );
 
+      var expiresInDays = payload['expires_in_days'];
+
+      if (expiresInDays == null || expiresInDays.isNaN) {
+        expiresInDays = 30;
+      }
+
       final result = await _generateApiKeyUsecase.execute(
         accountId: user.id!,
         keyName: keyName,
+        expiresInDays: expiresInDays,
       );
 
       _log.info(

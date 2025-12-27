@@ -1,23 +1,10 @@
-import 'package:sambura_core/application/ports/storage_port.dart';
-import 'package:sambura_core/domain/repositories/artifact_repository.dart';
+import 'package:sambura_core/application/services/health/health_check_service.dart';
 
 class GetServerHealthUseCase {
-  final ArtifactRepository _repo;
-  final StoragePort _storage;
+  final HealthCheckService _healthCheckService;
 
-  GetServerHealthUseCase(this._repo, this._storage);
-
+  GetServerHealthUseCase(this._healthCheckService);
   Future<Map<String, dynamic>> execute() async {
-    final dbOk = await _repo.isHealthy();
-    final storageOk = await _storage.isHealthy();
-
-    return {
-      'status': (dbOk && storageOk) ? 'healthy' : 'unhealthy',
-      'timestamp': DateTime.now().toIso8601String(),
-      'services': {
-        'database': dbOk ? 'up' : 'down',
-        'storage': storageOk ? 'up' : 'down',
-      },
-    };
+    return await _healthCheckService.checkAll();
   }
 }

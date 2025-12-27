@@ -13,6 +13,7 @@ class EnvConfig extends Equatable {
   final Environment environment;
   final String appName;
   final int port;
+  final String publicOrigin;
 
   // ----------------------------------
   // 2. CONEXÃO DATABASE (Postgres)
@@ -67,6 +68,7 @@ class EnvConfig extends Equatable {
   final String logFilePath;
 
   const EnvConfig({
+    this.publicOrigin = "http://localhost:8080",
     required this.environment,
     this.appName = 'Sambura Core',
     required this.port,
@@ -143,6 +145,10 @@ class Env {
       // GERAL
       environment: Environment.development,
       port: getInt('PORT', defaultValue: 8080),
+      publicOrigin: getString(
+        'PUBLIC_ORIGIN',
+        defaultValue: "http://localhost:8080",
+      ),
 
       // DATABASE (POSTGRES)
       dbHost: getString('DB_HOST', defaultValue: 'localhost'),

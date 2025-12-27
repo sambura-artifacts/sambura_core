@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:typed_data';
 
 import 'package:sambura_core/application/ports/http_client_port.dart';
 import 'package:sambura_core/application/usecase/package/proxy_package_metadata_usecase.dart';
@@ -86,11 +87,20 @@ class MockClient implements HttpClientPort {
 
   @override
   Uri makeUri(
-    String authority, [
-    String? unencodedPath,
+    String authority, {
+    String? path,
     Map<String, dynamic>? queryParameters,
-  ]) {
-    return Uri.https(authority, unencodedPath ?? '', queryParameters);
+  }) {
+    return Uri.https(authority, path ?? '', queryParameters);
+  }
+
+  @override
+  Future<({int? length, Stream<Uint8List> stream})> stream(
+    Uri uri, {
+    Map<String, String>? headers,
+  }) {
+    // TODO: implement stream
+    throw UnimplementedError();
   }
 }
 
