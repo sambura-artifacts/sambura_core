@@ -1,5 +1,5 @@
-import 'package:sambura_core/domain/entities/entities.dart';
 
+import 'package:sambura_core/domain/entities/entities.dart';
 /// Port (Interface) para proxy de registries externos (NPM, PyPI, Maven, etc).
 ///
 /// Define o contrato para buscar e cachear pacotes de registries upstream.

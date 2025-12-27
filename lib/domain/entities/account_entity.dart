@@ -1,9 +1,5 @@
-import 'package:sambura_core/domain/value_objects/email.dart';
-import 'package:sambura_core/domain/value_objects/external_id.dart';
-import 'package:sambura_core/domain/value_objects/password.dart';
-import 'package:sambura_core/domain/value_objects/role.dart';
-import 'package:sambura_core/domain/value_objects/username.dart';
 
+import 'package:sambura_core/domain/value_objects/value_objects.dart';
 class AccountEntity {
   final int? id;
   final ExternalId externalId;

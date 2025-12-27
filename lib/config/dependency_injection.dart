@@ -3,10 +3,6 @@ import 'package:sambura_core/config/env.dart';
 import 'package:http/http.dart' as http;
 
 // Ports
-import 'package:sambura_core/application/ports/auth_port.dart';
-import 'package:sambura_core/application/ports/cache_port.dart';
-import 'package:sambura_core/application/ports/hash_port.dart';
-import 'package:sambura_core/application/ports/metrics_port.dart';
 
 // Services (Application)
 import 'package:sambura_core/application/services/health/health_check_service.dart';
@@ -66,6 +62,7 @@ import 'package:sambura_core/infrastructure/api/routes/protected_router.dart';
 import 'package:sambura_core/infrastructure/api/routes/public_router.dart';
 import 'package:sambura_core/infrastructure/services/secrets/vault_service.dart';
 import 'package:sambura_core/infrastructure/proxies/npm_proxy.dart';
+import 'package:sambura_core/application/ports/ports.dart';
 
 class DependencyInjection {
   late final AuthController authController;

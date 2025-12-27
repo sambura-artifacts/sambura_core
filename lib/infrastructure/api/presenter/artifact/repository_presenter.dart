@@ -1,5 +1,5 @@
 import 'dart:convert';
-import 'package:sambura_core/domain/entities/repository_entity.dart';
+import 'package:sambura_core/domain/entities/entities.dart';
 
 class RepositoryPresenter {
   static Map<String, dynamic> _render(RepositoryEntity repo, String baseUrl) {

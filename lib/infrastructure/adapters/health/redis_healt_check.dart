@@ -1,6 +1,5 @@
-import 'package:sambura_core/application/ports/cache_port.dart';
-import 'package:sambura_core/application/ports/health_check.dart';
 
+import 'package:sambura_core/application/ports/ports.dart';
 class RedisHealthCheck implements HealthCheckPort {
   final CachePort _redis;
   @override

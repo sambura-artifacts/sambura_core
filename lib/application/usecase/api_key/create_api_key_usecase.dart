@@ -1,8 +1,8 @@
 import 'package:logging/logging.dart';
 import 'package:sambura_core/config/logger.dart';
-import 'package:sambura_core/domain/repositories/api_key_repository.dart';
 import 'package:sambura_core/infrastructure/services/auth/hash_service.dart';
 import 'package:sambura_core/shared/utils/crypto_utils.dart';
+import 'package:sambura_core/domain/repositories/repositories.dart';
 
 /// O que o cria recebe de volta (A chave só aparece aqui!)
 class ApiKeyCreated {

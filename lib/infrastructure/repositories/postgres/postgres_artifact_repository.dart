@@ -1,11 +1,10 @@
 import 'package:logging/logging.dart';
 import 'package:sambura_core/config/logger.dart';
-import 'package:sambura_core/domain/entities/blob_entity.dart';
-import 'package:sambura_core/domain/repositories/artifact_repository.dart';
-import 'package:sambura_core/domain/entities/artifact_entity.dart';
 import 'package:sambura_core/infrastructure/database/postgres_connector.dart';
 import 'package:sambura_core/infrastructure/mappers/artifact_mapper.dart';
 import 'package:sambura_core/infrastructure/mappers/blob_mapper.dart';
+import 'package:sambura_core/domain/entities/entities.dart';
+import 'package:sambura_core/domain/repositories/repositories.dart';
 
 class PostgresArtifactRepository implements ArtifactRepository {
   final PostgresConnector _connection;

@@ -1,6 +1,6 @@
 import 'dart:typed_data';
+import 'package:sambura_core/domain/entities/entities.dart';
 
-import 'package:sambura_core/domain/entities/blob_entity.dart';
 
 abstract class BlobRepository {
   /// Salva o Blob no banco e garante a deduplicação.

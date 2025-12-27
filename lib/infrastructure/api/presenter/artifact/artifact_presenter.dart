@@ -1,7 +1,7 @@
 import 'package:shelf/shelf.dart';
 import 'dart:convert';
+import 'package:sambura_core/domain/entities/entities.dart';
 
-import 'package:sambura_core/domain/entities/artifact_entity.dart';
 
 class ArtifactPresenter {
   static Response success(ArtifactEntity artifact) {

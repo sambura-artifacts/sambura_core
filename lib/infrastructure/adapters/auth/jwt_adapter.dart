@@ -1,7 +1,7 @@
 import 'package:dart_jsonwebtoken/dart_jsonwebtoken.dart';
 import 'package:logging/logging.dart';
 import 'package:sambura_core/config/logger.dart';
-import 'package:sambura_core/application/ports/auth_port.dart';
+import 'package:sambura_core/application/ports/ports.dart';
 
 /// Adapter para JWT implementando IAuthPort.
 ///

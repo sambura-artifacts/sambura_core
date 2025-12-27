@@ -1,8 +1,8 @@
 import 'package:dart_jsonwebtoken/dart_jsonwebtoken.dart';
 import 'package:logging/logging.dart';
-import 'package:sambura_core/application/ports/hash_port.dart';
 import 'package:sambura_core/config/logger.dart';
-import 'package:sambura_core/domain/repositories/account_repository.dart';
+import 'package:sambura_core/application/ports/ports.dart';
+import 'package:sambura_core/domain/repositories/repositories.dart';
 
 class LoginResult {
   final String token;

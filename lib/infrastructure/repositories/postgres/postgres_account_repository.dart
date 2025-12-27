@@ -1,9 +1,9 @@
 import 'package:logging/logging.dart';
 import 'package:sambura_core/config/logger.dart';
-import 'package:sambura_core/domain/entities/account_entity.dart';
-import 'package:sambura_core/domain/repositories/account_repository.dart';
 import 'package:sambura_core/infrastructure/database/postgres_connector.dart';
 import 'package:sambura_core/infrastructure/mappers/account_mapper.dart';
+import 'package:sambura_core/domain/entities/entities.dart';
+import 'package:sambura_core/domain/repositories/repositories.dart';
 
 class PostgresAccountRepository implements AccountRepository {
   final PostgresConnector _connector;

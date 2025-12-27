@@ -1,18 +1,15 @@
 import 'dart:convert';
 import 'package:crypto/crypto.dart';
 import 'package:logging/logging.dart';
-import 'package:sambura_core/application/ports/metrics_port.dart';
 
 import 'package:shelf/shelf.dart';
 
 // Ports
-import 'package:sambura_core/application/ports/auth_port.dart';
-import 'package:sambura_core/application/ports/cache_port.dart';
-import 'package:sambura_core/domain/repositories/account_repository.dart';
-import 'package:sambura_core/domain/repositories/api_key_repository.dart';
 
 // Adapters & Mappers
 import 'package:sambura_core/infrastructure/mappers/account_mapper.dart';
+import 'package:sambura_core/application/ports/ports.dart';
+import 'package:sambura_core/domain/repositories/repositories.dart';
 
 final _log = Logger('AuthMiddleware');
 

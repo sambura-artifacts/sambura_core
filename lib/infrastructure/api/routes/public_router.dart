@@ -1,6 +1,3 @@
-import 'package:sambura_core/application/ports/auth_port.dart';
-import 'package:sambura_core/application/ports/cache_port.dart';
-import 'package:sambura_core/application/ports/metrics_port.dart';
 import 'package:sambura_core/config/env.dart';
 import 'package:sambura_core/infrastructure/api/controller/system/metrics_controller.dart';
 import 'package:sambura_core/infrastructure/api/middleware/error_handler_middleware.dart';
@@ -12,8 +9,8 @@ import 'package:sambura_core/infrastructure/api/controller/artifact/artifact_con
 import 'package:sambura_core/infrastructure/api/controller/artifact/blob_controller.dart';
 import 'package:sambura_core/infrastructure/api/controller/system/system_controller.dart';
 import 'package:sambura_core/infrastructure/api/middleware/auth_middleware.dart';
-import 'package:sambura_core/domain/repositories/api_key_repository.dart';
-import 'package:sambura_core/domain/repositories/account_repository.dart';
+import 'package:sambura_core/application/ports/ports.dart';
+import 'package:sambura_core/domain/repositories/repositories.dart';
 
 class PublicRouter {
   final EnvConfig _config;

@@ -1,5 +1,5 @@
-import 'package:sambura_core/domain/entities/package_entity.dart';
 
+import 'package:sambura_core/domain/entities/entities.dart';
 abstract class PackageRepository {
   /// Busca um pacote pelo nome e pelo ID do repositório
   Future<PackageEntity?> findByName(int repositoryId, String name);

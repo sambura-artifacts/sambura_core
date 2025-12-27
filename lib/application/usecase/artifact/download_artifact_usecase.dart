@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'package:logging/logging.dart';
 import 'package:sambura_core/config/logger.dart';
-import 'package:sambura_core/domain/repositories/blob_repository.dart';
+import 'package:sambura_core/domain/repositories/repositories.dart';
 
 class DownloadArtifactUsecase {
   final BlobRepository _blobRepo;

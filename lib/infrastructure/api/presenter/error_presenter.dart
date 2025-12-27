@@ -1,8 +1,7 @@
 import 'dart:convert';
-import 'package:sambura_core/domain/exceptions/domain_exception.dart';
-import 'package:sambura_core/domain/exceptions/security_exception.dart';
 import 'package:sambura_core/infrastructure/exceptions/infrastructure_exception.dart';
 import 'package:shelf/shelf.dart';
+import 'package:sambura_core/domain/exceptions/exceptions.dart';
 
 class ErrorPresenter {
   static Response fromException(Object e, String instance, String baseUrl) {

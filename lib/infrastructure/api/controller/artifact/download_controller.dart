@@ -2,8 +2,8 @@ import 'package:logging/logging.dart';
 import 'package:sambura_core/config/logger.dart';
 import 'package:shelf/shelf.dart';
 import 'package:shelf_router/shelf_router.dart';
-import 'package:sambura_core/domain/repositories/artifact_repository.dart';
 import 'package:sambura_core/infrastructure/services/storage/file_service.dart';
+import 'package:sambura_core/domain/repositories/repositories.dart';
 
 class DownloadController {
   final ArtifactRepository _artifactRepo;

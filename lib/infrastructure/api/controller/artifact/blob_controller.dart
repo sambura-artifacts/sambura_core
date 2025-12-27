@@ -1,8 +1,8 @@
 import 'package:logging/logging.dart';
 import 'package:sambura_core/config/logger.dart';
 import 'package:shelf/shelf.dart';
-import 'package:sambura_core/domain/repositories/blob_repository.dart';
 import 'package:sambura_core/infrastructure/api/presenter/error_presenter.dart';
+import 'package:sambura_core/domain/repositories/repositories.dart';
 
 class BlobController {
   final BlobRepository _blobRepo;

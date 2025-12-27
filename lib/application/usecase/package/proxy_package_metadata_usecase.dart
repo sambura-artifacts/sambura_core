@@ -1,9 +1,9 @@
 import 'dart:convert';
 import 'package:logging/logging.dart';
-import 'package:sambura_core/application/exceptions/application_exception.dart';
 import 'package:sambura_core/config/app_config.dart';
 import 'package:sambura_core/config/logger.dart';
-import 'package:sambura_core/application/ports/http_client_port.dart';
+import 'package:sambura_core/application/exceptions/exceptions.dart';
+import 'package:sambura_core/application/ports/ports.dart';
 
 class ProxyPackageMetadataUseCase {
   final Logger _log = LoggerConfig.getLogger('ProxyPackageMetadataUseCase');

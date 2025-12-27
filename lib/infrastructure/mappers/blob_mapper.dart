@@ -1,5 +1,5 @@
-import 'package:sambura_core/domain/entities/blob_entity.dart';
 
+import 'package:sambura_core/domain/entities/entities.dart';
 class BlobMapper {
   static BlobEntity fromMap(Map<String, dynamic> map) {
     return BlobEntity.restore(

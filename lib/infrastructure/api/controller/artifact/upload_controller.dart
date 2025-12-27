@@ -2,10 +2,10 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:logging/logging.dart';
-import 'package:sambura_core/application/usecase/artifact/check_artifact_exists_usecase.dart';
 import 'package:sambura_core/application/usecase/usecases.dart';
 import 'package:sambura_core/config/logger.dart';
 import 'package:sambura_core/domain/exceptions/domain_exception.dart';
+import 'package:sambura_core/domain/exceptions/security_exception.dart';
 import 'package:sambura_core/domain/utils/security_validator.dart';
 import 'package:sambura_core/infrastructure/exceptions/infrastructure_exception.dart';
 import 'package:shelf/shelf.dart';
@@ -29,7 +29,7 @@ class UploadController {
       'Payload extraído: ${data.packageName}@${data.version} em ${data.repoName}',
     );
 
-    SecurityValidator.validateGenericInput(data.repoName);
+    SecurityValidatorUtils.validateGenericInput(data.repoName);
     SecurityValidator.validatePackagePath(data.packageName);
 
     final exists = await _checkArtifactExistsUseCase.execute(

@@ -1,5 +1,5 @@
 import 'package:prometheus_client/prometheus_client.dart';
-import 'package:sambura_core/application/ports/metrics_port.dart';
+import 'package:sambura_core/application/ports/ports.dart';
 
 class PrometheusMetricsAdapter implements MetricsPort {
   static final npmProxyDownloadDuration = Histogram(

@@ -3,7 +3,7 @@ import 'dart:math';
 import 'package:crypto/crypto.dart';
 import 'package:logging/logging.dart';
 import 'package:sambura_core/config/logger.dart';
-import 'package:sambura_core/domain/repositories/api_key_repository.dart';
+import 'package:sambura_core/domain/repositories/repositories.dart';
 
 class GenerateApiKeyResult {
   final String name;

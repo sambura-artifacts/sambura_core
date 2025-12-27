@@ -1,8 +1,6 @@
-import 'package:sambura_core/domain/entities/blob_entity.dart';
-import 'package:sambura_core/domain/value_objects/external_id.dart';
-import 'package:sambura_core/domain/value_objects/package_name.dart';
-import 'package:sambura_core/domain/value_objects/sem_ver.dart';
 
+import 'package:sambura_core/domain/entities/entities.dart';
+import 'package:sambura_core/domain/value_objects/value_objects.dart';
 class ArtifactEntity {
   final int? id;
   final ExternalId externalId; // VO: UUID v7

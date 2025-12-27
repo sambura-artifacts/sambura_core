@@ -2,8 +2,7 @@ import 'dart:async';
 import 'dart:typed_data';
 import 'package:async/async.dart'; // Pacote útil para Splitter
 import 'package:logging/logging.dart';
-import 'package:sambura_core/application/ports/http_client_port.dart';
-import 'package:sambura_core/application/ports/storage_port.dart';
+import 'package:sambura_core/application/ports/ports.dart';
 
 class ProxyPackageTarballUseCase {
   final HttpClientPort _httpClient;

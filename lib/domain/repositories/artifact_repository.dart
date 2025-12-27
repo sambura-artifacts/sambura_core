@@ -1,5 +1,5 @@
-import 'package:sambura_core/domain/entities/artifact_entity.dart';
 
+import 'package:sambura_core/domain/entities/entities.dart';
 abstract class ArtifactRepository {
   /// Persiste um novo artefato no banco de dados.
   /// Retorna a entidade com o ID gerado pelo Postgres.

@@ -1,12 +1,11 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:logging/logging.dart';
-import 'package:sambura_core/application/ports/registry_proxy_port.dart';
 import 'package:sambura_core/config/logger.dart';
+import 'package:sambura_core/application/ports/ports.dart';
 import 'package:sambura_core/domain/entities/entities.dart';
-import 'package:sambura_core/domain/exceptions/domain_exception.dart';
-import 'package:sambura_core/domain/repositories/blob_repository.dart';
-import 'package:sambura_core/domain/repositories/package_repository.dart';
+import 'package:sambura_core/domain/exceptions/exceptions.dart';
+import 'package:sambura_core/domain/repositories/repositories.dart';
 
 class NpmProxy implements RegistryProxyPort {
   final BlobRepository _blobRepository;

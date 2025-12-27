@@ -37,7 +37,7 @@ help: ## Mostra os comandos disponíveis
 # INFRAESTRUTURA (Docker)
 # ==============================================================================
 up: ## Sobe os containers (Postgres, Redis, Vault, MinIO, RabbitMQ)
-	docker-compose up -d
+	docker compose -f docker/docker-compose.yml up --build -d --remove-orphans
 	@echo "🚀 Infraestrutura subindo em background..."
 
 down: ## Para todos os containers e remove redes

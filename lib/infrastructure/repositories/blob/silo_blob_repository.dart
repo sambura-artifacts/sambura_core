@@ -1,10 +1,10 @@
 import 'dart:typed_data';
 import 'package:async/async.dart';
 import 'package:logging/logging.dart';
-import 'package:sambura_core/application/ports/storage_port.dart';
 import 'package:sambura_core/config/logger.dart';
-import 'package:sambura_core/domain/entities/blob_entity.dart';
-import 'package:sambura_core/domain/repositories/blob_repository.dart';
+import 'package:sambura_core/application/ports/ports.dart';
+import 'package:sambura_core/domain/entities/entities.dart';
+import 'package:sambura_core/domain/repositories/repositories.dart';
 
 class SiloBlobRepository implements BlobRepository {
   final StoragePort _storagePort;

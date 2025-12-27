@@ -1,8 +1,7 @@
 import 'package:logging/logging.dart';
-import 'package:sambura_core/application/exceptions/application_exception.dart';
 import 'package:sambura_core/config/logger.dart';
-import 'package:sambura_core/domain/repositories/account_repository.dart';
-import 'package:sambura_core/domain/repositories/api_key_repository.dart';
+import 'package:sambura_core/application/exceptions/exceptions.dart';
+import 'package:sambura_core/domain/repositories/repositories.dart';
 
 class RevokeApiKeyUsecase {
   final ApiKeyRepository _apiKeyRepository;

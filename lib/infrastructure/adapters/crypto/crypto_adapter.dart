@@ -4,7 +4,7 @@ import 'package:convert/convert.dart';
 import 'package:crypto/crypto.dart';
 import 'package:logging/logging.dart';
 import 'package:sambura_core/config/logger.dart';
-import 'package:sambura_core/application/ports/hash_port.dart';
+import 'package:sambura_core/application/ports/ports.dart';
 
 /// Adapter para operações de hash e criptografia implementando IHashPort.
 ///

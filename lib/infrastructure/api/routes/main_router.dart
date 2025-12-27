@@ -1,20 +1,17 @@
 import 'package:prometheus_client/prometheus_client.dart';
 import 'package:prometheus_client_shelf/shelf_handler.dart'
     as prometheus_handler;
-import 'package:sambura_core/application/ports/metrics_port.dart';
 import 'package:sambura_core/config/env.dart';
 import 'package:shelf/shelf.dart';
 import 'package:shelf_router/shelf_router.dart';
 
-import 'package:sambura_core/application/ports/auth_port.dart';
-import 'package:sambura_core/application/ports/cache_port.dart';
-import 'package:sambura_core/domain/repositories/account_repository.dart';
-import 'package:sambura_core/domain/repositories/api_key_repository.dart';
 import 'package:sambura_core/infrastructure/api/middleware/auth_middleware.dart';
 import 'package:sambura_core/infrastructure/api/middleware/require_auth_middlware.dart';
 import 'package:sambura_core/infrastructure/api/routes/public_router.dart';
 import 'package:sambura_core/infrastructure/api/routes/protected_router.dart';
 import 'package:sambura_core/infrastructure/api/middleware/error_handler_middleware.dart';
+import 'package:sambura_core/application/ports/ports.dart';
+import 'package:sambura_core/domain/repositories/repositories.dart';
 
 class MainRouter {
   final EnvConfig _config;

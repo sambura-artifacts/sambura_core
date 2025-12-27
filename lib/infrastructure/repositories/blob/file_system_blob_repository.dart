@@ -1,8 +1,8 @@
 import 'dart:io';
 import 'dart:typed_data';
 import 'package:async/async.dart';
-import 'package:sambura_core/domain/entities/blob_entity.dart';
-import 'package:sambura_core/domain/repositories/blob_repository.dart';
+import 'package:sambura_core/domain/entities/entities.dart';
+import 'package:sambura_core/domain/repositories/repositories.dart';
 
 class FileSystemBlobRepository implements BlobRepository {
   final String _basePath;

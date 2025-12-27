@@ -1,11 +1,11 @@
 import 'package:logging/logging.dart';
 import 'package:postgres/postgres.dart';
 import 'package:sambura_core/config/logger.dart';
-import 'package:sambura_core/domain/exceptions/domain_exception.dart';
-import 'package:sambura_core/domain/repositories/package_repository.dart';
-import 'package:sambura_core/domain/entities/package_entity.dart';
 import 'package:sambura_core/infrastructure/database/postgres_connector.dart';
 import 'package:sambura_core/infrastructure/mappers/package_mapper.dart';
+import 'package:sambura_core/domain/entities/entities.dart';
+import 'package:sambura_core/domain/exceptions/exceptions.dart';
+import 'package:sambura_core/domain/repositories/repositories.dart';
 
 class PostgresPackageRepository implements PackageRepository {
   final PostgresConnector _db;

@@ -1,5 +1,5 @@
-import 'package:sambura_core/domain/exceptions/domain_exception.dart';
 
+import 'package:sambura_core/domain/exceptions/exceptions.dart';
 class SecurityException implements DomainException {
   @override
   final String message;

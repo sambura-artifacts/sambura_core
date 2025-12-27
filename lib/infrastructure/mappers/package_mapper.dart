@@ -1,5 +1,5 @@
-import 'package:sambura_core/domain/entities/package_entity.dart';
 
+import 'package:sambura_core/domain/entities/entities.dart';
 class PackageMapper {
   /// Converte uma linha do banco de dados (Map) para a entidade PackageEntity
   static PackageEntity fromMap(Map<String, dynamic> map) {

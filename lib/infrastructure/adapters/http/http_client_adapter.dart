@@ -1,10 +1,10 @@
 import 'dart:typed_data';
 
 import 'package:http/http.dart' as http;
+import 'package:sambura_core/application/exceptions/exceptions.dart';
+import 'package:sambura_core/application/ports/ports.dart';
 
-import 'package:sambura_core/application/exceptions/application_exception.dart';
 
-import 'package:sambura_core/application/ports/http_client_port.dart';
 
 class HttpClientAdapter extends HttpClientPort {
   final http.Client _client;

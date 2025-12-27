@@ -1,5 +1,5 @@
-import 'package:sambura_core/domain/entities/account_entity.dart';
 
+import 'package:sambura_core/domain/entities/entities.dart';
 class AccountMapper {
   /// Converte a Entidade para um Map (para salvar no Redis/JSON)
   static Map<String, dynamic> toMap(AccountEntity account) {

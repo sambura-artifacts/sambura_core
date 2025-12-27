@@ -1,8 +1,7 @@
 // lib/domain/utils/security_validator.dart
+import 'package:sambura_core/domain/exceptions/exceptions.dart';
 
-import 'package:sambura_core/domain/exceptions/security_exception.dart';
-
-class SecurityValidator {
+class SecurityValidatorUtils {
   // Regex que permite hífens e pontos (comuns em nomes de arquivos .tgz e repos-proxy)
   static final _generalRegex = RegExp(r'^[a-zA-Z0-9\-\.]+$');
 

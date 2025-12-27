@@ -1,7 +1,7 @@
 import 'package:logging/logging.dart';
 import 'package:redis/redis.dart';
 import 'package:sambura_core/config/logger.dart';
-import 'package:sambura_core/application/ports/cache_port.dart';
+import 'package:sambura_core/application/ports/ports.dart';
 
 /// Adapter para Redis implementando ICachePort.
 ///
