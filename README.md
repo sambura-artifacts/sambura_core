@@ -822,7 +822,7 @@ Este projeto está sob a licença MIT. Veja o arquivo [LICENSE](LICENSE) para ma
 
 ## 👥 Autores
 
-- **Matheus** - [GitHub](https://github.com/sambura)
+- **Matheus Assis** - [GitHub](https://github.com/marafu)
 
 ## 🙏 Agradecimentos
 
