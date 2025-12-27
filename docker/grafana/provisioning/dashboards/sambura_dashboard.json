@@ -1,0 +1,76 @@
+{
+  "title": "Samburá - Full Observability v2",
+  "panels": [
+    {
+      "title": "Status dos Componentes",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 24, "x": 0, "y": 0 },
+      "targets": [
+        { "expr": "sambura_health_component_status", "legendFormat": "{{component}}" }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [
+            { "type": "value", "options": { "0": { "text": "DOWN", "color": "red" }, "1": { "text": "UP", "color": "green" } } }
+          ]
+        }
+      }
+    },
+    {
+      "title": "Latência P95 por Endpoint (HTTP)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 4 },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum by (le, path) (rate(sambura_http_request_duration_seconds_bucket[5m])))",
+          "legendFormat": "{{path}}"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "s", "color": { "mode": "palette-classic" } } }
+    },
+    {
+      "title": "Performance do Lock de Download (Concorrência)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 4 },
+      "targets": [
+        {
+          "expr": "rate(sambura_download_concurrency_waits_total[5m])",
+          "legendFormat": "Esperas por Lock"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "reqps", "custom": { "drawStyle": "bars" } } }
+    },
+    {
+      "title": "Latência de Resolução NPM Proxy (P95)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 12 },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum by (le, package) (rate(sambura_npm_proxy_resolution_duration_ms_bucket[5m])))",
+          "legendFormat": "Proxy: {{package}}"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "ms" } }
+    },
+    {
+      "title": "Taxa de Erros (Proxy e Persistência)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 12 },
+      "targets": [
+        { "expr": "rate(sambura_npm_proxy_errors_total[5m])", "legendFormat": "Erro NPM" },
+        { "expr": "rate(sambura_artifact_persistence_errors_total[5m])", "legendFormat": "Erro Persistência" }
+      ],
+      "fieldConfig": { "defaults": { "color": { "mode": "fixed", "fixedColor": "red" } } }
+    },
+    {
+      "title": "Eficiência do Cache de Autenticação",
+      "type": "piechart",
+      "gridPos": { "h": 6, "w": 24, "x": 0, "y": 20 },
+      "targets": [
+        { "expr": "sum by (result) (increase(sambura_auth_cache_total[1h]))", "legendFormat": "{{result}}" }
+      ],
+      "options": { "legend": { "displayMode": "table" } }
+    }
+  ],
+  "schemaVersion": 36
+}

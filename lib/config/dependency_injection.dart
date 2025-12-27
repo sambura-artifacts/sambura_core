@@ -1,20 +1,31 @@
 import 'package:logging/logging.dart';
+import 'package:sambura_core/config/env.dart';
+import 'package:http/http.dart' as http;
+
+// Ports
 import 'package:sambura_core/application/ports/auth_port.dart';
 import 'package:sambura_core/application/ports/cache_port.dart';
-import 'package:sambura_core/config/env.dart';
+import 'package:sambura_core/application/ports/hash_port.dart';
+import 'package:sambura_core/application/ports/metrics_port.dart';
+
+// Services (Application)
+import 'package:sambura_core/application/services/health/health_check_service.dart';
+import 'package:sambura_core/application/services/auth/auth_service.dart';
+
+// Adapters (Infrastructure)
 import 'package:sambura_core/infrastructure/adapters/auth/local_auth_adapter.dart';
+import 'package:sambura_core/infrastructure/adapters/auth/bcrypt_hash_adapter.dart';
 import 'package:sambura_core/infrastructure/adapters/cache/redis_adapter.dart';
-
-// Adapters & Infra
+import 'package:sambura_core/infrastructure/adapters/health/redis_healt_check.dart';
 import 'package:sambura_core/infrastructure/adapters/http/http_client_adapter.dart';
+import 'package:sambura_core/infrastructure/adapters/observability/prometheus_metrics_adapter.dart';
 import 'package:sambura_core/infrastructure/adapters/storage/minio_storage_adapter.dart';
-import 'package:sambura_core/infrastructure/database/postgres_connector.dart';
-import 'package:sambura_core/infrastructure/services/secrets/vault_service.dart';
-import 'package:sambura_core/infrastructure/services/auth/hash_service.dart';
-import 'package:sambura_core/infrastructure/services/auth/auth_service.dart';
-import 'package:sambura_core/infrastructure/proxies/npm_proxy.dart';
+import 'package:sambura_core/infrastructure/adapters/health/blob_storage_health_check.dart';
+import 'package:sambura_core/infrastructure/adapters/health/postgres_health_check.dart';
+import 'package:sambura_core/infrastructure/api/controller/system/metrics_controller.dart';
 
-// Repositories
+// Database & Repositories
+import 'package:sambura_core/infrastructure/database/postgres_connector.dart';
 import 'package:sambura_core/infrastructure/repositories/postgres/postgres_blob_repository.dart';
 import 'package:sambura_core/infrastructure/repositories/blob/silo_blob_repository.dart';
 import 'package:sambura_core/infrastructure/repositories/postgres/postgres_repository_repository.dart';
@@ -34,11 +45,13 @@ import 'package:sambura_core/application/usecase/artifact/get_artifact_by_id_use
 import 'package:sambura_core/application/usecase/artifact/get_artifact_download_stream_usecase.dart';
 import 'package:sambura_core/application/usecase/artifact/get_artifact_usecase.dart';
 import 'package:sambura_core/application/usecase/artifact/upload_artifact_usecase.dart';
+import 'package:sambura_core/application/usecase/artifact/download_artifact_tarball_usecase.dart';
+import 'package:sambura_core/application/usecase/artifact/check_artifact_exists_usecase.dart';
 import 'package:sambura_core/application/usecase/package/get_package_metadata_usecase.dart';
 import 'package:sambura_core/application/usecase/package/proxy_package_metadata_usecase.dart';
 import 'package:sambura_core/application/usecase/health/get_server_health_usecase.dart';
 
-// Controllers
+// Controllers & Routes
 import 'package:sambura_core/infrastructure/api/controller/artifact/blob_controller.dart';
 import 'package:sambura_core/infrastructure/api/controller/artifact/package_controller.dart';
 import 'package:sambura_core/infrastructure/api/controller/artifact/artifact_controller.dart';
@@ -47,9 +60,14 @@ import 'package:sambura_core/infrastructure/api/controller/auth/auth_controller.
 import 'package:sambura_core/infrastructure/api/controller/admin/api_key_controller.dart';
 import 'package:sambura_core/infrastructure/api/controller/artifact/upload_controller.dart';
 import 'package:sambura_core/infrastructure/api/controller/system/system_controller.dart';
+import 'package:sambura_core/infrastructure/api/routes/admin_router.dart';
+import 'package:sambura_core/infrastructure/api/routes/artifact_router.dart';
+import 'package:sambura_core/infrastructure/api/routes/protected_router.dart';
+import 'package:sambura_core/infrastructure/api/routes/public_router.dart';
+import 'package:sambura_core/infrastructure/services/secrets/vault_service.dart';
+import 'package:sambura_core/infrastructure/proxies/npm_proxy.dart';
 
 class DependencyInjection {
-  // Controllers (Expostos para o Router)
   late final AuthController authController;
   late final ApiKeyController apiKeyController;
   late final ArtifactController artifactController;
@@ -59,42 +77,44 @@ class DependencyInjection {
   late final UploadController uploadController;
   late final SystemController systemController;
 
-  // Services/Repos (Necessários para o Router ou Middlewares)
+  late final PublicRouter publicRouter;
+  late final AdminRouter adminRouter;
+  late final ProtectedRouter protectedRouter;
+  late final ArtifactRouter artifactRouter;
+
   late final AuthPort authProvider;
+  late final HashPort hashPort;
+  late final CachePort cachePort;
+  late final MetricsPort metricsPort;
+
   late final PostgresApiKeyRepository apiKeyRepository;
   late final PostgresAccountRepository accountRepository;
-  late final HashService hashService;
-  late final CachePort cachePort;
-
-  // Use Case/Services (Necessários para o Bootstrap)
-  late final CreateAccountUsecase createAccountUsecase;
   late final VaultService vaultService;
+  late final CreateAccountUsecase createAccountUsecase;
 
   static Future<DependencyInjection> init(EnvConfig env) async {
     final di = DependencyInjection();
     final log = Logger('DI');
 
-    // 1. INFRAESTRUTURA & SECRETS
-    final vaultService = VaultService(env.vaultUrl, env.vaultToken);
+    log.info('🚀 Iniciando Injeção de Dependências...');
 
-    di.vaultService = vaultService;
-
-    final authSecrets = await vaultService.getSecrets(env.vaultAuthPath);
-    final dbSecrets = await vaultService.getSecrets(env.vaultDatabasePath);
+    // 1. INFRAESTRUTURA BASE (SECRETS & DATABASE)
+    di.vaultService = VaultService(env.vaultUrl, env.vaultToken);
+    final authSecrets = await di.vaultService.getSecrets(env.vaultAuthPath);
+    final dbSecrets = await di.vaultService.getSecrets(env.vaultDatabasePath);
 
     if (dbSecrets.isEmpty || authSecrets.isEmpty) {
-      log.severe('❌ Falha crítica: Segredos não encontrados!');
       throw Exception('Vault secrets missing');
     }
 
-    final dbConnector = PostgresConnector(
+    final postgresConnector = PostgresConnector(
       env.dbHost,
       env.dbPort,
       env.dbUser,
       env.dbPassword,
       env.dbName,
     );
-    await dbConnector.connect();
+    await postgresConnector.connect();
 
     final redisAdapter = RedisAdapter(host: env.redisHost, port: env.redisPort);
     await redisAdapter.connect();
@@ -109,35 +129,50 @@ class DependencyInjection {
       bucket: env.bucketName,
     );
 
-    // 2. REPOSITORIES
-    di.accountRepository = PostgresAccountRepository(dbConnector);
-    di.apiKeyRepository = PostgresApiKeyRepository(dbConnector);
-    final repositoryRepo = PostgresRepositoryRepository(dbConnector);
-    final artifactRepo = PostgresArtifactRepository(dbConnector);
-    final packageRepo = PostgresPackageRepository(dbConnector);
-    final postgresBlobRepo = PostgresBlobRepository(dbConnector);
+    // 2. OBSERVABILITY (METRICS)
+    PrometheusMetricsAdapter.initialize();
+    di.metricsPort = PrometheusMetricsAdapter();
+
+    // 3. ADAPTERS & REPOSITORIES
+    di.hashPort = BcryptHashAdapter(authSecrets['pepper']);
+    di.accountRepository = PostgresAccountRepository(postgresConnector);
+    di.apiKeyRepository = PostgresApiKeyRepository(postgresConnector);
+
+    final repositoryRepo = PostgresRepositoryRepository(postgresConnector);
+    final artifactRepo = PostgresArtifactRepository(postgresConnector);
+    final packageRepo = PostgresPackageRepository(postgresConnector);
+    final postgresBlobRepo = PostgresBlobRepository(postgresConnector);
     final siloBlobRepo = SiloBlobRepository(minioAdapter, postgresBlobRepo);
 
-    // 3. SERVICES & PROXIES
+    // 4. HEALTH CHECKS CONFIG
+    final healthChecks = [
+      PostgresHealthCheck(postgresConnector),
+      RedisHealthCheck(redisAdapter),
+      BlobStorageHealthCheck(env.bucketName, minioAdapter),
+    ];
 
-    di.hashService = HashService(authSecrets['pepper']);
-    final npmProxy = NpmProxy(siloBlobRepo);
-    final httpClient = HttpClientAdapter();
+    // 5. APPLICATION SERVICES
     final authInternal = AuthService(authSecrets['jwt_secret']);
     di.authProvider = LocalAuthAdapter(authInternal);
 
-    // 4. USE CASES
+    final healthService = HealthCheckService(healthChecks, di.metricsPort);
+
+    // 6. PROXIES & HTTP
+    final client = http.Client();
+    final httpClient = HttpClientAdapter(client);
+    final npmProxy = NpmProxy(siloBlobRepo, packageRepo);
+
+    // 7. USE CASES
+    di.createAccountUsecase = CreateAccountUsecase(
+      di.accountRepository,
+      di.hashPort,
+    );
     final loginUsecase = LoginUsecase(
       di.accountRepository,
-      di.hashService,
+      di.hashPort,
       authSecrets['jwt_secret'],
     );
-    final createAccountUsecase = CreateAccountUsecase(
-      di.accountRepository,
-      di.hashService,
-    );
-
-    di.createAccountUsecase = createAccountUsecase;
+    final healthUseCase = GetServerHealthUseCase(healthService);
 
     final generateApiKeyUsecase = GenerateApiKeyUsecase(di.apiKeyRepository);
     final listApiKeysUsecase = ListApiKeysUsecase(di.apiKeyRepository);
@@ -145,6 +180,7 @@ class DependencyInjection {
       di.apiKeyRepository,
       di.accountRepository,
     );
+
     final proxyPackageMetadataUseCase = ProxyPackageMetadataUseCase(httpClient);
     final getArtifactUseCase = GetArtifactUseCase(
       artifactRepo,
@@ -170,21 +206,34 @@ class DependencyInjection {
       siloBlobRepo,
       repositoryRepo,
     );
-    final healthUseCase = GetServerHealthUseCase(artifactRepo, minioAdapter);
+    final checkArtifactExistsUseCase = CheckArtifactExistsUseCase(artifactRepo);
 
-    // 5. CONTROLLERS
-    di.authController = AuthController(createAccountUsecase, loginUsecase);
+    final downloadArtifactTarballUseCase = DownloadArtifactTarballUseCase(
+      httpClient,
+      createArtifactUseCase,
+      getArtifactDownloadStreamUsecase,
+      di.cachePort,
+      di.metricsPort,
+    );
+
+    // 8. CONTROLLERS
+    di.authController = AuthController(di.createAccountUsecase, loginUsecase);
     di.apiKeyController = ApiKeyController(
       generateApiKeyUsecase,
       listApiKeysUsecase,
       revokeApiKeyUsecase,
     );
     di.repositoryController = RepositoryController(repositoryRepo);
-    di.packageController = PackageController(packageRepo, getMetadataUseCase);
+    di.packageController = PackageController(
+      packageRepo,
+      getMetadataUseCase,
+      proxyPackageMetadataUseCase,
+    );
     di.blobController = BlobController(siloBlobRepo);
-    di.uploadController = UploadController(uploadArtifactUsecase);
-    di.systemController = SystemController(healthUseCase);
-
+    di.uploadController = UploadController(
+      uploadArtifactUsecase,
+      checkArtifactExistsUseCase,
+    );
     di.artifactController = ArtifactController(
       createArtifactUseCase,
       getArtifactUseCase,
@@ -192,8 +241,40 @@ class DependencyInjection {
       getArtifactDownloadStreamUsecase,
       generateApiKeyUsecase,
       proxyPackageMetadataUseCase,
+      downloadArtifactTarballUseCase,
+      di.metricsPort,
+    );
+    di.systemController = SystemController(healthUseCase);
+
+    // 9. ROUTERS
+    di.publicRouter = PublicRouter(
+      env,
+      di.authController,
+      di.artifactController,
+      di.blobController,
+      di.systemController,
+      MetricsController(),
+      di.apiKeyRepository,
+      di.accountRepository,
+      di.authProvider,
+      di.cachePort,
+      di.metricsPort, // Injetando a porta de métricas no router para o middleware
     );
 
+    di.adminRouter = AdminRouter(di.apiKeyController);
+    di.artifactRouter = ArtifactRouter(
+      di.repositoryController,
+      di.packageController,
+      di.artifactController,
+      di.uploadController,
+    );
+    di.protectedRouter = ProtectedRouter(
+      di.authController,
+      di.adminRouter,
+      di.artifactRouter,
+    );
+
+    log.info('✅ Injeção de Dependências concluída com sucesso.');
     return di;
   }
 }

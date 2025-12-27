@@ -125,6 +125,9 @@ services:
     image: minio/minio:latest
     container_name: sambura_silo
     command: server /data --console-address ":9001"
+    ports:
+      - "9000:9000"
+      - "9001:9001"
     environment:
       MINIO_ROOT_USER: sambura_admin
       MINIO_ROOT_PASSWORD: sambura_silo_secret
@@ -176,7 +179,8 @@ services:
     environment:
       GF_SECURITY_ADMIN_PASSWORD: admin
     volumes:
-      - ./monitoring/grafana-datasources.yml:/etc/grafana/provisioning/datasources/datasources.yml
+      - ./docker/grafana/provisioning:/etc/grafana/provisioning
+      - ./docker/grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards
     networks: ["monitoring"]
     depends_on: [loki]
 
