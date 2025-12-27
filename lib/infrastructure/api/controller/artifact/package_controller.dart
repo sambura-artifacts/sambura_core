@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:sambura_core/application/usecase/package/proxy_package_metadata_usecase.dart';
 import 'package:shelf/shelf.dart';
 import 'package:shelf_router/shelf_router.dart';
 import 'package:logging/logging.dart';
@@ -10,48 +11,46 @@ import 'package:sambura_core/infrastructure/api/presenter/error_presenter.dart';
 
 class PackageController {
   final PackageRepository _repository;
-  final GetPackageMetadataUseCase _getMetadataUseCase; // Injetado aqui
+  final GetPackageMetadataUseCase _getMetadataUseCase;
+  final ProxyPackageMetadataUseCase _proxyMetadataUseCase;
   final Logger _log = LoggerConfig.getLogger('PackageController');
 
-  PackageController(this._repository, this._getMetadataUseCase);
+  PackageController(
+    this._repository,
+    this._getMetadataUseCase,
+    this._proxyMetadataUseCase,
+  );
 
-  /// GET /api/v1/npm/private-repo/&lt;name&gt;
-  /// Este é o endpoint que o NPM CLI consulta antes de publicar ou instalar.
   Future<Response> getMetadata(Request request) async {
-    final requestId = DateTime.now().millisecondsSinceEpoch.toString();
-    final baseUrl = request.requestedUri.origin;
-
-    // Extrai o nome do pacote (decodificando @scopes se houver)
     final packageName = Uri.decodeComponent(request.params['name'] ?? '');
-    // Nome do repo fixo ou extraído do context/path
-    final repoName = 'private-repo';
-
-    _log.info('[REQ:$requestId] GET Metadata para NPM - package=$packageName');
+    final repoName = request.params['repo'] ?? 'private-repo';
 
     try {
-      final metadata = await _getMetadataUseCase.execute(repoName, packageName);
+      // Tenta buscar metadados locais (Pacotes privados/já cacheados)
+      var metadata = await _getMetadataUseCase.execute(repoName, packageName);
 
       if (metadata == null) {
-        _log.warning('[REQ:$requestId] ✗ Pacote não encontrado: $packageName');
-        // 404 é a resposta esperada pelo NPM para novos pacotes
-        return Response.notFound(
-          jsonEncode({'error': 'Not found'}),
-          headers: {'Content-Type': 'application/json'},
+        _log.info(
+          '🌐 Cache Miss no Metadata: consultando Upstream para $packageName',
+        );
+
+        // Fallback para o Proxy (Lazy Mirroring de Metadados)
+        metadata = await _proxyMetadataUseCase.execute(
+          packageName,
+          repoName: repoName,
         );
       }
 
-      _log.info('[REQ:$requestId] ✓ Metadata enviado com sucesso');
+      if (metadata == null) {
+        return Response.notFound(jsonEncode({'error': 'Not found'}));
+      }
+
       return Response.ok(
         jsonEncode(metadata),
         headers: {'Content-Type': 'application/json'},
       );
-    } catch (e, stack) {
-      _log.severe('[REQ:$requestId] ✗ Erro ao gerar metadata NPM', e, stack);
-      return ErrorPresenter.internalServerError(
-        "Erro no metadata.",
-        request.url.path,
-        baseUrl,
-      );
+    } catch (e) {
+      rethrow;
     }
   }
 
