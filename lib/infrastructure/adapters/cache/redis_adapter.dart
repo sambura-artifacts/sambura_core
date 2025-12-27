@@ -25,6 +25,7 @@ class RedisAdapter implements CachePort {
 
       final conn = RedisConnection();
       _command = await conn.connect(_host, _port);
+
       _isConnected = true;
 
       _log.info('✅ Redis connected successfully');
@@ -156,6 +157,48 @@ class RedisAdapter implements CachePort {
       _log.info('👋 Disconnecting from Redis');
       _isConnected = false;
       _command = null;
+    }
+  }
+
+  @override
+  Future<bool> isHealthy() async {
+    try {
+      final response = await _command!.send_object(['PING']);
+      return response == 'PONG';
+    } catch (e) {
+      _log.severe('❌ Erro de saúde no Redis: $e');
+      return false;
+    }
+  }
+
+  @override
+  Future<bool> acquireLock(
+    String key, {
+    Duration duration = const Duration(seconds: 30),
+  }) async {
+    try {
+      final response = await _command!.send_object([
+        "SET",
+        key,
+        "locked",
+        "EX",
+        duration.inSeconds.toString(),
+        "NX",
+      ]);
+
+      return response == "OK";
+    } catch (e) {
+      _log.warning('⚠️ Erro ao comunicar com Redis para lock: $e');
+      return false;
+    }
+  }
+
+  @override
+  Future<void> releaseLock(String key) async {
+    try {
+      await _command!.send_object(["DEL", key]);
+    } catch (e) {
+      _log.warning('⚠️ Erro ao liberar lock: $e');
     }
   }
 }

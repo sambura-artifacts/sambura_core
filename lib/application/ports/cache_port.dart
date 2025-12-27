@@ -44,4 +44,13 @@ abstract class CachePort {
   /// [key] - Chave única
   /// [ttl] - Time to live
   Future<void> expire(String key, Duration ttl);
+
+  Future<bool> isHealthy();
+
+  Future<bool> acquireLock(
+    String key, {
+    Duration duration = const Duration(seconds: 30),
+  });
+
+  Future<void> releaseLock(String key);
 }
