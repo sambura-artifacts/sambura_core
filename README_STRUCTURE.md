@@ -112,16 +112,54 @@ Configurações da aplicação
 
 ### Imports
 Use os arquivos barrel para imports mais limpos:
+
+#### Barrel Files Disponíveis
+
+**Domain Layer:**
+- `domain/entities/entities.dart` - Todas as entidades (Account, Artifact, Package, etc)
+- `domain/factories/factories.dart` - Todas as factories
+- `domain/value_objects/value_objects.dart` - Todos os value objects (Email, Password, etc)
+- `domain/repositories/repositories.dart` - Todas as interfaces de repositórios
+- `domain/exceptions/exceptions.dart` - Todas as exceções de domínio
+
+**Application Layer:**
+- `application/usecase/usecases.dart` - Todos os use cases organizados por domínio
+- `application/ports/ports.dart` - Todos os ports (Storage, Cache, Auth, Metrics, etc)
+- `application/exceptions/exceptions.dart` - Exceções de aplicação
+
+#### Exemplos de Uso
+
 ```dart
-// ✅ Bom
+// ✅ BOM - Imports limpos usando barrels
 import 'package:sambura_core/domain/entities/entities.dart';
-import 'package:sambura_core/domain/factories/factories.dart';
+import 'package:sambura_core/domain/repositories/repositories.dart';
+import 'package:sambura_core/domain/value_objects/value_objects.dart';
+import 'package:sambura_core/application/ports/ports.dart';
 import 'package:sambura_core/application/usecase/usecases.dart';
 
-// ❌ Evite
+// ❌ EVITE - Imports individuais
 import 'package:sambura_core/domain/entities/account_entity.dart';
 import 'package:sambura_core/domain/entities/artifact_entity.dart';
+import 'package:sambura_core/domain/repositories/account_repository.dart';
+import 'package:sambura_core/domain/repositories/artifact_repository.dart';
+
+// ✅ BOM - Use case com barrel imports
+class CreateArtifactUseCase {
+  final ArtifactRepository _artifactRepo;  // do repositories.dart
+  final StoragePort _storage;              // do ports.dart
+  final PackageEntity _package;            // do entities.dart
+  
+  CreateArtifactUseCase(this._artifactRepo, this._storage);
+}
 ```
+
+#### Benefícios dos Barrel Files
+
+1. **Menos linhas de import** - Um import ao invés de múltiplos
+2. **Manutenibilidade** - Mudanças de estrutura não quebram imports
+3. **Legibilidade** - Fica claro de qual camada vem cada classe
+4. **Consistência** - Toda equipe usa os mesmos padrões
+5. **Refactoring seguro** - IDEs entendem melhor as dependências
 
 ### Nomenclatura
 - **Entidades**: `*Entity` (ex: `AccountEntity`)
@@ -139,7 +177,10 @@ Sempre que possível, organize por domínio/feature em vez de por tipo técnico:
 - ❌ Uma única pasta `usecase/` com todos os arquivos misturados
 
 ## 🚀 Melhorias Futuras
-- [ ] Adicionar testes para cada camada
+- [x] Barrel files para imports limpos (v1.1)
+- [x] Observabilidade com Prometheus e métricas (v1.1)
+- [x] Health checks por componente (v1.1)
+- [ ] Adicionar testes para cada camada (80%+ cobertura)
 - [ ] Implementar eventos de domínio
-- [ ] Adicionar observabilidade (tracing, metrics)
-- [ ] Criar documentação automática das APIs
+- [ ] Criar documentação automática das APIs com Swagger/OpenAPI
+- [ ] Dashboard Grafana pré-configurado

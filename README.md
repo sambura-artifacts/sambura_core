@@ -105,6 +105,27 @@ O projeto segue os princípios da **Clean Architecture** com separação clara d
 - 🆔 **UUID v7**: IDs externos timestamp-sortable
 - 🎯 **Bootstrap Service**: Seed de dados iniciais
 - 📦 **Dependency Injection**: Container centralizado
+- 📚 **Barrel Files**: Imports limpos e organizados (v1.1)
+
+### 📚 Barrel Files (Imports Limpos)
+
+O projeto utiliza **barrel files** para imports mais limpos e organizados:
+
+```dart
+// ✅ BOM - Imports usando barrels
+import 'package:sambura_core/domain/entities/entities.dart';
+import 'package:sambura_core/domain/repositories/repositories.dart';
+import 'package:sambura_core/application/ports/ports.dart';
+
+// ❌ EVITE - Imports individuais
+import 'package:sambura_core/domain/entities/account_entity.dart';
+import 'package:sambura_core/domain/entities/artifact_entity.dart';
+import 'package:sambura_core/domain/repositories/account_repository.dart';
+```
+
+**Barrel files disponíveis:**
+- Domain: `entities/`, `factories/`, `value_objects/`, `repositories/`, `exceptions/`
+- Application: `usecases/`, `ports/`, `exceptions/`
 
 Para detalhes completos, veja [README_STRUCTURE.md](README_STRUCTURE.md) e [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
@@ -599,6 +620,11 @@ Se você está migrando de versões anteriores:
    - `Dockerfile` e `docker-compose.yaml` movidos para `docker/`
    - Use `cd docker && docker-compose up`
 
+5. **Imports usando Barrel Files (v1.1)** ✨
+   - Use imports organizados: `import 'package:sambura_core/domain/entities/entities.dart';`
+   - Evite imports individuais para melhor manutenibilidade
+   - Veja [README_STRUCTURE.md](README_STRUCTURE.md) para detalhes
+
 ### Comandos úteis
 
 ```bash
@@ -756,6 +782,11 @@ Veja [CONTRIBUTING.md](CONTRIBUTING.md) para mais detalhes.
 - [x] PrometheusMetricsAdapter com métricas de saúde, segurança e cache
 - [x] HealthCheckService orquestrando adapters
 - [x] Middlewares atualizados com métricas
+- [x] Barrel files para imports limpos e organizados
+- [x] Lock distribuído Redis para downloads concorrentes
+- [x] Upsert logic para prevenir duplicate key errors
+- [x] Sanitização de inputs com SecurityValidator
+- [x] Dashboard Grafana com provisionamento automático
 
 ### 🚧 Em Desenvolvimento (v1.2)
 - [ ] Dashboards Grafana pré-configurados
