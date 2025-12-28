@@ -30,6 +30,7 @@ scripts
 *.freezed.dart
 *.gr.dart
 test/coverage/
+test_results.json
 
 # Arquivos de configuração de debug
 flutter_debug.log

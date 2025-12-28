@@ -72,11 +72,17 @@ jobs:
           message: "${{ steps.test_count.outputs.total }} passed"
           color: green
 
-  quality-gate-success:
+  quality-gate:
     needs: [security, analyze-and-test]
     runs-on: ubuntu-latest
+    if: always() # Garante que ele rode para reportar o status
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-      - name: Success
-        run: echo "Quality Gate passed!"
+      - name: 🏁 Final Check
+        run: |
+          if [ "${{ needs.analyze-and-test.result }}" == "success" ] && [ "${{ needs.security.result }}" == "success" ]; then
+            echo "All gates passed!"
+            exit 0
+          else
+            echo "One or more gates failed."
+            exit 1
+          fi
