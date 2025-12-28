@@ -1,6 +1,6 @@
 name: sambura_core
 description: The Core API Gateway, Authentication Manager, and Metadata Orchestrator for Samburá Artifacts. 
-version: 0.0.1
+version: 1.0.1
 repository: https://github.com/sambura-artifacts/sambura_core
 
 environment:

@@ -1,5 +1,5 @@
-
 import 'package:sambura_core/domain/value_objects/value_objects.dart';
+
 class AccountEntity {
   final int? id;
   final ExternalId externalId;

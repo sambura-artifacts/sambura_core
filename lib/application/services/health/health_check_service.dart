@@ -1,5 +1,5 @@
-
 import 'package:sambura_core/application/ports/ports.dart';
+
 class HealthCheckService {
   final List<HealthCheckPort> _adapters;
   final MetricsPort _metrics; // Usa a Interface

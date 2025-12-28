@@ -1,7 +1,6 @@
 import 'dart:typed_data';
 import 'package:sambura_core/domain/entities/entities.dart';
 
-
 abstract class BlobRepository {
   /// Salva o Blob no banco e garante a deduplicação.
   /// Se o hash já existir, ele deve retornar o [Blob] com o ID

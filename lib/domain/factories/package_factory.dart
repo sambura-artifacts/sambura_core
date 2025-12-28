@@ -1,5 +1,5 @@
-
 import 'package:sambura_core/domain/entities/entities.dart';
+
 /// Factory para criar instâncias de PackageEntity
 class PackageFactory {
   /// Cria um novo pacote

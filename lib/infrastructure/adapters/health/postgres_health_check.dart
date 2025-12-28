@@ -1,5 +1,5 @@
-
 import 'package:sambura_core/application/ports/ports.dart';
+
 class PostgresHealthCheck implements HealthCheckPort {
   final dynamic _db;
   @override

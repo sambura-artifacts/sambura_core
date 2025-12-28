@@ -1,5 +1,5 @@
-
 import 'package:sambura_core/domain/exceptions/exceptions.dart';
+
 class Username {
   final String value;
 

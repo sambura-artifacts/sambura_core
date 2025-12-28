@@ -765,7 +765,7 @@ Veja [CONTRIBUTING.md](CONTRIBUTING.md) para mais detalhes.
 
 ## �️ Roadmap
 
-### ✅ Concluído (v1.0)
+### ✅ Concluído (v1.0.0)
 - [x] Clean Architecture implementada
 - [x] Autenticação JWT + API Keys
 - [x] Suporte completo a NPM com proxy transparente
@@ -776,7 +776,7 @@ Veja [CONTRIBUTING.md](CONTRIBUTING.md) para mais detalhes.
 - [x] Documentação Swagger/OpenAPI
 - [x] Deploy Docker com docker-compose
 
-### ✅ Concluído (v1.1)
+### ✅ Concluído (v1.0.1)
 - [x] Métricas e observabilidade (Prometheus)
 - [x] Health checks por componente (Postgres, Redis, MinIO)
 - [x] PrometheusMetricsAdapter com métricas de saúde, segurança e cache
@@ -788,7 +788,7 @@ Veja [CONTRIBUTING.md](CONTRIBUTING.md) para mais detalhes.
 - [x] Sanitização de inputs com SecurityValidator
 - [x] Dashboard Grafana com provisionamento automático
 
-### 🚧 Em Desenvolvimento (v1.2)
+### 🚧 Em Desenvolvimento (v1.0.2)
 - [ ] Dashboards Grafana pré-configurados
 - [ ] Alertas automáticos via Prometheus AlertManager
 - [ ] Suporte a Maven (Java)
@@ -796,7 +796,7 @@ Veja [CONTRIBUTING.md](CONTRIBUTING.md) para mais detalhes.
 - [ ] Interface Web (dashboard administrativo)
 - [ ] Replicação entre instâncias
 
-### 🔮 Planejado (v2.0)
+### 🔮 Planejado (v1.0.3)
 - [ ] Suporte a Docker Registry
 - [ ] Suporte a NuGet (.NET)
 - [ ] Suporte a Cargo (Rust)

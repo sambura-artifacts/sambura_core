@@ -1,5 +1,5 @@
-
 import 'package:sambura_core/domain/value_objects/value_objects.dart';
+
 /// DTO de entrada para gerar API Key.
 class GenerateApiKeyInput {
   final int accountId;

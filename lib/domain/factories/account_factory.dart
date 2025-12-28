@@ -1,5 +1,5 @@
-
 import 'package:sambura_core/domain/entities/entities.dart';
+
 /// Factory para criar instâncias de AccountEntity
 class AccountFactory {
   /// Cria uma nova conta para cadastro

@@ -1,5 +1,5 @@
-
 import 'package:sambura_core/domain/entities/entities.dart';
+
 abstract class AccountRepository {
   Future<void> create(AccountEntity account);
 

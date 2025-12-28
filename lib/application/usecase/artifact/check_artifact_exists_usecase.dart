@@ -1,5 +1,5 @@
-
 import 'package:sambura_core/domain/repositories/repositories.dart';
+
 class CheckArtifactExistsUseCase {
   final ArtifactRepository _artifactRepository;
 

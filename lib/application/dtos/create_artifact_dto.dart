@@ -1,5 +1,5 @@
-
 import 'package:sambura_core/domain/value_objects/value_objects.dart';
+
 /// DTO de entrada para criação de artefato.
 /// Separa claramente os dados de entrada da lógica de domínio.
 class CreateArtifactInput {
