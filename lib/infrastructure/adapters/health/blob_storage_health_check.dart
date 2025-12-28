@@ -1,5 +1,6 @@
 // lib/infrastructure/adapters/health/blob_storage_health_check.dart
-import 'package:sambura_core/application/shared/ports/ports.dart';
+import 'package:sambura_core/application/health/ports/ports.dart';
+import 'package:sambura_core/application/artifact/ports/ports.dart';
 
 class BlobStorageHealthCheck implements HealthCheckPort {
   final String bucketName;

@@ -1,5 +1,5 @@
 import 'package:sambura_core/application/auth/services/auth_service.dart';
-import 'package:sambura_core/application/shared/ports/ports.dart';
+import 'package:sambura_core/application/auth/ports/ports.dart';
 
 class LocalAuthAdapter implements AuthPort {
   final AuthService _internalService;

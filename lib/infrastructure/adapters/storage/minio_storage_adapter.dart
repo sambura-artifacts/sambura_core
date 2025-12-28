@@ -4,7 +4,7 @@ import 'dart:typed_data';
 import 'package:logging/logging.dart';
 import 'package:minio/minio.dart';
 import 'package:sambura_core/config/logger.dart';
-import 'package:sambura_core/application/shared/ports/ports.dart';
+import 'package:sambura_core/application/artifact/ports/ports.dart';
 
 /// Adapter para MinIO/S3 implementando IStoragePort.
 ///
