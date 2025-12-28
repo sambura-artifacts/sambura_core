@@ -1,4 +1,4 @@
-import 'package:sambura_core/application/services/health/health_check_service.dart';
+import 'package:sambura_core/application/health/services/health_check_service.dart';
 
 class GetServerHealthUseCase {
   final HealthCheckService _healthCheckService;

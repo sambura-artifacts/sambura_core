@@ -1,6 +1,6 @@
 import 'package:logging/logging.dart';
 import 'package:sambura_core/application/compliance/extractor/metadata_extractor.dart';
-import 'package:sambura_core/application/ports/compliance_port.dart';
+import 'package:sambura_core/application/compliance/ports/compliance_port.dart';
 import 'package:sambura_core/config/logger.dart';
 
 /// Use case para registrar artefatos no sistema de compliance

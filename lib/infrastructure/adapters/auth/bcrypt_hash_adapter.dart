@@ -1,7 +1,7 @@
 import 'dart:math';
 import 'package:bcrypt/bcrypt.dart';
 import 'package:crypto/crypto.dart';
-import 'package:sambura_core/application/ports/ports.dart';
+import 'package:sambura_core/application/shared/ports/ports.dart';
 
 class BcryptHashAdapter implements HashPort {
   final String _pepper;

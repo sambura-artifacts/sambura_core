@@ -1,4 +1,5 @@
-import 'package:sambura_core/application/ports/ports.dart';
+import 'package:sambura_core/application/health/ports/ports.dart';
+import 'package:sambura_core/application/shared/ports/ports.dart';
 
 class HealthCheckService {
   final List<HealthCheckPort> _adapters;

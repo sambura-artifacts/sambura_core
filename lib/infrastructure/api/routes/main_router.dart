@@ -10,7 +10,7 @@ import 'package:sambura_core/infrastructure/api/middleware/require_auth_middlwar
 import 'package:sambura_core/infrastructure/api/routes/public_router.dart';
 import 'package:sambura_core/infrastructure/api/routes/protected_router.dart';
 import 'package:sambura_core/infrastructure/api/middleware/error_handler_middleware.dart';
-import 'package:sambura_core/application/ports/ports.dart';
+import 'package:sambura_core/application/shared/ports/ports.dart';
 import 'package:sambura_core/domain/repositories/repositories.dart';
 
 class MainRouter {

@@ -1,6 +1,6 @@
 import 'dart:convert';
-import 'package:sambura_core/application/ports/compliance_port.dart';
-import 'package:sambura_core/application/ports/ports.dart';
+import 'package:sambura_core/application/compliance/ports/compliance_port.dart';
+import 'package:sambura_core/application/shared/ports/ports.dart';
 
 /// Adapter para integração com Dependency-Track
 ///

@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:logging/logging.dart';
 import 'package:sambura_core/config/logger.dart';
-import 'package:sambura_core/application/ports/ports.dart';
+import 'package:sambura_core/application/shared/ports/ports.dart';
 
 /// Adapter para HashiCorp Vault implementando ISecretPort.
 ///

@@ -8,7 +8,7 @@ import 'package:shelf/shelf.dart';
 
 // Adapters & Mappers
 import 'package:sambura_core/infrastructure/mappers/account_mapper.dart';
-import 'package:sambura_core/application/ports/ports.dart';
+import 'package:sambura_core/application/shared/ports/ports.dart';
 import 'package:sambura_core/domain/repositories/repositories.dart';
 
 final _log = Logger('AuthMiddleware');

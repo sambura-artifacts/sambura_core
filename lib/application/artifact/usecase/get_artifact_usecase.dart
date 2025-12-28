@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'package:logging/logging.dart';
 import 'package:sambura_core/config/logger.dart';
-import 'package:sambura_core/application/ports/ports.dart';
+import 'package:sambura_core/application/shared/ports/ports.dart';
 import 'package:sambura_core/domain/entities/entities.dart';
 import 'package:sambura_core/domain/exceptions/exceptions.dart';
 import 'package:sambura_core/domain/repositories/repositories.dart';
