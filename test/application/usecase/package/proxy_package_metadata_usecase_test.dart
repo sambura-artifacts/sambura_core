@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:sambura_core/application/ports/http_client_port.dart';
-import 'package:sambura_core/application/usecase/package/proxy_package_metadata_usecase.dart';
+import 'package:sambura_core/application/package/usecase/proxy_package_metadata_usecase.dart';
 import 'package:test/test.dart';
 
 class MockClient implements HttpClientPort {

@@ -1,0 +1,35 @@
+# Sambura Core - Global Code Ownership
+# This file ensures that critical changes require explicit approval 
+# from the security and architecture leads.
+
+# -----------------------------------------------------------------------------
+# Global Owners
+# -----------------------------------------------------------------------------
+# By default, every change in the repository must be reviewed by the gatekeepers.
+* @sambura-artifacts/gatekeepers
+
+# -----------------------------------------------------------------------------
+# Domain Specific Oversight
+# -----------------------------------------------------------------------------
+
+# Compliance & Security Logic
+# Any changes to metadata extraction or SBOM ingestion are high-risk.
+/lib/application/compliance/    @sambura-artifacts/gatekeepers
+
+# Infrastructure & Secrets
+# Vault, DB connections, and sensitive adapters.
+/lib/infrastructure/adapters/secrets/    @sambura-artifacts/gatekeepers
+/lib/infrastructure/adapters/compliance/ @sambura-artifacts/gatekeepers
+/infrastructure/                         @sambura-artifacts/gatekeepers
+
+# CI/CD Pipelines
+# Preventing bypass of security scans and quality gates.
+/.github/workflows/    @sambura-artifacts/gatekeepers
+
+# -----------------------------------------------------------------------------
+# Documentation Owners
+# -----------------------------------------------------------------------------
+# Changes to docs can be reviewed by a broader group, 
+# but still need final gatekeeper sign-off.
+/docs/    @sambura-artifacts/gatekeepers
+/*.md     @sambura-artifacts/gatekeepers

@@ -1,10 +1,10 @@
 import 'dart:convert';
-import 'package:sambura_core/application/usecase/package/proxy_package_metadata_usecase.dart';
+import 'package:sambura_core/application/package/usecase/proxy_package_metadata_usecase.dart';
 import 'package:shelf/shelf.dart';
 import 'package:shelf_router/shelf_router.dart';
 import 'package:logging/logging.dart';
 import 'package:sambura_core/config/logger.dart';
-import 'package:sambura_core/application/usecase/package/get_package_metadata_usecase.dart'; // Importe o UseCase
+import 'package:sambura_core/application/package/usecase/get_package_metadata_usecase.dart'; // Importe o UseCase
 import 'package:sambura_core/infrastructure/api/presenter/artifact/package_presenter.dart';
 import 'package:sambura_core/infrastructure/api/presenter/error_presenter.dart';
 import 'package:sambura_core/domain/repositories/repositories.dart';

@@ -36,15 +36,15 @@ import 'package:sambura_core/application/usecase/auth/login_usecase.dart';
 import 'package:sambura_core/application/usecase/api_key/generate_api_key_usecase.dart';
 import 'package:sambura_core/application/usecase/api_key/list_api_keys_usecase.dart';
 import 'package:sambura_core/application/usecase/api_key/revoke_api_key_usecase.dart';
-import 'package:sambura_core/application/usecase/artifact/create_artifact_usecase.dart';
-import 'package:sambura_core/application/usecase/artifact/get_artifact_by_id_usecase.dart';
-import 'package:sambura_core/application/usecase/artifact/get_artifact_download_stream_usecase.dart';
-import 'package:sambura_core/application/usecase/artifact/get_artifact_usecase.dart';
-import 'package:sambura_core/application/usecase/artifact/upload_artifact_usecase.dart';
-import 'package:sambura_core/application/usecase/artifact/download_artifact_tarball_usecase.dart';
-import 'package:sambura_core/application/usecase/artifact/check_artifact_exists_usecase.dart';
-import 'package:sambura_core/application/usecase/package/get_package_metadata_usecase.dart';
-import 'package:sambura_core/application/usecase/package/proxy_package_metadata_usecase.dart';
+import 'package:sambura_core/application/artifact/usecase/create_artifact_usecase.dart';
+import 'package:sambura_core/application/artifact/usecase/get_artifact_by_id_usecase.dart';
+import 'package:sambura_core/application/artifact/usecase/get_artifact_download_stream_usecase.dart';
+import 'package:sambura_core/application/artifact/usecase/get_artifact_usecase.dart';
+import 'package:sambura_core/application/artifact/usecase/upload_artifact_usecase.dart';
+import 'package:sambura_core/application/artifact/usecase/download_artifact_tarball_usecase.dart';
+import 'package:sambura_core/application/artifact/usecase/check_artifact_exists_usecase.dart';
+import 'package:sambura_core/application/package/usecase/get_package_metadata_usecase.dart';
+import 'package:sambura_core/application/package/usecase/proxy_package_metadata_usecase.dart';
 import 'package:sambura_core/application/usecase/health/get_server_health_usecase.dart';
 
 // Controllers & Routes
