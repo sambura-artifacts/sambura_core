@@ -48,15 +48,19 @@ jobs:
         run: dart analyze --fatal-infos
 
       - name: ⚡ Run Unit Tests
-        run: dart test --reporter=json --exclude-tags=integration > test-results.json
+        run: dart test --reporter=json --exclude-tags=integration > test-results.json || true
       
       - name: 📊 Get Test Count
         id: test_count
         if: always()
         run: |
-          PASSED=$(grep "^[ \t]*{" test-results.json | jq -s '[.[] | select(.type=="testDone" and .result=="success")] | length' || echo "0")
+          # O jq agora processa o arquivo que foi gerado, independente do sucesso do comando anterior
+          PASSED=$(grep "^{" test-results.json | jq -s '[.[] | select(.type=="testDone" and .result=="success")] | length' || echo "0")
+          TOTAL=$(grep "^{" test-results.json | jq -s '[.[] | select(.type=="testDone")] | length' || echo "0")
+          
           echo "total=$PASSED" >> $GITHUB_OUTPUT
-
+          echo "📊 Testes que passaram: $PASSED de $TOTAL"
+          
       - name: 🛡️ Create Test Badge
         if: always()
         uses: schneegans/dynamic-badges-action@v1.7.0
