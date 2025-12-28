@@ -1,4 +1,4 @@
-import 'package:sambura_core/application/api_key/usecase/generate_api_key_usecase.dart';
+import 'package:sambura_core/application/auth/api_key/usecase/generate_api_key_usecase.dart';
 import 'package:sambura_core/domain/entities/api_key_entity.dart';
 import 'package:sambura_core/domain/repositories/api_key_repository.dart';
 import 'package:test/test.dart';

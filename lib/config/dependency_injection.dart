@@ -33,9 +33,9 @@ import 'package:sambura_core/infrastructure/repositories/postgres/postgres_api_k
 // UseCases
 import 'package:sambura_core/application/account/usecase/create_account_usecase.dart';
 import 'package:sambura_core/application/auth/usecase/login_usecase.dart';
-import 'package:sambura_core/application/api_key/usecase/generate_api_key_usecase.dart';
-import 'package:sambura_core/application/api_key/usecase/list_api_keys_usecase.dart';
-import 'package:sambura_core/application/api_key/usecase/revoke_api_key_usecase.dart';
+import 'package:sambura_core/application/auth/api_key/usecase/generate_api_key_usecase.dart';
+import 'package:sambura_core/application/auth/api_key/usecase/list_api_keys_usecase.dart';
+import 'package:sambura_core/application/auth/api_key/usecase/revoke_api_key_usecase.dart';
 import 'package:sambura_core/application/artifact/usecase/create_artifact_usecase.dart';
 import 'package:sambura_core/application/artifact/usecase/get_artifact_by_id_usecase.dart';
 import 'package:sambura_core/application/artifact/usecase/get_artifact_download_stream_usecase.dart';

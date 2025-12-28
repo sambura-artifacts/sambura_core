@@ -1,6 +1,6 @@
 import 'dart:convert';
 import 'package:shelf/shelf.dart';
-import 'package:sambura_core/application/api_key/usecase/generate_api_key_usecase.dart';
+import 'package:sambura_core/application/auth/api_key/usecase/generate_api_key_usecase.dart';
 import 'package:sambura_core/domain/entities/entities.dart';
 
 class ApiKeyPresenter {

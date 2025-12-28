@@ -10,17 +10,15 @@ Todos os domínios da application layer foram reestruturados para seguir o mesmo
 - **Antes**: `lib/application/usecase/account/`
 - **Depois**: `lib/application/account/usecase/`
 
-#### ✅ API Key Domain
-- **Antes**: `lib/application/usecase/api_key/`
-- **Depois**: `lib/application/api_key/usecase/`
+#### ✅ Auth Domain (Authentication & Authorization)
+- **Antes**: `lib/application/usecase/auth/`
+- **Depois**: `lib/application/auth/usecase/`
+- **API Keys**: `lib/application/auth/api_key/usecase/`
+  - API Keys são uma forma de autenticação, por isso estão dentro do domínio Auth
 
 #### ✅ Artifact Domain
 - **Antes**: `lib/application/usecase/artifact/`
 - **Depois**: `lib/application/artifact/usecase/`
-
-#### ✅ Auth Domain
-- **Antes**: `lib/application/usecase/auth/`
-- **Depois**: `lib/application/auth/usecase/`
 
 #### ✅ Health Domain
 - **Antes**: `lib/application/usecase/health/`
@@ -132,12 +130,12 @@ Adicionar suporte a novos ecossistemas (Maven, PyPI, Cargo, etc.) requer apenas:
 lib/application/
 ├── account/
 │   └── usecase/                    # Use cases de account
-├── api_key/
-│   └── usecase/                    # Use cases de api_key
 ├── artifact/
 │   └── usecase/                    # Use cases de artifact
-├── auth/
-│   └── usecase/                    # Use cases de auth
+├── auth/                           # Domínio de autenticação
+│   ├── api_key/
+│   │   └── usecase/                # API Keys (forma de autenticação)
+│   └── usecase/                    # Login, autenticação básica
 ├── compliance/
 │   ├── extractor/
 │   │   ├── metadata_extractor.dart      # Interface Strategy
@@ -212,9 +210,9 @@ await registerComplianceUseCase.execute(
 
 - [x] Domain alignment (TODOS os domínios seguem o mesmo padrão)
   - [x] Account: `lib/application/account/usecase/`
-  - [x] API Key: `lib/application/api_key/usecase/`
-  - [x] Artifact: `lib/application/artifact/usecase/`
   - [x] Auth: `lib/application/auth/usecase/`
+    - [x] API Key (subdomínio): `lib/application/auth/api_key/usecase/`
+  - [x] Artifact: `lib/application/artifact/usecase/`
   - [x] Health: `lib/application/health/usecase/`
   - [x] Package: `lib/application/package/usecase/`
 - [x] MetadataExtractor e NpmMetadataExtractor criados

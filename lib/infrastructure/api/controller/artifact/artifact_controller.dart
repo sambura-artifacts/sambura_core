@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'package:logging/logging.dart';
 import 'package:shelf/shelf.dart';
-import 'package:sambura_core/application/api_key/usecase/generate_api_key_usecase.dart';
+import 'package:sambura_core/application/auth/api_key/usecase/generate_api_key_usecase.dart';
 import 'package:sambura_core/application/artifact/usecase/download_artifact_tarball_usecase.dart';
 import 'package:sambura_core/application/artifact/usecase/get_artifact_by_id_usecase.dart';
 import 'package:sambura_core/application/artifact/usecase/get_artifact_download_stream_usecase.dart';
