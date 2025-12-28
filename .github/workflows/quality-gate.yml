@@ -60,7 +60,7 @@ jobs:
           
           echo "total=$PASSED" >> $GITHUB_OUTPUT
           echo "📊 Testes que passaram: $PASSED de $TOTAL"
-          
+
       - name: 🛡️ Create Test Badge
         if: always()
         uses: schneegans/dynamic-badges-action@v1.7.0
@@ -71,3 +71,12 @@ jobs:
           label: Tests
           message: "${{ steps.test_count.outputs.total }} passed"
           color: green
+
+  quality-gate-success:
+    needs: [security, analyze-and-test]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Success
+        run: echo "Quality Gate passed!"
