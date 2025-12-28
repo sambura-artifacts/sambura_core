@@ -1,10 +1,6 @@
 # ==============================================================================
 # VARIÁVEIS DE AMBIENTE
 # ==============================================================================
-API_URL=http://localhost:8080/api/v1
-ADMIN_USER=admin
-ADMIN_PASS=rH45|D3V1qY%]{Rdfe]md.]YM<q|AEXG
-ADMIN_EMAIL=admin@sambura.io
 
 # Configurações de Infra
 DB_URL=postgres://sambura:sambura_db_secret@localhost:5432/sambura_metadata
@@ -36,16 +32,28 @@ help: ## Mostra os comandos disponíveis
 # ==============================================================================
 # INFRAESTRUTURA (Docker)
 # ==============================================================================
-up: ## Sobe os containers (Postgres, Redis, Vault, MinIO, RabbitMQ)
-	docker compose -f docker/docker-compose.yml up --build -d --remove-orphans
+
+docker-up: ## Sobe os containers (Postgres, Redis, Vault, MinIO, RabbitMQ)
+	docker compose -f docker/docker-compose.yml up -d
 	@echo "🚀 Infraestrutura subindo em background..."
 
-down: ## Para todos os containers e remove redes
-	docker-compose down
+docker-build: ## Constrói a aplicação e sobe os containers (Postgres, Redis, Vault, MinIO, RabbitMQ)
+	docker compose -f docker/docker-compose.yml up --build -d --remove-orphans
+	@echo "🚀 Aplicação construída e infraestrutura subindo em background..."
+
+docker-down: ## Para todos os containers e remove redes
+	docker compose -f docker/docker-compose.yml down
 	@echo "🛑 Infraestrutura offline."
 
-logs: ## Acompanha os logs dos containers
-	docker-compose logs -f
+docker-purge: ## Para todos os containers e remove redes
+	docker compose -f docker/docker-compose.yml down --volumes
+	@echo "🛑 Infraestrutura excluída."
+
+docker-logs: ## Acompanha os logs dos containers
+	docker compose -f docker/docker-compose.yml logs 
+
+docker-logs-full: ## Acompanha os logs dos containers
+	docker compose -f docker/docker-compose.yml logs -f
 
 # ==============================================================================
 # BANCO DE DADOS
@@ -63,37 +71,59 @@ db-reset: ## Limpa os dados das tabelas (TRUNCATE)
 db-shell: ## Abre o terminal psql dentro do container
 	@docker exec -it sambura_db psql -U sambura -d sambura_metadata
 
-# ==============================================================================
-# VAULT (Segredos) - Com Token de Root
-# ==============================================================================
-vault-seed: ## Injeta os segredos manuais usando o token de root
-	@echo "🔐 Injetando chaves no Vault..."
-	@docker exec -e VAULT_ADDR='http://127.0.0.1:8200' -e VAULT_TOKEN='root_token_sambura' sambura_vault \
-		vault kv put -mount=secret sambura/database password="sambura_db_secret"
-	@docker exec -e VAULT_ADDR='http://127.0.0.1:8200' -e VAULT_TOKEN='root_token_sambura' sambura_vault \
-		vault kv put -mount=secret sambura/auth jwt_secret="chave_mestra_sambura_2025" pepper="pimenta_no_reino"
-	@echo "✅ Vault populado com sucesso!"
 
 # ==============================================================================
 # AUTENTICAÇÃO
 # ==============================================================================
-auth-register: ## Registra o usuário administrador inicial
-	@echo "👤 Registrando: $(ADMIN_USER)..."
-	@curl -s -X POST $(API_URL)/public/auth/register \
-		-H "Content-Type: application/json" \
-		-d '{"username":"$(ADMIN_USER)", "password":"$(ADMIN_PASS)", "email":"$(ADMIN_EMAIL)", "role":"admin"}'
-	@echo "\n✅ Registro finalizado."
 
-auth-login: ## Faz login e extrai o JWT puro para o arquivo .token
-	@echo "🔑 Fazendo login..."
-	@curl -s -X POST $(API_URL)/public/auth/login \
+
+# Configurações do Vault
+VAULT_TOKEN = root_token_sambura
+VAULT_API_URL = http://127.0.0.1:8200/v1/secret/data/sambura/bootstrap
+DEBUG ?= false
+
+auth-login:
+	@echo "🔍 Verificando Vault..."
+	@if ! curl -s -m 2 http://127.0.0.1:8200/v1/sys/health > /dev/null; then exit 1; fi
+	@echo "🔐 Extraindo credenciais..."
+	@RESPONSE=$$(curl -s -k --header "X-Vault-Token: $(VAULT_TOKEN)" $(VAULT_API_URL)); \
+	ADMIN_USER=$$(echo $$RESPONSE | jq -r '.data.data.username'); \
+	ADMIN_PASS=$$(echo $$RESPONSE | jq -r '.data.data.password'); \
+	if [ "$(DEBUG)" = "true" ]; then echo "🐞 [DEBUG] Password length: $${#ADMIN_PASS}"; fi; \
+	echo "🔑 Fazendo login como '$$ADMIN_USER'..."; \
+	export USER="$$ADMIN_USER"; \
+	export PASS="$$ADMIN_PASS"; \
+	LOGIN_RES=$$(curl -s -X POST $(API_URL)/auth/login \
 		-H "Content-Type: application/json" \
-		-d '{"username":"$(ADMIN_USER)", "password":"$(ADMIN_PASS)"}' > .token_raw.json
-	@if grep -q "token" .token_raw.json; then \
-		cat .token_raw.json | sed -n 's/.*"token":"\([^"]*\)".*/\1/p' > .token; \
-		echo "🎫 JWT extraído e salvo no arquivo .token"; \
+		--data-raw "$$(jq -n --arg u "$$USER" --arg p "$$PASS" '{username: $$u, password: $$p}')"); \
+	if [ "$(DEBUG)" = "true" ]; then echo "🐞 [DEBUG] API Response: $$LOGIN_RES"; fi; \
+	TOKEN=$$(echo $$LOGIN_RES | jq -r '.token // empty'); \
+	if [ -n "$$TOKEN" ]; then \
+		echo $$TOKEN > .token; \
+		echo "🎫 JWT salvo em .token"; \
 	else \
-		echo "❌ Erro no login. Verifique as credenciais."; \
+		echo "❌ Falha na autenticação."; \
+		exit 1; \
+	fi
+
+
+API_KEYS_URL = http://localhost:8080/api/v1/admin/api-keys
+
+create-apikey:
+	@if [ ! -f .token ]; then echo "❌ Erro: Rode 'make auth-login' primeiro."; exit 1; fi
+	@echo "🔑 Gerando nova API Key..."
+	@TOKEN=$$(cat .token); \
+	RESPONSE=$$(curl -s -X POST $(API_KEYS_URL) \
+		-H "Authorization: Bearer $$TOKEN" \
+		-H "Content-Type: application/json" \
+		-d "{\"name\": \"Dev Key $$(date +%Y%m%d)\", \"expires_in_days\": 30}"); \
+	if [ "$(DEBUG)" = "true" ]; then echo "🐞 [DEBUG] API Response: $$RESPONSE"; fi; \
+	KEY=$$(echo "$$RESPONSE" | jq -r '.data.api_key // empty'); \
+	if [ -n "$$KEY" ] && [ "$$KEY" != "null" ]; then \
+		echo "$$KEY" > .apikey; \
+		echo "🎫 API Key salva em .apikey: $$KEY"; \
+	else \
+		echo "❌ Falha ao extrair a chave. Verifique o formato do JSON no modo DEBUG."; \
 		exit 1; \
 	fi
 

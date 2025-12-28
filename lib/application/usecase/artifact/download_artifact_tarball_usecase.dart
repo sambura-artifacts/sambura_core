@@ -2,24 +2,24 @@ import 'dart:async';
 
 import 'package:async/async.dart';
 import 'package:logging/logging.dart';
+import 'package:sambura_core/application/exceptions/application_exception.dart';
 import 'package:sambura_core/application/usecase/usecases.dart';
 import 'package:sambura_core/config/logger.dart';
 import 'package:sambura_core/infrastructure/api/dtos/artifact_input.dart';
-import 'package:sambura_core/application/exceptions/exceptions.dart';
 import 'package:sambura_core/application/ports/ports.dart';
 
 class DownloadArtifactTarballUseCase {
   final HttpClientPort _httpClient;
   final CreateArtifactUsecase _createArtifact;
-  final GetArtifactDownloadStreamUsecase _getArtifactStream; // Adicionado
-  final CachePort _cache; // Adicionado
+  final GetArtifactDownloadStreamUsecase _getArtifactDownloadStreamUsecase;
+  final CachePort _cache;
   final MetricsPort _metrics;
   final Logger _log = LoggerConfig.getLogger('DownloadArtifactTarballUseCase');
 
   DownloadArtifactTarballUseCase(
     this._httpClient,
     this._createArtifact,
-    this._getArtifactStream,
+    this._getArtifactDownloadStreamUsecase,
     this._cache,
     this._metrics,
   );
@@ -30,7 +30,6 @@ class DownloadArtifactTarballUseCase {
   }) async {
     final lockKey = 'lock:download:${input.packageName}:${input.version}';
 
-    // 1. Medir tentativa de Lock e Concorrência
     final acquired = await _cache.acquireLock(lockKey);
 
     if (!acquired) {
@@ -40,8 +39,8 @@ class DownloadArtifactTarballUseCase {
       );
 
       for (var i = 0; i < 3; i++) {
-        await Future.delayed(Duration(seconds: 1));
-        final local = await _getArtifactStream.execute(
+        await Future.delayed(const Duration(seconds: 1));
+        final local = await _getArtifactDownloadStreamUsecase.execute(
           namespace: input.namespace,
           name: input.packageName,
           version: input.version,
@@ -70,21 +69,41 @@ class DownloadArtifactTarballUseCase {
       final streamToSave = splitter.split();
 
       unawaited(
-        _createArtifact.execute(input, streamToSave).catchError((e) {
-          _metrics.incrementCounter(
-            'sambura_artifact_persistence_errors_total',
-          );
-          _log.severe('❌ Erro ao persistir artefato em background: $e');
-          return null;
-        }),
+        _createArtifact
+            .execute(input, streamToSave)
+            .then((_) {
+              _metrics.observeHistogram(
+                'sambura_package_processing_duration_seconds',
+                stopwatch.elapsedMilliseconds / 1000.0,
+                labels: {'package': input.packageName, 'status': 'success'},
+              );
+              _log.info(
+                '✅ Artefato persistido com sucesso: ${input.packageName}',
+              );
+            })
+            .catchError((e) {
+              _metrics.incrementCounter(
+                'sambura_artifact_persistence_errors_total',
+              );
+              _metrics.observeHistogram(
+                'sambura_package_processing_duration_seconds',
+                stopwatch.elapsedMilliseconds / 1000.0,
+                labels: {'package': input.packageName, 'status': 'error'},
+              );
+              _log.severe('❌ Erro ao persistir artefato: $e');
+            })
+            .whenComplete(() async {
+              await _cache.releaseLock(lockKey);
+              stopwatch.stop();
+            }),
       );
 
       return streamToReturn;
     } catch (e) {
-      _metrics.incrementCounter('sambura_npm_proxy_errors_total');
-      rethrow;
-    } finally {
       await _cache.releaseLock(lockKey);
+      _metrics.incrementCounter('sambura_npm_proxy_errors_total');
+      _log.severe('❌ Falha na resolução do proxy: $e');
+      rethrow;
     }
   }
 }

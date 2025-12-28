@@ -21,4 +21,5 @@ abstract class MetricsPort {
     double value, {
     Map<String, String>? labels,
   });
+  Future<T> observeProcessingTime<T>(Future<T> Function() action);
 }

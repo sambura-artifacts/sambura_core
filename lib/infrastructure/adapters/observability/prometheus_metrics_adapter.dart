@@ -2,6 +2,12 @@ import 'package:prometheus_client/prometheus_client.dart';
 import 'package:sambura_core/application/ports/ports.dart';
 
 class PrometheusMetricsAdapter implements MetricsPort {
+  static final packageProcessingDuration = Histogram(
+    name: 'sambura_package_processing_duration_seconds',
+    help: 'Tempo de processamento de pacotes NPM em segundos',
+    buckets: [0.1, 0.5, 1, 2, 5, 10, 30], // Ajuste conforme seu gargalo
+  );
+
   static final npmProxyDownloadDuration = Histogram(
     name: 'sambura_npm_proxy_resolution_duration_ms',
     help: 'Tempo para resolver e iniciar o stream do NPM em milissegundos.',
@@ -82,6 +88,7 @@ class PrometheusMetricsAdapter implements MetricsPort {
       registry.register(_concurrencyWaits);
       registry.register(_proxyErrors);
       registry.register(_persistenceErrors);
+      registry.register(packageProcessingDuration);
       _securityViolations.labels(['unauthorized']).inc(0);
       _securityViolations.labels(['insufficient_permissions']).inc(0);
     } catch (_) {}
@@ -152,6 +159,18 @@ class PrometheusMetricsAdapter implements MetricsPort {
       npmProxyDownloadDuration
           .labels([labels?['package'] ?? 'unknown'])
           .observe(value);
+    }
+  }
+
+  @override
+  Future<T> observeProcessingTime<T>(Future<T> Function() action) async {
+    final stopwatch = Stopwatch()..start();
+    try {
+      return await action();
+    } finally {
+      stopwatch.stop();
+      final duration = stopwatch.elapsedMilliseconds / 1000.0;
+      packageProcessingDuration.observe(duration);
     }
   }
 }

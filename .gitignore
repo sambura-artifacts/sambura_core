@@ -12,6 +12,7 @@ build/
 
 # Tokens internos do Makefile
 .token*
+.apikey*
 scripts
 
 # Possíveis arqivos baixados
