@@ -1,6 +1,6 @@
 import 'dart:math';
 import 'package:logging/logging.dart';
-import 'package:sambura_core/application/usecase/account/create_account_usecase.dart';
+import 'package:sambura_core/application/account/usecase/create_account_usecase.dart';
 import 'package:sambura_core/infrastructure/services/secrets/vault_service.dart';
 import 'package:sambura_core/domain/repositories/repositories.dart';
 

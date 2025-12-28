@@ -55,10 +55,8 @@ class RegisterComplianceArtifactUseCase {
 
       _log.fine('✓ Metadados extraídos com sucesso');
 
-      // Obtém namespace PURL (Package URL)
       final purlNamespace = extractor.getPurlNamespace(name);
 
-      // Registra no sistema de compliance
       await _compliancePort.registerArtifact(
         packageMetadata: packageMetadata,
         purlNamespace: purlNamespace,
@@ -75,8 +73,6 @@ class RegisterComplianceArtifactUseCase {
         e,
         stack,
       );
-      // Não propaga o erro - compliance é não-crítico
-      // O artefato já foi armazenado no repositório principal
     }
   }
 }

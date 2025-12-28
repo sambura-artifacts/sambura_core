@@ -1,5 +1,5 @@
 import 'package:sambura_core/application/ports/hash_port.dart';
-import 'package:sambura_core/application/usecase/account/create_account_usecase.dart';
+import 'package:sambura_core/application/account/usecase/create_account_usecase.dart';
 import 'package:sambura_core/domain/entities/account_entity.dart';
 import 'package:sambura_core/domain/repositories/account_repository.dart';
 import 'package:test/test.dart';

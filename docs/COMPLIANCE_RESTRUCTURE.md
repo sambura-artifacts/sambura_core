@@ -1,18 +1,34 @@
-# 🏗️ Reestruturação da Arquitetura - Compliance Domain
+# 🏗️ Reestruturação Completa da Arquitetura - Application Layer
 
 ## 📋 Mudanças Realizadas
 
-### 1. Padronização de Domínios (Domain Alignment)
+### 1. Padronização COMPLETA de Todos os Domínios (Domain Alignment)
+
+Todos os domínios da application layer foram reestruturados para seguir o mesmo padrão organizacional:
+
+#### ✅ Account Domain
+- **Antes**: `lib/application/usecase/account/`
+- **Depois**: `lib/application/account/usecase/`
+
+#### ✅ API Key Domain
+- **Antes**: `lib/application/usecase/api_key/`
+- **Depois**: `lib/application/api_key/usecase/`
 
 #### ✅ Artifact Domain
 - **Antes**: `lib/application/usecase/artifact/`
 - **Depois**: `lib/application/artifact/usecase/`
-- Todos os use cases de artifact foram movidos para seguir o padrão Account domain
+
+#### ✅ Auth Domain
+- **Antes**: `lib/application/usecase/auth/`
+- **Depois**: `lib/application/auth/usecase/`
+
+#### ✅ Health Domain
+- **Antes**: `lib/application/usecase/health/`
+- **Depois**: `lib/application/health/usecase/`
 
 #### ✅ Package Domain
 - **Antes**: `lib/application/usecase/package/`
 - **Depois**: `lib/application/package/usecase/`
-- Todos os use cases de package foram movidos para seguir o padrão Account domain
 
 ### 2. Compliance Domain Standardization
 
@@ -114,10 +130,14 @@ Adicionar suporte a novos ecossistemas (Maven, PyPI, Cargo, etc.) requer apenas:
 
 ```
 lib/application/
+├── account/
+│   └── usecase/                    # Use cases de account
+├── api_key/
+│   └── usecase/                    # Use cases de api_key
 ├── artifact/
 │   └── usecase/                    # Use cases de artifact
-├── package/
-│   └── usecase/                    # Use cases de package
+├── auth/
+│   └── usecase/                    # Use cases de auth
 ├── compliance/
 │   ├── extractor/
 │   │   ├── metadata_extractor.dart      # Interface Strategy
@@ -125,16 +145,19 @@ lib/application/
 │   │   └── extractors.dart              # Barrel file
 │   └── usecase/
 │       └── register_compliance_artifact_usecase.dart
+├── health/
+│   └── usecase/                    # Use cases de health
+├── package/
+│   └── usecase/                    # Use cases de package
 ├── usecase/
-│   ├── account/                    # Use cases de account
-│   ├── api_key/                    # Use cases de api_key
-│   ├── auth/                       # Use cases de auth
-│   ├── health/                     # Use cases de health
-│   └── usecases.dart               # Barrel file (atualizado)
+│   └── usecases.dart               # Barrel file (exporta todos)
 ├── dtos/
 ├── ports/
 │   └── compliance_port.dart        # Interface atualizada
-└── exceptions/
+├── exceptions/
+└── services/
+    ├── auth/
+    └── health/
 
 lib/infrastructure/
 └── adapters/
@@ -187,12 +210,18 @@ await registerComplianceUseCase.execute(
 
 ## ✅ Compliance Checklist
 
-- [x] Domain alignment (Artifact, Package seguem padrão Account)
+- [x] Domain alignment (TODOS os domínios seguem o mesmo padrão)
+  - [x] Account: `lib/application/account/usecase/`
+  - [x] API Key: `lib/application/api_key/usecase/`
+  - [x] Artifact: `lib/application/artifact/usecase/`
+  - [x] Auth: `lib/application/auth/usecase/`
+  - [x] Health: `lib/application/health/usecase/`
+  - [x] Package: `lib/application/package/usecase/`
 - [x] MetadataExtractor e NpmMetadataExtractor criados
 - [x] RegisterComplianceArtifactUseCase implementado
 - [x] DependencyTrackAdapter refatorado (sem parsing)
 - [x] CompliancePort atualizado
-- [x] Imports atualizados
+- [x] Imports atualizados em TODOS os arquivos
 - [x] Clean Architecture boundaries mantidas
 - [x] Análise estática sem erros
 - [x] Código formatado

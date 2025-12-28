@@ -1,9 +1,9 @@
 import 'dart:convert';
 import 'package:logging/logging.dart';
 import 'package:sambura_core/config/logger.dart';
-import 'package:sambura_core/application/usecase/api_key/generate_api_key_usecase.dart';
-import 'package:sambura_core/application/usecase/api_key/list_api_keys_usecase.dart';
-import 'package:sambura_core/application/usecase/api_key/revoke_api_key_usecase.dart';
+import 'package:sambura_core/application/api_key/usecase/generate_api_key_usecase.dart';
+import 'package:sambura_core/application/api_key/usecase/list_api_keys_usecase.dart';
+import 'package:sambura_core/application/api_key/usecase/revoke_api_key_usecase.dart';
 import 'package:shelf/shelf.dart';
 import 'package:shelf_router/shelf_router.dart';
 import 'package:sambura_core/infrastructure/api/presenter/admin/api_key_presenter.dart';

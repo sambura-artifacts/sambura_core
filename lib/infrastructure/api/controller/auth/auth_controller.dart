@@ -4,8 +4,8 @@ import 'package:sambura_core/infrastructure/api/presenter/auth/register_presente
 import 'package:shelf/shelf.dart';
 import 'package:logging/logging.dart';
 import 'package:sambura_core/config/logger.dart';
-import 'package:sambura_core/application/usecase/account/create_account_usecase.dart';
-import 'package:sambura_core/application/usecase/auth/login_usecase.dart';
+import 'package:sambura_core/application/account/usecase/create_account_usecase.dart';
+import 'package:sambura_core/application/auth/usecase/login_usecase.dart';
 
 class AuthController {
   final CreateAccountUsecase _createAccountUsecase;

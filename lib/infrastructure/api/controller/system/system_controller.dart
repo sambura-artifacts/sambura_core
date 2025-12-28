@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'package:shelf/shelf.dart';
 import 'package:shelf_router/shelf_router.dart';
-import 'package:sambura_core/application/usecase/health/get_server_health_usecase.dart';
+import 'package:sambura_core/application/health/usecase/get_server_health_usecase.dart';
 
 class SystemController {
   final GetServerHealthUseCase _getHealthUseCase;
