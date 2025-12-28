@@ -1,5 +1,5 @@
-import 'package:sambura_core/domain/entities/account_entity.dart';
-import 'package:sambura_core/domain/factories/account_factory.dart';
+import 'package:sambura_core/domain/account/entity/account_entity.dart';
+import 'package:sambura_core/domain/account/factory/account_factory.dart';
 import 'package:test/test.dart';
 
 void main() {

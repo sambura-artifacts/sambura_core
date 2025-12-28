@@ -1,9 +1,9 @@
 import 'package:sambura_core/application/shared/exceptions/exceptions.dart';
 import 'package:sambura_core/application/auth/api_key/usecase/revoke_api_key_usecase.dart';
-import 'package:sambura_core/domain/entities/account_entity.dart';
-import 'package:sambura_core/domain/entities/api_key_entity.dart';
-import 'package:sambura_core/domain/repositories/account_repository.dart';
-import 'package:sambura_core/domain/repositories/api_key_repository.dart';
+import 'package:sambura_core/domain/account/entity/account_entity.dart';
+import 'package:sambura_core/domain/auth/entity/api_key_entity.dart';
+import 'package:sambura_core/domain/account/repository/account_repository.dart';
+import 'package:sambura_core/domain/auth/repository/api_key_repository.dart';
 import 'package:test/test.dart';
 import 'package:uuid/v7.dart';
 

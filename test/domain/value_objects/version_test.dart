@@ -1,4 +1,4 @@
-import 'package:sambura_core/domain/value_objects/version.dart';
+import 'package:sambura_core/domain/package/value_object/version.dart';
 import 'package:test/test.dart';
 
 void main() {

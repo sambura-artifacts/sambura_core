@@ -1,4 +1,4 @@
-import 'package:sambura_core/domain/entities/api_key_entity.dart';
+import 'package:sambura_core/domain/auth/entity/api_key_entity.dart';
 import 'package:test/test.dart';
 
 void main() {

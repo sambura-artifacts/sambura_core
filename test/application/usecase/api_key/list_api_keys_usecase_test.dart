@@ -1,6 +1,6 @@
 import 'package:sambura_core/application/auth/api_key/usecase/list_api_keys_usecase.dart';
-import 'package:sambura_core/domain/entities/api_key_entity.dart';
-import 'package:sambura_core/domain/repositories/api_key_repository.dart';
+import 'package:sambura_core/domain/auth/entity/api_key_entity.dart';
+import 'package:sambura_core/domain/auth/repository/api_key_repository.dart';
 import 'package:test/test.dart';
 
 /// Implementação em memória consistente para todos os testes de API Key.

@@ -5,7 +5,7 @@
 export '../account/usecase/create_account_usecase.dart';
 
 // Auth usecases (authentication domain)
-export '../auth/usecase/login_usecase.dart';
+export '../auth/login/usecase/login_usecase.dart';
 
 // Auth - API Key usecases (API Keys são uma forma de autenticação)
 export '../auth/api_key/usecase/create_api_key_usecase.dart';

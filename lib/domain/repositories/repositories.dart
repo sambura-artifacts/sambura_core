@@ -1,7 +1,10 @@
 // Barrel file for domain repositories
-export 'account_repository.dart';
-export 'api_key_repository.dart';
-export 'artifact_repository.dart';
-export 'blob_repository.dart';
-export 'package_repository.dart';
-export 'repository_repository.dart';
+// DEPRECATED: Use domain-specific barrel files instead
+// Example: import 'package:sambura_core/domain/account/account.dart';
+
+export '../account/repository/account_repository.dart';
+export '../auth/repository/api_key_repository.dart';
+export '../artifact/repository/artifact_repository.dart';
+export '../artifact/repository/blob_repository.dart';
+export '../package/repository/package_repository.dart';
+export '../repository/repository/repository_repository.dart';

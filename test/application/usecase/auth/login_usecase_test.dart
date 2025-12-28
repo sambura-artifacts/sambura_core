@@ -1,7 +1,7 @@
 import 'package:sambura_core/application/auth/ports/ports.dart';
-import 'package:sambura_core/application/auth/usecase/login_usecase.dart';
-import 'package:sambura_core/domain/entities/account_entity.dart';
-import 'package:sambura_core/domain/repositories/account_repository.dart';
+import 'package:sambura_core/application/auth/login/usecase/login_usecase.dart';
+import 'package:sambura_core/domain/account/entity/account_entity.dart';
+import 'package:sambura_core/domain/account/repository/account_repository.dart';
 import 'package:test/test.dart';
 
 class MockAccountRepository implements AccountRepository {

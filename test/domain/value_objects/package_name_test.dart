@@ -1,5 +1,5 @@
-import 'package:sambura_core/domain/exceptions/domain_exception.dart';
-import 'package:sambura_core/domain/value_objects/package_name.dart';
+import 'package:sambura_core/domain/shared/exception/domain_exception.dart';
+import 'package:sambura_core/domain/package/value_object/package_name.dart';
 import 'package:test/test.dart';
 
 void main() {
