@@ -1,6 +1,6 @@
 import 'package:logging/logging.dart';
 import 'package:sambura_core/config/logger.dart';
-import 'package:sambura_core/infrastructure/services/auth/hash_service.dart';
+import 'package:sambura_core/infrastructure/auth/service/auth/hash_service.dart';
 import 'package:sambura_core/shared/utils/crypto_utils.dart';
 import 'package:sambura_core/domain/repositories/repositories.dart';
 

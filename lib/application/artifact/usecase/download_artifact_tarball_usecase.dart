@@ -5,7 +5,7 @@ import 'package:logging/logging.dart';
 import 'package:sambura_core/application/shared/exceptions/application_exception.dart';
 import 'package:sambura_core/application/usecase/usecases.dart';
 import 'package:sambura_core/config/logger.dart';
-import 'package:sambura_core/infrastructure/api/dtos/artifact_input.dart';
+import 'package:sambura_core/infrastructure/artifact/api/dtos/artifact_input.dart';
 import 'package:sambura_core/application/shared/ports/ports.dart';
 
 class DownloadArtifactTarballUseCase {

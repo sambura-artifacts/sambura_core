@@ -11,7 +11,7 @@ import 'package:sambura_core/config/logger.dart';
 import 'package:sambura_core/config/dependency_injection.dart';
 
 // Router
-import 'package:sambura_core/infrastructure/api/routes/main_router.dart';
+import 'package:sambura_core/infrastructure/shared/api/routes/main_router.dart';
 
 void main() async {
   final env = Env().load();

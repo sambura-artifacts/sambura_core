@@ -11,26 +11,26 @@ import 'package:sambura_core/application/health/services/health_check_service.da
 import 'package:sambura_core/application/auth/login/services/auth_service.dart';
 
 // Adapters (Infrastructure)
-import 'package:sambura_core/infrastructure/adapters/auth/local_auth_adapter.dart';
-import 'package:sambura_core/infrastructure/adapters/auth/bcrypt_hash_adapter.dart';
-import 'package:sambura_core/infrastructure/adapters/cache/redis_adapter.dart';
-import 'package:sambura_core/infrastructure/adapters/health/redis_healt_check.dart';
-import 'package:sambura_core/infrastructure/adapters/http/http_client_adapter.dart';
-import 'package:sambura_core/infrastructure/adapters/observability/prometheus_metrics_adapter.dart';
-import 'package:sambura_core/infrastructure/adapters/storage/minio_storage_adapter.dart';
-import 'package:sambura_core/infrastructure/adapters/health/blob_storage_health_check.dart';
-import 'package:sambura_core/infrastructure/adapters/health/postgres_health_check.dart';
-import 'package:sambura_core/infrastructure/api/controller/system/metrics_controller.dart';
+import 'package:sambura_core/infrastructure/auth/adapter/local_auth_adapter.dart';
+import 'package:sambura_core/infrastructure/auth/adapter/bcrypt_hash_adapter.dart';
+import 'package:sambura_core/infrastructure/shared/adapter/cache/redis_adapter.dart';
+import 'package:sambura_core/infrastructure/shared/adapter/health/redis_healt_check.dart';
+import 'package:sambura_core/infrastructure/shared/adapter/http/http_client_adapter.dart';
+import 'package:sambura_core/infrastructure/shared/adapter/observability/prometheus_metrics_adapter.dart';
+import 'package:sambura_core/infrastructure/shared/adapter/storage/minio_storage_adapter.dart';
+import 'package:sambura_core/infrastructure/shared/adapter/health/blob_storage_health_check.dart';
+import 'package:sambura_core/infrastructure/shared/adapter/health/postgres_health_check.dart';
+import 'package:sambura_core/infrastructure/shared/api/controller/metrics_controller.dart';
 
 // Database & Repositories
-import 'package:sambura_core/infrastructure/database/postgres_connector.dart';
-import 'package:sambura_core/infrastructure/repositories/postgres/postgres_blob_repository.dart';
-import 'package:sambura_core/infrastructure/repositories/blob/silo_blob_repository.dart';
-import 'package:sambura_core/infrastructure/repositories/postgres/postgres_repository_repository.dart';
-import 'package:sambura_core/infrastructure/repositories/postgres/postgres_artifact_repository.dart';
-import 'package:sambura_core/infrastructure/repositories/postgres/postgres_package_repository.dart';
-import 'package:sambura_core/infrastructure/repositories/postgres/postgres_account_repository.dart';
-import 'package:sambura_core/infrastructure/repositories/postgres/postgres_api_key_repository.dart';
+import 'package:sambura_core/infrastructure/shared/database/postgres_connector.dart';
+import 'package:sambura_core/infrastructure/artifact/repository/postgres_blob_repository.dart';
+import 'package:sambura_core/infrastructure/artifact/repository/silo_blob_repository.dart';
+import 'package:sambura_core/infrastructure/repository/repository/postgres_repository_repository.dart';
+import 'package:sambura_core/infrastructure/artifact/repository/postgres_artifact_repository.dart';
+import 'package:sambura_core/infrastructure/package/repository/postgres_package_repository.dart';
+import 'package:sambura_core/infrastructure/account/repository/postgres_account_repository.dart';
+import 'package:sambura_core/infrastructure/auth/repository/postgres_api_key_repository.dart';
 
 // UseCases
 import 'package:sambura_core/application/account/usecase/create_account_usecase.dart';
@@ -50,20 +50,20 @@ import 'package:sambura_core/application/package/usecase/proxy_package_metadata_
 import 'package:sambura_core/application/health/usecase/get_server_health_usecase.dart';
 
 // Controllers & Routes
-import 'package:sambura_core/infrastructure/api/controller/artifact/blob_controller.dart';
-import 'package:sambura_core/infrastructure/api/controller/artifact/package_controller.dart';
-import 'package:sambura_core/infrastructure/api/controller/artifact/artifact_controller.dart';
-import 'package:sambura_core/infrastructure/api/controller/artifact/repository_controller.dart';
-import 'package:sambura_core/infrastructure/api/controller/auth/auth_controller.dart';
-import 'package:sambura_core/infrastructure/api/controller/admin/api_key_controller.dart';
-import 'package:sambura_core/infrastructure/api/controller/artifact/upload_controller.dart';
-import 'package:sambura_core/infrastructure/api/controller/system/system_controller.dart';
-import 'package:sambura_core/infrastructure/api/routes/admin_router.dart';
-import 'package:sambura_core/infrastructure/api/routes/artifact_router.dart';
-import 'package:sambura_core/infrastructure/api/routes/protected_router.dart';
-import 'package:sambura_core/infrastructure/api/routes/public_router.dart';
-import 'package:sambura_core/infrastructure/services/secrets/vault_service.dart';
-import 'package:sambura_core/infrastructure/proxies/npm_proxy.dart';
+import 'package:sambura_core/infrastructure/artifact/api/controller/blob_controller.dart';
+import 'package:sambura_core/infrastructure/artifact/api/controller/package_controller.dart';
+import 'package:sambura_core/infrastructure/artifact/api/controller/artifact_controller.dart';
+import 'package:sambura_core/infrastructure/artifact/api/controller/repository_controller.dart';
+import 'package:sambura_core/infrastructure/auth/api/auth_controller.dart';
+import 'package:sambura_core/infrastructure/auth/api/api_key_controller.dart';
+import 'package:sambura_core/infrastructure/artifact/api/controller/upload_controller.dart';
+import 'package:sambura_core/infrastructure/shared/api/controller/system_controller.dart';
+import 'package:sambura_core/infrastructure/shared/api/routes/admin_router.dart';
+import 'package:sambura_core/infrastructure/shared/api/routes/artifact_router.dart';
+import 'package:sambura_core/infrastructure/shared/api/routes/protected_router.dart';
+import 'package:sambura_core/infrastructure/shared/api/routes/public_router.dart';
+import 'package:sambura_core/infrastructure/shared/service/secrets/vault_service.dart';
+import 'package:sambura_core/infrastructure/package/proxy/npm_proxy.dart';
 
 class DependencyInjection {
   late final AuthController authController;
