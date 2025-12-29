@@ -1,71 +1,42 @@
 import 'dart:convert';
 import 'package:sambura_core/application/compliance/ports/compliance_port.dart';
-import 'package:sambura_core/application/shared/ports/ports.dart';
+import 'package:sambura_core/application/shared/ports/http_client_port.dart';
 
-/// Adapter para integração com Dependency-Track
-///
-/// Implementa CompliancePort e recebe metadados já extraídos,
-/// seguindo o princípio de Separação de Responsabilidades (SRP)
 class DependencyTrackAdapter implements CompliancePort {
-  final HttpClientPort _httpClient;
+  final HttpClientPort _client;
   final String _baseUrl;
   final String _apiKey;
 
-  DependencyTrackAdapter({
-    required HttpClientPort httpClient,
-    required String baseUrl,
-    required String apiKey,
-  }) : _httpClient = httpClient,
-       _baseUrl = baseUrl,
-       _apiKey = apiKey;
+  DependencyTrackAdapter(this._client, this._baseUrl, this._apiKey);
 
   @override
-  Future<void> registerArtifact({
-    required String packageMetadata,
-    required String purlNamespace,
+  Future<void> ingestArtifact({
     required String name,
     required String version,
+    required String ecosystem,
+    required String metadata,
   }) async {
-    // Gera SBOM no formato CycloneDX
-    final bom = _generateCycloneDX(
-      name: name,
-      version: version,
-      purlNamespace: purlNamespace,
-    );
+    final bom = {
+      "bomFormat": "CycloneDX",
+      "specVersion": "1.4",
+      "components": [
+        {
+          "name": name,
+          "version": version,
+          "purl": "pkg:$ecosystem/$name@$version",
+        },
+      ],
+    };
 
-    final base64Bom = base64Encode(utf8.encode(jsonEncode(bom)));
-
-    // Envia para o Dependency-Track
-    await _httpClient.post(
+    await _client.post(
       uri: '$_baseUrl/api/v1/bom',
       headers: {'X-Api-Key': _apiKey, 'Content-Type': 'application/json'},
       data: jsonEncode({
         "projectName": name,
         "projectVersion": version,
         "autoCreate": true,
-        "bom": base64Bom,
+        "bom": base64Encode(utf8.encode(jsonEncode(bom))),
       }),
     );
-  }
-
-  /// Gera SBOM no formato CycloneDX
-  Map<String, dynamic> _generateCycloneDX({
-    required String name,
-    required String version,
-    required String purlNamespace,
-  }) {
-    return {
-      "bomFormat": "CycloneDX",
-      "specVersion": "1.4",
-      "version": 1,
-      "components": [
-        {
-          "name": name,
-          "version": version,
-          "type": "library",
-          "purl": "pkg:$purlNamespace/$name@$version",
-        },
-      ],
-    };
   }
 }

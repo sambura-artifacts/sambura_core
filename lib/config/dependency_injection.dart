@@ -1,6 +1,9 @@
 import 'package:logging/logging.dart';
+import 'package:sambura_core/application/compliance/extractor/metadata_extractor.dart';
+import 'package:sambura_core/application/compliance/usecase/register_compliance_artifact_usecase.dart';
 import 'package:sambura_core/config/env.dart';
 import 'package:http/http.dart' as http;
+import 'package:get_it/get_it.dart';
 
 // Ports
 import 'package:sambura_core/application/shared/ports/ports.dart';
@@ -14,6 +17,7 @@ import 'package:sambura_core/application/auth/login/services/auth_service.dart';
 import 'package:sambura_core/infrastructure/auth/adapter/local_auth_adapter.dart';
 import 'package:sambura_core/infrastructure/auth/adapter/bcrypt_hash_adapter.dart';
 import 'package:sambura_core/infrastructure/shared/adapter/cache/redis_adapter.dart';
+import 'package:sambura_core/infrastructure/shared/adapter/compliance/dependency_track_adapter.dart';
 import 'package:sambura_core/infrastructure/shared/adapter/health/redis_healt_check.dart';
 import 'package:sambura_core/infrastructure/shared/adapter/http/http_client_adapter.dart';
 import 'package:sambura_core/infrastructure/shared/adapter/observability/prometheus_metrics_adapter.dart';
@@ -93,6 +97,7 @@ class DependencyInjection {
   static Future<DependencyInjection> init(EnvConfig env) async {
     final di = DependencyInjection();
     final log = Logger('DI');
+    final locator = GetIt.instance;
 
     log.info('🚀 Iniciando Injeção de Dependências...');
 
@@ -141,6 +146,11 @@ class DependencyInjection {
     final packageRepo = PostgresPackageRepository(postgresConnector);
     final postgresBlobRepo = PostgresBlobRepository(postgresConnector);
     final siloBlobRepo = SiloBlobRepository(minioAdapter, postgresBlobRepo);
+    final compliancePort = DependencyTrackAdapter(
+      HttpClientAdapter(http.Client()),
+      env.depTrackUrl,
+      env.depTrackApiKey,
+    );
 
     // 4. HEALTH CHECKS CONFIG
     final healthChecks = [
@@ -157,10 +167,15 @@ class DependencyInjection {
 
     // 6. PROXIES & HTTP
     final client = http.Client();
-    final httpClient = HttpClientAdapter(client);
+    final HttpClientPort httpClientPort = HttpClientAdapter(client);
     final npmProxy = NpmProxy(siloBlobRepo, packageRepo);
 
     // 7. USE CASES
+    final registerComplianceUseCase = RegisterComplianceArtifactUseCase(
+      compliancePort,
+      locator<List<MetadataExtractor>>(),
+    );
+
     di.createAccountUsecase = CreateAccountUsecase(
       di.accountRepository,
       di.hashPort,
@@ -179,7 +194,9 @@ class DependencyInjection {
       di.accountRepository,
     );
 
-    final proxyPackageMetadataUseCase = ProxyPackageMetadataUseCase(httpClient);
+    final proxyPackageMetadataUseCase = ProxyPackageMetadataUseCase(
+      httpClientPort,
+    );
     final getArtifactUseCase = GetArtifactUseCase(
       artifactRepo,
       packageRepo,
@@ -207,9 +224,10 @@ class DependencyInjection {
     final checkArtifactExistsUseCase = CheckArtifactExistsUseCase(artifactRepo);
 
     final downloadArtifactTarballUseCase = DownloadArtifactTarballUseCase(
-      httpClient,
+      httpClientPort,
       createArtifactUseCase,
       getArtifactDownloadStreamUsecase,
+      registerComplianceUseCase,
       di.cachePort,
       di.metricsPort,
     );

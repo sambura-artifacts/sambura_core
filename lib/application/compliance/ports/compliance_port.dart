@@ -1,16 +1,21 @@
 /// Port para integração com sistemas de compliance e análise de segurança
 /// Segue o padrão Strategy Pattern, delegando a extração de metadados para MetadataExtractor
 abstract class CompliancePort {
-  /// Registra um artefato no sistema de compliance usando metadados extraídos
+  /// Realiza a ingestão de um artefato para análise de vulnerabilidades.
   ///
-  /// [packageMetadata] - JSON string contendo metadados do pacote (ex: package.json)
-  /// [purlNamespace] - Namespace do Package URL (ex: 'npm', 'maven', 'pypi')
-  /// [name] - Nome do pacote
-  /// [version] - Versão do pacote
-  Future<void> registerArtifact({
-    required String packageMetadata,
-    required String purlNamespace,
+  /// [name] O nome identificador do pacote (ex: 'express' ou 'sambura_core').
+  /// [version] A versão semântica do artefato.
+  /// [ecosystem] O ecossistema detectado pelo extractor (ex: 'npm', 'maven').
+  /// [metadata] O conteúdo bruto dos metadados extraídos (ex: JSON do package.json).
+  ///
+  /// Lógica de implementação esperada:
+  /// 1. Gerar um SBOM (Software Bill of Materials) no formato CycloneDX.
+  /// 2. Resolver o PURL (Package URL) seguindo o padrão `pkg:[ecosystem]/[name]@[version]`.
+  /// 3. Enviar via POST para a API de auditoria.
+  Future<void> ingestArtifact({
     required String name,
     required String version,
+    required String ecosystem,
+    required String metadata,
   });
 }
