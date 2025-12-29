@@ -53,6 +53,22 @@ class PostgresAccountRepository implements AccountRepository {
   }
 
   @override
+  Future<AccountEntity?> findByEmail(String email) async {
+    const sql = 'SELECT * FROM accounts WHERE email = @email';
+
+    final result = await _connector.query(
+      sql,
+      substitutionValues: {'email': email},
+    );
+
+    if (result.isEmpty) return null;
+
+    final row = result.first.toColumnMap();
+
+    return _mapToEntity(row);
+  }
+
+  @override
   Future<AccountEntity?> findById(int id) async {
     const sql = 'SELECT * FROM accounts WHERE id = @id';
 

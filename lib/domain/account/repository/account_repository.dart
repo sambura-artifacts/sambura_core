@@ -5,6 +5,7 @@ abstract class AccountRepository {
 
   Future<AccountEntity?> findByUsername(String username);
   Future<AccountEntity?> findById(int id);
+  Future<AccountEntity?> findByEmail(String email);
   Future<AccountEntity?> findByExternalId(String externalId);
   Future<bool> existsByRole(String role);
 }
