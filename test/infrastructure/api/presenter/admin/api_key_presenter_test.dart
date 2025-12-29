@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'package:sambura_core/application/auth/api_key/usecase/generate_api_key_usecase.dart';
 import 'package:sambura_core/domain/auth/entity/api_key_entity.dart';
-import 'package:sambura_core/infrastructure/api/presenter/admin/api_key_presenter.dart';
+import 'package:sambura_core/infrastructure/auth/api/presenter/api_key_presenter.dart';
 import 'package:test/test.dart';
 
 void main() {

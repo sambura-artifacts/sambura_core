@@ -99,7 +99,6 @@ class MockClient implements HttpClientPort {
     Uri uri, {
     Map<String, String>? headers,
   }) {
-    // TODO: implement stream
     throw UnimplementedError();
   }
 }

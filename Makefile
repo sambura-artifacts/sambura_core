@@ -153,7 +153,7 @@ dev: ## Roda o servidor Dart com hot reload
 
 test: ## Roda todos os testes unitários
 	@echo "🧪 Rodando testes..."
-	@dart test --reporter=expanded --exclude-tags=integration
+	@dart test --reporter=expanded --exclude-tags=integration --chain-stack-traces
 
 test-coverage: ## Gera relatório de cobertura de testes LCOV
 	@echo "📊 Gerando cobertura..."

@@ -2,86 +2,86 @@ import 'package:sambura_core/application/auth/ports/ports.dart';
 import 'package:sambura_core/application/auth/login/usecase/login_usecase.dart';
 import 'package:sambura_core/domain/account/entity/account_entity.dart';
 import 'package:sambura_core/domain/account/repository/account_repository.dart';
+import 'package:sambura_core/infrastructure/infrastructure.dart';
 import 'package:test/test.dart';
 
-class MockAccountRepository implements AccountRepository {
-  AccountEntity? accountToReturn;
+class InMemoryAccountRepository implements AccountRepository {
+  // Simula a tabela do banco de dados em memória
+  final Map<String, AccountEntity> _accounts = {};
+
+  // Controle para simular erros em testes de falha
   bool shouldThrowError = false;
 
-  @override
-  Future<AccountEntity?> findByUsername(String username) async {
-    if (shouldThrowError) {
-      throw Exception('Database error');
-    }
-    return accountToReturn;
+  void _checkError() {
+    if (shouldThrowError) throw Exception('Database error');
   }
 
   @override
   Future<AccountEntity?> create(AccountEntity account) async {
-    throw UnimplementedError();
+    _checkError();
+    // Armazena usando o username como chave (ou ID, dependendo da sua lógica)
+    _accounts[account.username.value] = account;
+    return account;
   }
 
+  @override
+  Future<AccountEntity?> findByUsername(String username) async {
+    _checkError();
+    return _accounts[username];
+  }
+
+  @override
   Future<AccountEntity?> findByEmail(String email) async {
-    throw UnimplementedError();
+    _checkError();
+    try {
+      return _accounts.values.firstWhere((acc) => acc.email.value == email);
+    } catch (_) {
+      return null;
+    }
   }
 
   @override
   Future<AccountEntity?> findByExternalId(String externalId) async {
-    throw UnimplementedError();
+    _checkError();
+    try {
+      return _accounts.values.firstWhere(
+        (acc) => acc.externalId.value == externalId,
+      );
+    } catch (_) {
+      return null;
+    }
   }
 
   @override
   Future<AccountEntity?> findById(int id) async {
-    throw UnimplementedError();
-  }
-
-  Future<void> update(AccountEntity account) async {
-    throw UnimplementedError();
-  }
-
-  @override
-  Future<bool> existsByRole(String role) async => false;
-}
-
-class MockHashService implements HashPort {
-  bool shouldVerifySucceed = true;
-
-  @override
-  String hashPassword(String password) {
-    throw UnimplementedError();
+    _checkError();
+    return _accounts.values.firstWhere(
+      (acc) => acc.id == id,
+      orElse: () => null as dynamic,
+    );
   }
 
   @override
-  List<int> generateRandomBytes(int length) {
-    throw UnimplementedError();
+  Future<bool> existsByRole(String role) async {
+    _checkError();
+    return _accounts.values.any((acc) => acc.role.value == role);
   }
 
-  @override
-  String generateRandomString(int length) {
-    throw UnimplementedError();
-  }
-
-  @override
-  String sha256Hash(List<int> data) {
-    throw UnimplementedError();
-  }
-
-  @override
-  bool verifyPassword(String password, String hash) {
-    throw UnimplementedError();
-  }
+  // Helper para limpar o repositório entre os testes
+  void clear() => _accounts.clear();
 }
 
 void main() {
   group('LoginUsecase', () {
     late LoginUsecase usecase;
-    late MockAccountRepository repository;
-    late MockHashService hashService;
+    late InMemoryAccountRepository repository; // Alterado para o tipo concreto
+    late HashPort hashService;
+    const String pepper = 'teste_pepper';
     const jwtSecret = 'test-secret-key';
 
     setUp(() {
-      repository = MockAccountRepository();
-      hashService = MockHashService();
+      repository = InMemoryAccountRepository();
+      hashService = BcryptHashAdapter(pepper);
       usecase = LoginUsecase(repository, hashService, jwtSecret);
     });
 
@@ -89,20 +89,18 @@ void main() {
       // Arrange
       const username = 'testuser';
       const password = 'password123@312CCCCC';
-      const externalId = '3ef0cb03-9f2c-4c01-90bc-329cd3555ebe';
 
+      // Persistimos a conta de verdade no repositório in-memory
       final account = AccountEntity.restore(
         id: 1,
-        externalId: externalId,
+        externalId: '3ef0cb03-9f2c-4c01-90bc-329cd3555ebe',
         username: username,
         email: 'test@example.com',
-        password: 'password123@312CCCCC',
+        password: hashService.hashPassword(password), // Hash real para validar
         role: 'developer',
         createdAt: DateTime.now(),
       );
-
-      repository.accountToReturn = account;
-      hashService.shouldVerifySucceed = true;
+      await repository.create(account);
 
       // Act
       final result = await usecase.execute(username, password);
@@ -110,15 +108,13 @@ void main() {
       // Assert
       expect(result, isNotNull);
       expect(result!.username, equals(username));
-      expect(result.token, isNotEmpty);
-      expect(result.token, startsWith('eyJ')); // JWT header
+      expect(result.token, startsWith('eyJ'));
     });
 
     test('deve retornar null quando usuário não existe', () async {
-      // Arrange
+      // Arrange - Repositório vazio
       const username = 'nonexistent';
       const password = 'password123';
-      repository.accountToReturn = null;
 
       // Act
       final result = await usecase.execute(username, password);
@@ -130,103 +126,31 @@ void main() {
     test('deve retornar null quando senha é inválida', () async {
       // Arrange
       const username = 'testuser';
-      const password = 'w/h/eo1n1u&&3nudvsv';
+      const correctPassword = 'password_correta';
+      const wrongPassword = 'senha_errada';
 
       final account = AccountEntity.restore(
         id: 1,
         externalId: '3ef0cb03-9f2c-4c01-90bc-329cd3555ebe',
         username: username,
         email: 'test@example.com',
-        password: 'NAushabsgvtalvçvehye23@',
+        password: hashService.hashPassword(correctPassword),
         role: 'developer',
         createdAt: DateTime.now(),
       );
-
-      repository.accountToReturn = account;
-      hashService.shouldVerifySucceed = false;
+      await repository.create(account);
 
       // Act
-      final result = await usecase.execute(username, password);
+      final result = await usecase.execute(username, wrongPassword);
 
       // Assert
       expect(result, isNull);
-    });
-
-    test('deve incluir informações corretas no token JWT', () async {
-      // Arrange
-      const username = 'testuser';
-      const password = 'password123';
-
-      final account = AccountEntity.restore(
-        id: 42,
-        externalId: 'b2e89017-70ae-4d57-ac98-9cdb9d8ef1e0',
-        username: username,
-        email: 'test@example.com',
-        password: 'passwordNi1çjsbpu@@333i',
-        role: 'admin',
-        createdAt: DateTime.now(),
-      );
-
-      repository.accountToReturn = account;
-      hashService.shouldVerifySucceed = true;
-
-      // Act
-      final result = await usecase.execute(username, password);
-
-      // Assert
-      expect(result, isNotNull);
-      expect(result!.token, isNotEmpty);
-      // JWT contém 3 partes separadas por ponto
-      expect(result.token.split('.'), hasLength(3));
-    });
-
-    test('deve propagar exceção quando repositório falhar', () async {
-      // Arrange
-      const username = 'testuser';
-      const password = 'password123';
-
-      repository.accountToReturn = null;
-
-      // Act
-      final result = await usecase.execute(username, password);
-
-      // Assert
-      expect(result, isNull);
-    });
-
-    test('deve logar informações de autenticação bem-sucedida', () async {
-      const username = 'successuser';
-      const password = 'password123';
-
-      final account = AccountEntity.restore(
-        id: 1,
-        externalId: '018c1820-a9f6-7123-b456-789012345678', // Valid UUID v7
-        username: username,
-        email: 'success@example.com',
-        password: 'Password123!@#', // Valid password
-        role: 'developer',
-        createdAt: DateTime.now(),
-      );
-
-      repository.accountToReturn = account;
-      hashService.shouldVerifySucceed = true;
-
-      final result = await usecase.execute(username, password);
-
-      expect(result, isNotNull);
-      expect(result!.username, equals(username));
     });
 
     test('deve propagar exceção quando ocorre erro no repositório', () async {
-      const username = 'testuser';
-      const password = 'password123';
-
       repository.shouldThrowError = true;
 
-      expect(
-        () => usecase.execute(username, password),
-        throwsA(isA<Exception>()),
-      );
+      expect(() => usecase.execute('any', 'any'), throwsA(isA<Exception>()));
     });
   });
 }

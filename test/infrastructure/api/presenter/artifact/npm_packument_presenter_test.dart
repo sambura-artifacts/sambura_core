@@ -1,4 +1,4 @@
-import 'package:sambura_core/infrastructure/api/presenter/artifact/npm_packument_presenter.dart';
+import 'package:sambura_core/infrastructure/artifact/api/presenter/npm_packument_presenter.dart';
 import 'package:test/test.dart';
 import 'dart:convert';
 

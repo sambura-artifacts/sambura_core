@@ -1,4 +1,4 @@
-import 'package:sambura_core/infrastructure/services/auth/hash_service.dart';
+import 'package:sambura_core/infrastructure/auth/service/auth/hash_service.dart';
 import 'package:test/test.dart';
 
 void main() {

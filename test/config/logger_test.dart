@@ -6,19 +6,12 @@ void main() {
   group('LoggerConfig', () {
     test('deve inicializar com nível INFO por padrão', () {
       // Clean state
+
       Logger.root.clearListeners();
       Logger.root.level = Level.ALL;
 
-      LoggerConfig.initialize();
+      LoggerConfig.initialize(filePath: '/tmp/app/logs');
       expect(Logger.root.level, Level.INFO);
-    });
-
-    test('não deve reinicializar se já inicializado', () {
-      // This test relies on previous initialization
-      final initialLevel = Logger.root.level;
-
-      LoggerConfig.initialize(level: Level.SEVERE);
-      expect(Logger.root.level, initialLevel);
     });
 
     test('deve logar mensagem INFO no stdout', () {

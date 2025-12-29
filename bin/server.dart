@@ -1,17 +1,13 @@
 import 'dart:async';
 import 'dart:io';
-import 'package:sambura_core/infrastructure/bootstrap/bootstrap_service.dart';
+import 'package:sambura_core/infrastructure/shared/bootstrap/bootstrap_service.dart';
 import 'package:shelf/shelf.dart';
 import 'package:shelf/shelf_io.dart' as io;
 import 'package:logging/logging.dart';
 
-// Configs
-import 'package:sambura_core/config/env.dart';
-import 'package:sambura_core/config/logger.dart';
-import 'package:sambura_core/config/dependency_injection.dart';
+import 'package:sambura_core/config/config.dart';
 
-// Router
-import 'package:sambura_core/infrastructure/shared/api/routes/main_router.dart';
+import 'package:sambura_core/infrastructure/shared/api/routes/routes.dart';
 
 void main() async {
   final env = Env().load();
@@ -23,7 +19,6 @@ void main() async {
     log.info('🔧 Inicializando dependências...');
     final di = await DependencyInjection.init(env);
 
-    // Executa o Bootstrap
     final bootstrap = BootstrapService(
       di.accountRepository,
       di.createAccountUsecase,
@@ -54,7 +49,6 @@ void main() async {
     );
     log.info('🌍 Environment: ${env.environment.name}');
 
-    // No arquivo main.dart ou após inicializar o servidor
     Timer.periodic(Duration(seconds: 30), (timer) async {
       try {
         await di.systemController.refreshMetrics();
