@@ -152,6 +152,7 @@ dev: ## Roda o servidor Dart com hot reload
 	@dart bin/server.dart
 
 test: ## Roda todos os testes unitários
+	@mkdir -p /tmp/app/logs
 	@echo "🧪 Rodando testes..."
 	@dart test --reporter=expanded --exclude-tags=integration --chain-stack-traces
 
