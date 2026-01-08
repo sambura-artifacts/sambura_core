@@ -12,7 +12,6 @@ class VaultService {
 
   Future<Map<String, dynamic>> getSecrets(String path) async {
     try {
-      // 1. Limpeza de Path: Remove prefixos redundantes que causam o erro de duplicação
       var cleanPath = path;
       if (cleanPath.startsWith('secret/data/')) {
         cleanPath = cleanPath.replaceFirst('secret/data/', '');
@@ -23,7 +22,6 @@ class VaultService {
 
       _log.info('🔐 Consultando Vault: $endpoint/v1/secret/data/$cleanPath');
 
-      // 2. Montagem da URL segura
       final url = Uri.parse('$endpoint/v1/secret/data/$cleanPath');
 
       final response = await http
@@ -37,7 +35,6 @@ class VaultService {
           .timeout(
             const Duration(seconds: 5),
           ); // Timeout para não travar o boot
-
       if (response.statusCode == 200) {
         final body = jsonDecode(response.body);
         // O Vault KV-V2 sempre encapsula em data -> data

@@ -2,7 +2,6 @@ import 'package:sambura_core/domain/entities/entities.dart';
 
 abstract class ArtifactRepository {
   /// Persiste um novo artefato no banco de dados.
-  /// Retorna a entidade com o ID gerado pelo Postgres.
   Future<ArtifactEntity> save(ArtifactEntity artifact);
 
   /// Recupera a projeção completa do artefato (Hydrated Entity) via seu UUID público.

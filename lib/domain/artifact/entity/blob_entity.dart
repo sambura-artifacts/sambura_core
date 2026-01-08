@@ -6,10 +6,10 @@ import 'package:mime/mime.dart';
 import 'package:sambura_core/domain/repositories/repositories.dart';
 
 class BlobEntity {
-  final int? id; // ID serial (gerado pelo Worker no DB)
-  final String hash; // SHA-256 (Identidade única do arquivo)
-  final int sizeBytes; // Tamanho real em disco
-  final String mimeType; // Tipo do arquivo (ex: application/zip)
+  final int? id;
+  final String hash;
+  final int sizeBytes;
+  final String mimeType;
   final DateTime? createdAt;
 
   BlobEntity._({
@@ -44,7 +44,6 @@ class BlobEntity {
       await for (final chunk in stream) {
         final safeChunk = Uint8List.fromList(chunk);
 
-        // Captura apenas o necessário para o MimeTypeResolver (geralmente 32-64 bytes)
         if (headerBytes.length < 64) {
           headerBytes.addAll(safeChunk.take(64 - headerBytes.length));
         }
@@ -55,7 +54,6 @@ class BlobEntity {
 
       inputSink.close();
 
-      // Chamada síncrona e segura, sem mexer em stream nenhum!
       final detectedMime = _detectRealMimeType(headerBytes);
 
       return BlobEntity._(

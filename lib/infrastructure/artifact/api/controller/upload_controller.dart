@@ -4,8 +4,8 @@ import 'dart:typed_data';
 import 'package:logging/logging.dart';
 import 'package:sambura_core/application/usecase/usecases.dart';
 import 'package:sambura_core/config/logger.dart';
+import 'package:sambura_core/domain/artifact/exception/artifact_exception.dart';
 import 'package:sambura_core/domain/shared/exception/domain_exception.dart';
-import 'package:sambura_core/domain/auth/exception/security_exception.dart';
 import 'package:sambura_core/domain/auth/service/security_validator.dart';
 import 'package:sambura_core/infrastructure/shared/exceptions/infrastructure_exception.dart';
 import 'package:shelf/shelf.dart';
@@ -30,7 +30,7 @@ class UploadController {
     );
 
     SecurityValidatorUtils.validateGenericInput(data.repoName);
-    SecurityValidator.validatePackagePath(data.packageName);
+    SecurityValidatorUtils.validatePackagePath(data.packageName);
 
     final exists = await _checkArtifactExistsUseCase.execute(
       namespace: data.repoName,

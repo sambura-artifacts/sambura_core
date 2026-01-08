@@ -6,12 +6,12 @@ import 'package:sambura_core/application/artifact/ports/ports.dart';
 import 'package:sambura_core/domain/entities/entities.dart';
 import 'package:sambura_core/domain/repositories/repositories.dart';
 
-class SiloBlobRepository implements BlobRepository {
+class StorageBlobRepository implements BlobRepository {
   final StoragePort _storagePort;
-  final BlobRepository _dbRepository; // Repositório Postgres
+  final BlobRepository _dbRepository;
   final Logger _log = LoggerConfig.getLogger('SiloBlobRepository');
 
-  SiloBlobRepository(this._storagePort, this._dbRepository);
+  StorageBlobRepository(this._storagePort, this._dbRepository);
 
   @override
   Future<BlobEntity> saveFromStream(Stream<List<int>> byteStream) async {
@@ -20,14 +20,11 @@ class SiloBlobRepository implements BlobRepository {
     final storageStream = splitter.split().cast<Uint8List>();
     splitter.close();
 
-    // Calcula hash e tamanho sem carregar tudo em memória
     final blobMetadata = await BlobEntity.fromStream(metadataStream);
 
-    // 1. Salva metadados no Postgres
     final blobWithId = await _dbRepository.save(blobMetadata);
 
     try {
-      // 2. Verifica se o binário já existe no Storage (Deduplicação)
       final exists = await _storagePort.exists(blobWithId.hash);
 
       if (exists) {
@@ -37,7 +34,6 @@ class SiloBlobRepository implements BlobRepository {
         return blobWithId;
       }
 
-      // 3. Salva o binário real
       await _storagePort.store(
         path: blobWithId.hash,
         stream: storageStream,
@@ -55,7 +51,6 @@ class SiloBlobRepository implements BlobRepository {
 
   @override
   Future<Stream<Uint8List>> readAsStream(String hash) async {
-    // StoragePort.retrieve retorna Stream<List<int>>
     final stream = await _storagePort.retrieve(hash);
     return stream.map((chunk) => Uint8List.fromList(chunk));
   }
@@ -87,15 +82,11 @@ class SiloBlobRepository implements BlobRepository {
     return saved;
   }
 
-  // ... dentro da classe SiloBlobRepository
-
   @override
   Future<bool> exists(String hash) async {
-    // Primeiro checa no banco, pois é mais rápido que IO de rede no S3
     final blob = await _dbRepository.findByHash(hash);
     if (blob == null) return false;
 
-    // Opcional: Validar se o arquivo físico ainda existe no storage
     return await _storagePort.exists(hash);
   }
 

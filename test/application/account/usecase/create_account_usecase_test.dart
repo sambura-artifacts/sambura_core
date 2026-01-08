@@ -21,6 +21,7 @@ class InMemoryAccountRepository implements AccountRepository {
   AccountEntity? get lastCreatedAccount =>
       _storage.isEmpty ? null : _storage.last;
 
+  @override
   Future<AccountEntity?> findByEmail(String email) async => null;
   @override
   Future<AccountEntity?> findByExternalId(String externalId) async => null;

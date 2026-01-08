@@ -1,3 +1,5 @@
+import 'package:sambura_core/domain/artifact/exception/artifact_exception.dart';
+import 'package:sambura_core/domain/artifact/exception/blob_exception.dart';
 import 'package:sambura_core/domain/shared/exception/domain_exception.dart';
 import 'package:test/test.dart';
 

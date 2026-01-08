@@ -25,40 +25,8 @@ services:
     container_name: sambura_app
     ports:
       - "8080:8080"
-    environment:
-      # Database
-      DB_HOST: postgres
-      DB_PORT: 5432
-      DB_USER: sambura
-      DB_PASSWORD: sambura_db_secret
-      DB_NAME: sambura_metadata
-
-      # Cache (Redis)
-      REDIS_HOST: redis
-      REDIS_PORT: 6379
-
-      # Queue (RabbitMQ)
-      RABBITMQ_HOST: rabbitmq
-      RABBITMQ_PORT: 5672
-      RABBITMQ_USER: sambura_user
-      RABBITMQ_PASS: sambura_mq_secret
-
-      # Storage (MinIO)
-      SILO_HOST: minio
-      SILO_PORT_API: 9000
-      SILO_ACCESS_KEY: sambura_admin
-      SILO_SECRET_KEY: sambura_silo_secret
-      BUCKET_NAME: sambura-blobs
-
-      # Vault
-      VAULT_ADDR: http://vault:8200
-      VAULT_TOKEN: root_token_sambura
-      VAULT_DATABASE_PATH: "secret/data/sambura/database"
-      VAULT_AUTH_PATH: "secret/data/sambura/auth"
-
-      # Logging
-      LOG_LEVEL: INFO
-      LOG_FILE_PATH: /app/logs
+    env_file:
+      - ../.env
     networks:
       - sambura_network
       - monitoring
@@ -144,12 +112,12 @@ services:
     cap_add: [IPC_LOCK]
     command: server -dev -dev-root-token-id=root_token_sambura -dev-listen-address=0.0.0.0:8200
     environment:
-      VAULT_ADDR: http://127.0.0.1:8200
+      VAULT_ADDR: http://0.0.0.0:8200
       VAULT_DEV_ROOT_TOKEN_ID: root_token_sambura 
     ports:
       - 8200:8200
     healthcheck:
-      test: ["CMD", "vault", "status", "-address=http://0.0.0.0:8200"]
+      test: ["CMD", "vault", "status", "-address=http://127.0.0.1:8200"]
       interval: 5s
     networks:
       - sambura_network
@@ -240,19 +208,3 @@ services:
         echo '📥 Configurando bucket no MinIO...';
         aws --endpoint-url http://minio:9000 s3 mb s3://sambura-blobs 2>/dev/null || echo '✅ Bucket já existe.';
         echo '🚀 INFRA PRONTA!';"
-
-  dependencytrack:
-    image: dependencytrack/frontend:latest
-    ports:
-      - "8081:8080"
-    depends_on:
-      - dtrack-apiserver
-
-  dtrack-apiserver:
-    image: dependencytrack/apiserver:latest
-    ports:
-      - "8082:8080"
-    volumes:
-      - dtrack_data:/data
-    environment:
-      - ALPINE_DATABASE_MODE=embedded # Para dev, use Postgres em prod

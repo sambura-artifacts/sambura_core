@@ -3,11 +3,11 @@ import 'package:sambura_core/domain/value_objects/value_objects.dart';
 
 class ArtifactEntity {
   final int? id;
-  final ExternalId externalId; // VO: UUID v7
+  final ExternalId externalId;
   final int packageId;
-  final String namespace; // Opcional: Criar VO se quiser validar scopes @
-  final PackageName packageName; // VO: Valida contra caracteres proibidos
-  final SemVer version; // VO: Garante que é 1.0.0 e não "v1"
+  final String namespace;
+  final PackageName packageName;
+  final SemVer version;
   final String path;
   final int? blobId;
   final BlobEntity? blob;
@@ -61,7 +61,7 @@ class ArtifactEntity {
   }) {
     return ArtifactEntity._(
       id: id,
-      externalId: ExternalId(externalId), // Reconstrói o VO com o ID existente
+      externalId: ExternalId(externalId),
       packageId: packageId,
       namespace: namespace,
       packageName: PackageName(packageName),

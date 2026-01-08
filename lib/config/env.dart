@@ -203,11 +203,11 @@ class Env {
       vaultToken: getString('VAULT_TOKEN', defaultValue: 'root_token_sambura'),
       vaultAuthPath: getString(
         'VAULT_AUTH_PATH',
-        defaultValue: 'secret/data/sambura/database',
+        defaultValue: 'secret/data/sambura/auth',
       ),
       vaultDatabasePath: getString(
         'VAULT_DATABASE_PATH',
-        defaultValue: 'secret/data/sambura/auth',
+        defaultValue: 'secret/data/sambura/database',
       ),
 
       logLevel: getString('LOG_LEVEL', defaultValue: 'INFO'),
@@ -215,7 +215,10 @@ class Env {
         'LOG_FILE_PATH',
         defaultValue: '/app/logs/app.log',
       ),
-      depTrackUrl: getString('DEPENDENCY_TRACK_URL', defaultValue: ''),
+      depTrackUrl: getString(
+        'DEPENDENCY_TRACK_URL',
+        defaultValue: 'http://localhost:8881',
+      ),
       depTrackApiKey: getString('DEPENDENCY_TRACK_APIKEY', defaultValue: ''),
     );
   }

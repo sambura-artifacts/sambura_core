@@ -28,10 +28,10 @@ import 'package:sambura_core/infrastructure/shared/api/controller/metrics_contro
 
 // Database & Repositories
 import 'package:sambura_core/infrastructure/shared/database/postgres_connector.dart';
-import 'package:sambura_core/infrastructure/artifact/repository/postgres_blob_repository.dart';
-import 'package:sambura_core/infrastructure/artifact/repository/silo_blob_repository.dart';
+import 'package:sambura_core/infrastructure/artifact/repository/postgres/postgres_blob_repository.dart';
+import 'package:sambura_core/infrastructure/artifact/repository/storage/storage_blob_repository.dart';
 import 'package:sambura_core/infrastructure/repository/repository/postgres_repository_repository.dart';
-import 'package:sambura_core/infrastructure/artifact/repository/postgres_artifact_repository.dart';
+import 'package:sambura_core/infrastructure/artifact/repository/postgres/postgres_artifact_repository.dart';
 import 'package:sambura_core/infrastructure/package/repository/postgres_package_repository.dart';
 import 'package:sambura_core/infrastructure/account/repository/postgres_account_repository.dart';
 import 'package:sambura_core/infrastructure/auth/repository/postgres_api_key_repository.dart';
@@ -104,7 +104,9 @@ class DependencyInjection {
     // 1. INFRAESTRUTURA BASE (SECRETS & DATABASE)
     di.vaultService = VaultService(env.vaultUrl, env.vaultToken);
     final authSecrets = await di.vaultService.getSecrets(env.vaultAuthPath);
+    log.info("authSecrets $authSecrets");
     final dbSecrets = await di.vaultService.getSecrets(env.vaultDatabasePath);
+    log.info("dbSecrets $dbSecrets");
 
     if (dbSecrets.isEmpty || authSecrets.isEmpty) {
       throw Exception('Vault secrets missing');
@@ -136,6 +138,8 @@ class DependencyInjection {
     PrometheusMetricsAdapter.initialize();
     di.metricsPort = PrometheusMetricsAdapter();
 
+    log.info("type ${authSecrets['']}");
+
     // 3. ADAPTERS & REPOSITORIES
     di.hashPort = BcryptHashAdapter(authSecrets['pepper']);
     di.accountRepository = PostgresAccountRepository(postgresConnector);
@@ -145,7 +149,7 @@ class DependencyInjection {
     final artifactRepo = PostgresArtifactRepository(postgresConnector);
     final packageRepo = PostgresPackageRepository(postgresConnector);
     final postgresBlobRepo = PostgresBlobRepository(postgresConnector);
-    final siloBlobRepo = SiloBlobRepository(minioAdapter, postgresBlobRepo);
+    final siloBlobRepo = StorageBlobRepository(minioAdapter, postgresBlobRepo);
     final compliancePort = DependencyTrackAdapter(
       HttpClientAdapter(http.Client()),
       env.depTrackUrl,

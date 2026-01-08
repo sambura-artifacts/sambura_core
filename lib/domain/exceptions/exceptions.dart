@@ -4,3 +4,5 @@
 
 export '../shared/exception/domain_exception.dart';
 export '../auth/exception/security_exception.dart';
+export '../artifact/exception/artifact_exception.dart';
+export '../artifact/exception/blob_exception.dart';

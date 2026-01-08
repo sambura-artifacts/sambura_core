@@ -1,8 +1,6 @@
 import 'package:sambura_core/domain/entities/entities.dart';
 
-/// Factory para criar instâncias de ArtifactEntity
 class ArtifactFactory {
-  /// Cria um novo artefato
   static ArtifactEntity create({
     required int packageId,
     required String namespace,

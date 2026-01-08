@@ -82,6 +82,7 @@ class InMemoryAccountRepository implements AccountRepository {
 
   @override
   Future<AccountEntity?> create(AccountEntity account) async => null;
+  @override
   Future<AccountEntity?> findByEmail(String email) async => null;
   @override
   Future<AccountEntity?> findById(int id) async => null;

@@ -8,11 +8,6 @@ class RepositoryNotFoundException extends DomainException {
     : super('Repositório "$repository" não encontrado.');
 }
 
-class ArtifactNotFoundException extends DomainException {
-  ArtifactNotFoundException(String package)
-    : super('Artefato "$package" não encontrado.');
-}
-
 class ExternalIdInvalidException extends DomainException {
   ExternalIdInvalidException(String externalId)
     : super("ExternalId inválido $externalId");
@@ -36,10 +31,6 @@ class RoleException extends DomainException {
 
 class PackageNameException extends DomainException {
   PackageNameException(super.message);
-}
-
-class SemVerException extends DomainException {
-  SemVerException(super.message);
 }
 
 class VersionConflictException extends DomainException {
