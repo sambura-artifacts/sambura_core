@@ -1,14 +1,10 @@
-import 'package:sambura_core/domain/value_objects/email.dart';
-import 'package:sambura_core/domain/value_objects/external_id.dart';
-import 'package:sambura_core/domain/value_objects/password.dart';
-import 'package:sambura_core/domain/value_objects/role.dart';
-import 'package:sambura_core/domain/value_objects/username.dart';
+import 'package:sambura_core/domain/value_objects/value_objects.dart';
 
 class AccountEntity {
   final int? id;
   final ExternalId externalId;
   final Username username; // Use final para imutabilidade da entidade
-  final Password password;
+  final Password? password;
   final Email email;
   final Role role;
   final DateTime? createdAt;
@@ -44,20 +40,20 @@ class AccountEntity {
 
   // Factory para reconstruir do Banco de Dados (Dados já validados)
   factory AccountEntity.restore({
-    required int id,
+    required int? id,
     required String externalId,
     required String username,
-    required String password, // Nomeado para clareza
+    required String? password,
     required String email,
     required String role,
-    required DateTime createdAt,
+    DateTime? createdAt,
     DateTime? lastLoginAt,
   }) {
     return AccountEntity._(
       id: id,
       externalId: ExternalId(externalId),
       username: Username(username),
-      password: Password(password), // No restore, o VO Password aceita o hash
+      password: password != null ? Password(password) : null,
       email: Email(email),
       role: Role(role),
       createdAt: createdAt,
@@ -81,8 +77,4 @@ class AccountEntity {
 
   // Getters simplificados
   bool get isAdmin => role.isAdmin;
-  String get passwordHash => password.value;
-  String get usernameValue => username.value;
-  String get externalIdValue => externalId.value;
-  String get roleValue => role.value;
 }

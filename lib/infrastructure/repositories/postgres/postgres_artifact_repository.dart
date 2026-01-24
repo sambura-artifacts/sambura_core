@@ -1,37 +1,47 @@
 import 'package:logging/logging.dart';
 import 'package:sambura_core/config/logger.dart';
-import 'package:sambura_core/domain/entities/blob_entity.dart';
-import 'package:sambura_core/domain/repositories/artifact_repository.dart';
-import 'package:sambura_core/domain/entities/artifact_entity.dart';
 import 'package:sambura_core/infrastructure/database/postgres_connector.dart';
+import 'package:sambura_core/infrastructure/mappers/artifact_mapper.dart';
+import 'package:sambura_core/infrastructure/mappers/blob_mapper.dart';
+import 'package:sambura_core/domain/entities/entities.dart';
+import 'package:sambura_core/domain/repositories/repositories.dart';
 
 class PostgresArtifactRepository implements ArtifactRepository {
-  final PostgresConnector _db;
+  final PostgresConnector _connection;
   final Logger _log = LoggerConfig.getLogger('PostgresArtifactRepository');
 
-  PostgresArtifactRepository(this._db);
+  PostgresArtifactRepository(this._connection);
 
   @override
   Future<ArtifactEntity> save(ArtifactEntity artifact) async {
+    // Usamos um DO UPDATE SET version = EXCLUDED.version (que não muda nada)
+    // apenas para forçar o RETURNING a devolver a linha em caso de conflito.
     const sql = '''
-    INSERT INTO artifacts (package_id, blob_id, external_id, version, path, created_at) 
-    VALUES (@packageId, @blobId, @externalId, @version, @path, @createdAt) 
-    RETURNING id
+    INSERT INTO artifacts (package_id, blob_id, external_id, version, path, created_at)
+    VALUES (@packageId, @blobId, @externalId, @version, @path, @createdAt)
+    ON CONFLICT ON CONSTRAINT unique_version_per_package 
+    DO UPDATE SET version = EXCLUDED.version
+    RETURNING id;
   ''';
 
-    final params = {
-      'packageId': artifact.packageId,
-      'blobId': artifact.blob!.id,
-      'externalId': artifact.externalId.value,
-      'version': artifact.version.value,
-      'path': artifact.path,
-      'createdAt': artifact.createdAt,
-    };
-
     try {
-      final result = await _db.query(sql, params);
+      final result = await _connection.query(
+        sql,
+        substitutionValues: {
+          'packageId': artifact.packageId,
+          'blobId': artifact.blob!.id,
+          'externalId': artifact.externalId.value,
+          'version': artifact.version.value,
+          'path': artifact.path,
+          'createdAt': artifact.createdAt,
+        },
+      );
+
       final id = result.first[0] as int;
-      _log.info('Artifact salvo no banco: id=$id, version=${artifact.version}');
+
+      _log.info(
+        '📦 Artifact processado (Insert/Upsert): id=$id, version=${artifact.version}',
+      );
       return artifact.copyWith(id: id);
     } catch (e, stackTrace) {
       _log.severe('Erro ao salvar artifact', e, stackTrace);
@@ -43,7 +53,7 @@ class PostgresArtifactRepository implements ArtifactRepository {
   Future<ArtifactEntity?> getByPath(String namespace, String path) async {
     _log.fine('Buscando artifact: namespace=$namespace, path=$path');
     try {
-      final res = await _db.query(
+      final res = await _connection.query(
         '''
           SELECT a.*, b.hash as blob_hash, b.size_bytes, b.mime_type 
           FROM artifacts a
@@ -53,7 +63,7 @@ class PostgresArtifactRepository implements ArtifactRepository {
           WHERE r.namespace = @namespace AND a.path = @path
           LIMIT 1
         ''',
-        {'namespace': namespace, 'path': path},
+        substitutionValues: {'namespace': namespace, 'path': path},
       );
 
       if (res.isEmpty) {
@@ -72,7 +82,7 @@ class PostgresArtifactRepository implements ArtifactRepository {
   Future<List<ArtifactEntity>> listArtifactsByPackage(int packageId) async {
     _log.fine('Listando versões do package ID: $packageId');
     try {
-      final res = await _db.query(
+      final res = await _connection.query(
         '''
           SELECT a.*, b.hash as blob_hash, b.size_bytes, b.mime_type 
           FROM artifacts a
@@ -80,7 +90,7 @@ class PostgresArtifactRepository implements ArtifactRepository {
           WHERE a.package_id = @pkgId
           ORDER BY a.created_at DESC
         ''',
-        {'pkgId': packageId},
+        substitutionValues: {'pkgId': packageId},
       );
 
       _log.info('${res.length} versões encontradas para package $packageId');
@@ -95,14 +105,14 @@ class PostgresArtifactRepository implements ArtifactRepository {
 
   @override
   Future<ArtifactEntity?> getByExternalId(String externalId) async {
-    final res = await _db.query(
+    final res = await _connection.query(
       '''
         SELECT a.*, b.hash as blob_hash, b.size_bytes, b.mime_type 
         FROM artifacts a 
         JOIN blobs b ON a.blob_id = b.id 
         WHERE a.external_id = @extId
       ''',
-      {'extId': externalId},
+      substitutionValues: {'extId': externalId},
     );
     if (res.isEmpty) return null;
     return _fromRepository(res.first.toColumnMap(), res.first.toColumnMap());
@@ -110,7 +120,7 @@ class PostgresArtifactRepository implements ArtifactRepository {
 
   @override
   Future<List<ArtifactEntity>> listByNamespace(String namespace) async {
-    final res = await _db.query(
+    final res = await _connection.query(
       '''
         SELECT a.*, b.hash as blob_hash, b.size_bytes, b.mime_type 
         FROM artifacts a
@@ -119,7 +129,7 @@ class PostgresArtifactRepository implements ArtifactRepository {
         JOIN blobs b ON a.blob_id = b.id
         WHERE r.namespace = @namespace
       ''',
-      {'namespace': namespace},
+      substitutionValues: {'namespace': namespace},
     );
     return res
         .map((row) => _fromRepository(row.toColumnMap(), row.toColumnMap()))
@@ -135,7 +145,7 @@ class PostgresArtifactRepository implements ArtifactRepository {
     try {
       _log.info('🔍 Buscando hash no banco: $namespace/$name@$version');
 
-      final result = await _db.query(
+      final result = await _connection.query(
         '''
       SELECT b.hash 
       FROM artifacts a
@@ -147,7 +157,11 @@ class PostgresArtifactRepository implements ArtifactRepository {
         AND a.version = @version
       LIMIT 1
     ''',
-        {'repo_name': namespace, 'package_name': name, 'version': version},
+        substitutionValues: {
+          'repo_name': namespace,
+          'package_name': name,
+          'version': version,
+        },
       );
 
       if (result.isEmpty) {
@@ -166,12 +180,78 @@ class PostgresArtifactRepository implements ArtifactRepository {
   }
 
   @override
+  Future<ArtifactEntity?> findByNameAndVersion(
+    String namespace,
+    String name,
+    String version,
+  ) async {
+    return await _connection
+        .query(
+          '''
+    SELECT id, external_id, namespace, name, version, metadata, created_at
+    FROM artifacts
+    WHERE namespace = @namespace 
+      AND name = @name 
+      AND version = @version
+    LIMIT 1
+    ''',
+          substitutionValues: {
+            'namespace': namespace,
+            'name': name,
+            'version': version,
+          },
+        )
+        .then((result) {
+          if (result.isEmpty) return null;
+
+          // Mapeia o primeiro (e único) resultado para sua Entity
+          return ArtifactMapper.fromMap(result.first.toColumnMap());
+        });
+  }
+
+  @override
+  Future<ArtifactEntity?> findByFileName(
+    String repositoryName,
+    String packageName,
+    String fileName,
+  ) async {
+    final query = '''
+      SELECT 
+          a.*, 
+          r.name as namespace, 
+          p.name as package_name,
+          b.hash as blob_hash,
+          b.size_bytes as blob_size,
+          b.mime_type as blob_mime
+      FROM artifacts a
+      INNER JOIN packages p ON a.package_id = p.id
+      INNER JOIN repositories r ON p.repository_id = r.id
+      LEFT JOIN blobs b ON a.blob_id = b.id -- JOIN necessário para preencher o objeto blob
+      WHERE a.path = @file AND p.name = @pkg AND r.name = @repo
+      LIMIT 1;
+    ''';
+
+    final result = await _connection.query(
+      query,
+      substitutionValues: {
+        'repo': repositoryName,
+        'pkg': packageName,
+        'file': fileName,
+      },
+    );
+
+    if (result.isEmpty) return null;
+
+    return ArtifactMapper.fromMap(result.first.toColumnMap());
+  }
+
+  @override
   Future<ArtifactEntity?> findOne(
     String repoName,
     String packageName,
     String version,
   ) async {
-    final result = await _db.query(
+    final result = await _connection.query(
       '''
     SELECT a.*, r.name as repo_name, r.namespace as repo_namespace
     FROM artifacts a
@@ -182,7 +262,11 @@ class PostgresArtifactRepository implements ArtifactRepository {
       AND a.version = @version
     LIMIT 1
     ''',
-      {'repoName': repoName, 'packageName': packageName, 'version': version},
+      substitutionValues: {
+        'repoName': repoName,
+        'packageName': packageName,
+        'version': version,
+      },
     );
 
     if (result.isEmpty) return null;
@@ -196,7 +280,7 @@ class PostgresArtifactRepository implements ArtifactRepository {
     String repoName,
     String packageName,
   ) async {
-    final results = await _db.query(
+    final results = await _connection.query(
       '''
     SELECT 
       a.id, a.external_id, a.version, a.path, a.created_at, a.package_id, a.blob_id,
@@ -209,7 +293,7 @@ class PostgresArtifactRepository implements ArtifactRepository {
     JOIN blobs b ON a.blob_id = b.id
     WHERE p.name = @packageName AND r.name = @repoName
   ''',
-      {'packageName': packageName, 'repoName': repoName},
+      substitutionValues: {'packageName': packageName, 'repoName': repoName},
     );
 
     return results.map((row) {
@@ -228,7 +312,7 @@ class PostgresArtifactRepository implements ArtifactRepository {
         'created_at': (map['created_at'] ?? DateTime.now()).toString(),
         'blob_data': {
           'id': map['b_id'],
-          'hash_value': (map['b_hash'] ?? '').toString(),
+          'hash': (map['b_hash'] ?? '').toString(),
           'size_bytes': map['b_size_bytes'] ?? 0,
           'mime_type': (map['b_mime_type'] ?? 'application/octet-stream')
               .toString(),
@@ -243,7 +327,7 @@ class PostgresArtifactRepository implements ArtifactRepository {
   Future<void> delete(ArtifactEntity artifact) async {
     if (artifact.id == null) return;
     _log.info('Deletando artifact ID: ${artifact.id}');
-    await _db.execute('DELETE FROM artifacts WHERE id = @id', {
+    await _connection.execute('DELETE FROM artifacts WHERE id = @id', {
       'id': artifact.id.toString(),
     });
   }
@@ -261,7 +345,7 @@ class PostgresArtifactRepository implements ArtifactRepository {
       blob:
           blob ??
           (map['blob_data'] != null
-              ? BlobEntity.fromMap(map['blob_data'])
+              ? BlobMapper.fromMap(map['blob_data'])
               : null),
       createdAt: map['created_at'] is DateTime
           ? map['created_at'] as DateTime
@@ -284,18 +368,22 @@ class PostgresArtifactRepository implements ArtifactRepository {
       path: artifactRow['path'] as String,
       blobId: artifactRow['blob_id'] as int?,
       // Reconstrói o BlobEntity usando o restore dele
-      blob: BlobEntity.restore(
-        blobRow['id'] as int,
-        blobRow['hash_value'] as String,
-        blobRow['size_bytes'] as int,
-        blobRow['mime_type'] as String,
-        blobRow['created_at'] is DateTime
-            ? blobRow['created_at'] as DateTime
-            : DateTime.parse(blobRow['created_at'].toString()),
-      ),
+      blob: BlobMapper.fromMap(blobRow),
       createdAt: artifactRow['created_at'] is DateTime
           ? artifactRow['created_at'] as DateTime
           : DateTime.parse(artifactRow['created_at'].toString()),
     );
+  }
+
+  @override
+  Future<bool> isHealthy() async {
+    try {
+      // Executa uma query mínima para testar a conexão
+      final result = await _connection.query('SELECT 1');
+      return result.isNotEmpty;
+    } catch (e) {
+      _log.severe('❌ Database health check falhou: $e');
+      return false;
+    }
   }
 }

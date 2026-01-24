@@ -1,4 +1,4 @@
-import 'package:sambura_core/domain/entities/api_key_entity.dart';
+import 'package:sambura_core/domain/entities/entities.dart';
 
 abstract class ApiKeyRepository {
   Future<void> create({

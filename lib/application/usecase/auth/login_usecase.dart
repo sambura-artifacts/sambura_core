@@ -1,8 +1,8 @@
 import 'package:dart_jsonwebtoken/dart_jsonwebtoken.dart';
 import 'package:logging/logging.dart';
 import 'package:sambura_core/config/logger.dart';
-import 'package:sambura_core/infrastructure/services/auth/hash_service.dart';
-import 'package:sambura_core/domain/repositories/account_repository.dart';
+import 'package:sambura_core/application/ports/ports.dart';
+import 'package:sambura_core/domain/repositories/repositories.dart';
 
 class LoginResult {
   final String token;
@@ -13,11 +13,11 @@ class LoginResult {
 
 class LoginUsecase {
   final AccountRepository _repo;
-  final HashService _hashService;
+  final HashPort _hash;
   final String _jwtSecret;
   final Logger _log = LoggerConfig.getLogger('LoginUsecase');
 
-  LoginUsecase(this._repo, this._hashService, this._jwtSecret);
+  LoginUsecase(this._repo, this._hash, this._jwtSecret);
 
   Future<LoginResult?> execute(String username, String password) async {
     _log.info('Executando autenticação para usuário: $username');
@@ -32,7 +32,7 @@ class LoginUsecase {
       }
 
       _log.fine('Verificando hash da senha');
-      final isValid = _hashService.verify(password, account.passwordHash);
+      final isValid = _hash.verifyPassword(password, account.password!.value);
 
       if (!isValid) {
         _log.warning('✗ Senha inválida para usuário: $username');
@@ -41,14 +41,13 @@ class LoginUsecase {
 
       _log.fine('Gerando JWT token');
       final payload = {
-        'sub': account.externalId.value, // .value extrai a String
-        'username': account.username.value,
+        'sub': account.externalId.value,
         'role': account.role.value,
       };
       final jwt = JWT(
         payload,
         issuer: 'sambura-auth',
-        subject: account.id.toString(),
+        subject: account.externalId.value,
       );
 
       final token = jwt.sign(
@@ -59,7 +58,7 @@ class LoginUsecase {
       _log.info(
         '✓ Autenticação bem-sucedida: $username (role: ${account.role})',
       );
-      return LoginResult(token, account.usernameValue);
+      return LoginResult(token, account.username.value);
     } catch (e, stack) {
       _log.severe('✗ Erro durante autenticação para: $username', e, stack);
       rethrow;

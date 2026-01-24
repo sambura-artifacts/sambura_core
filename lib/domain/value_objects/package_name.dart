@@ -1,4 +1,4 @@
-import 'package:sambura_core/domain/exceptions/domain_exception.dart';
+import 'package:sambura_core/domain/exceptions/exceptions.dart';
 
 class PackageName {
   final String value;

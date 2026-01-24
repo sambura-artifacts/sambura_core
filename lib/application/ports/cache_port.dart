@@ -2,7 +2,7 @@
 ///
 /// Define o contrato para operações de cache distribuído.
 /// Pode ser implementado com Redis, Memcached, ou cache em memória.
-abstract class ICachePort {
+abstract class CachePort {
   /// Armazena um valor no cache com tempo de expiração.
   ///
   /// [key] - Chave única
@@ -44,4 +44,13 @@ abstract class ICachePort {
   /// [key] - Chave única
   /// [ttl] - Time to live
   Future<void> expire(String key, Duration ttl);
+
+  Future<bool> isHealthy();
+
+  Future<bool> acquireLock(
+    String key, {
+    Duration duration = const Duration(seconds: 30),
+  });
+
+  Future<void> releaseLock(String key);
 }

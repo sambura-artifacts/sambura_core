@@ -6,8 +6,8 @@ import 'package:sambura_core/application/usecase/api_key/list_api_keys_usecase.d
 import 'package:sambura_core/application/usecase/api_key/revoke_api_key_usecase.dart';
 import 'package:shelf/shelf.dart';
 import 'package:shelf_router/shelf_router.dart';
-import 'package:sambura_core/domain/entities/account_entity.dart';
 import 'package:sambura_core/infrastructure/api/presenter/admin/api_key_presenter.dart';
+import 'package:sambura_core/domain/entities/entities.dart';
 
 class ApiKeyController {
   final GenerateApiKeyUsecase _generateApiKeyUsecase;
@@ -60,9 +60,16 @@ class ApiKeyController {
         '[REQ:$requestId] Gerando API key para usuário: ${user.username}, nome da chave: $keyName',
       );
 
+      var expiresInDays = payload['expires_in_days'];
+
+      if (expiresInDays == null || expiresInDays.isNaN) {
+        expiresInDays = 30;
+      }
+
       final result = await _generateApiKeyUsecase.execute(
         accountId: user.id!,
         keyName: keyName,
+        expiresInDays: expiresInDays,
       );
 
       _log.info(
@@ -133,7 +140,7 @@ class ApiKeyController {
     try {
       await _revokeApiKeyUsecase.execute(
         key: id,
-        requestUserId: user.externalIdValue,
+        requestUserId: user.externalId.value,
       );
       _log.info('[REQ:$requestId] ✓ API key revogada com sucesso: ID=$keyId');
       return ApiKeyPresenter.revoked(keyId);

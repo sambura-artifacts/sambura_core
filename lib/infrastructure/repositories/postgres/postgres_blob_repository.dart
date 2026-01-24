@@ -1,9 +1,10 @@
 import 'dart:typed_data';
 import 'package:logging/logging.dart';
 import 'package:sambura_core/config/logger.dart';
-import 'package:sambura_core/domain/repositories/blob_repository.dart';
-import 'package:sambura_core/domain/entities/blob_entity.dart';
 import 'package:sambura_core/infrastructure/database/postgres_connector.dart';
+import 'package:sambura_core/infrastructure/mappers/blob_mapper.dart';
+import 'package:sambura_core/domain/entities/entities.dart';
+import 'package:sambura_core/domain/repositories/repositories.dart';
 
 class PostgresBlobRepository implements BlobRepository {
   final PostgresConnector _db;
@@ -22,14 +23,17 @@ class PostgresBlobRepository implements BlobRepository {
         RETURNING id, hash, size_bytes, mime_type, created_at;
       ''';
 
-      final result = await _db.query(sql, {
-        'hash': blob.hashValue,
-        'size': blob.sizeBytes,
-        'mime': blob.mimeType,
-      });
+      final result = await _db.query(
+        sql,
+        substitutionValues: {
+          'hash': blob.hash,
+          'size': blob.sizeBytes,
+          'mime': blob.mimeType,
+        },
+      );
 
       final row = result.first.toColumnMap();
-      return _mapRow(row);
+      return BlobMapper.fromMap(row);
     } catch (e, stackTrace) {
       _log.severe('Erro ao salvar blob', e, stackTrace);
       rethrow;
@@ -48,7 +52,7 @@ class PostgresBlobRepository implements BlobRepository {
   }
 
   @override
-  Future<Stream<Uint8List>> readAsStream(String hashValue) async {
+  Future<Stream<Uint8List>> readAsStream(String hash) async {
     // A leitura do binário é papel do Storage (MinIO)
     throw UnimplementedError(
       'O binário mora no MinIO, busque via SiloBlobRepository!',
@@ -58,42 +62,41 @@ class PostgresBlobRepository implements BlobRepository {
   // --- BUSCAS ---
 
   @override
-  Future<BlobEntity?> findByHash(String hashValue) async {
-    final result = await _db.query('SELECT * FROM blobs WHERE hash = @hash', {
-      'hash': hashValue,
-    });
-    return result.isEmpty ? null : _mapRow(result.first.toColumnMap());
+  Future<BlobEntity?> findByHash(String hash) async {
+    final result = await _db.query(
+      'SELECT * FROM blobs WHERE hash = @hash',
+      substitutionValues: {'hash': hash},
+    );
+    return result.isEmpty
+        ? null
+        : BlobMapper.fromMap(result.first.toColumnMap());
   }
 
   @override
   Future<BlobEntity?> findById(int id) async {
-    final result = await _db.query('SELECT * FROM blobs WHERE id = @id', {
-      'id': id,
-    });
-    return result.isEmpty ? null : _mapRow(result.first.toColumnMap());
+    final result = await _db.query(
+      'SELECT * FROM blobs WHERE id = @id',
+      substitutionValues: {'id': id},
+    );
+    return result.isEmpty
+        ? null
+        : BlobMapper.fromMap(result.first.toColumnMap());
   }
 
   @override
-  Future<bool> exists(String hashValue) async {
-    final result = await _db.query('SELECT 1 FROM blobs WHERE hash = @hash', {
-      'hash': hashValue,
-    });
+  Future<bool> exists(String hash) async {
+    final result = await _db.query(
+      'SELECT 1 FROM blobs WHERE hash = @hash',
+      substitutionValues: {'hash': hash},
+    );
     return result.isNotEmpty;
   }
 
   @override
   Future<void> delete(int id) async {
-    await _db.query('DELETE FROM blobs WHERE id = @id', {'id': id});
-  }
-
-  // Helper pra não repetir código de mapeamento
-  BlobEntity _mapRow(Map<String, dynamic> row) {
-    return BlobEntity.restore(
-      row['id'] as int,
-      row['hash'] as String,
-      row['size_bytes'] as int,
-      row['mime_type'] as String,
-      row['created_at'] as DateTime? ?? DateTime.now(),
+    await _db.query(
+      'DELETE FROM blobs WHERE id = @id',
+      substitutionValues: {'id': id},
     );
   }
 

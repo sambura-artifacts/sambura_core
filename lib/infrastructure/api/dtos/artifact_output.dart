@@ -1,4 +1,4 @@
-import 'package:sambura_core/domain/entities/artifact_entity.dart';
+import 'package:sambura_core/domain/entities/entities.dart';
 
 /// DTO de saída para informar o sucesso da criação ou detalhes do artefato.
 class ArtifactOutput {

@@ -21,7 +21,7 @@ void main() {
         // Assert
         expect(account, isA<AccountEntity>());
         expect(account.username.value, equals(username));
-        expect(account.password.value, equals(password));
+        expect(account.password!.value, equals(password));
         expect(account.email.value, equals(email));
         expect(account.role.value, equals('developer')); // role padrão
         expect(account.externalId, isNotNull);
@@ -92,7 +92,7 @@ void main() {
         expect(account.id, equals(id));
         expect(account.externalId.value, equals(externalId));
         expect(account.username.value, equals(username));
-        expect(account.password.value, equals(password));
+        expect(account.password!.value, equals(password));
         expect(account.email.value, equals(email));
         expect(account.role.value, equals(role));
         expect(account.createdAt, equals(createdAt));
@@ -172,8 +172,8 @@ void main() {
 
         // Assert
         // Note: create não faz hash, apenas armazena como está
-        expect(created.password.value, equals(plainPassword));
-        expect(restored.password.value, equals(hashedPassword));
+        expect(created.password!.value, equals(plainPassword));
+        expect(restored.password!.value, equals(hashedPassword));
       });
 
       test('create não deve ter ID, restore deve ter', () {

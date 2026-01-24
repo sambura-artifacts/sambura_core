@@ -2,12 +2,8 @@ import 'dart:typed_data';
 import 'package:crypto/crypto.dart';
 import 'package:logging/logging.dart';
 import 'package:sambura_core/config/logger.dart';
-import 'package:sambura_core/domain/entities/artifact_entity.dart';
-import 'package:sambura_core/domain/entities/package_entity.dart';
-import 'package:sambura_core/domain/repositories/artifact_repository.dart';
-import 'package:sambura_core/domain/repositories/package_repository.dart';
-import 'package:sambura_core/domain/repositories/repository_repository.dart';
-import 'package:sambura_core/domain/repositories/blob_repository.dart';
+import 'package:sambura_core/domain/entities/entities.dart';
+import 'package:sambura_core/domain/repositories/repositories.dart';
 
 class UploadArtifactUsecase {
   final ArtifactRepository _artifactRepo;
@@ -43,7 +39,7 @@ class UploadArtifactUsecase {
       _log.fine('Salvando conteúdo no blob repository');
       final blobEntity = await _blobRepo.saveContent(fileHash, fileBytes);
       _log.fine(
-        'Blob salvo: ${blobEntity.hashValue.substring(0, 16)}... (${blobEntity.sizeBytes} bytes)',
+        'Blob salvo: ${blobEntity.hash.substring(0, 16)}... (${blobEntity.sizeBytes} bytes)',
       );
 
       // 2. Garante que o Repositório existe

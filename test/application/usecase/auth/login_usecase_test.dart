@@ -1,7 +1,7 @@
+import 'package:sambura_core/application/ports/hash_port.dart';
 import 'package:sambura_core/application/usecase/auth/login_usecase.dart';
 import 'package:sambura_core/domain/entities/account_entity.dart';
 import 'package:sambura_core/domain/repositories/account_repository.dart';
-import 'package:sambura_core/infrastructure/services/auth/hash_service.dart';
 import 'package:test/test.dart';
 
 class MockAccountRepository implements AccountRepository {
@@ -38,9 +38,12 @@ class MockAccountRepository implements AccountRepository {
   Future<void> update(AccountEntity account) async {
     throw UnimplementedError();
   }
+
+  @override
+  Future<bool> existsByRole(String role) async => false;
 }
 
-class MockHashService implements HashService {
+class MockHashService implements HashPort {
   bool shouldVerifySucceed = true;
 
   @override
@@ -49,8 +52,23 @@ class MockHashService implements HashService {
   }
 
   @override
-  bool verify(String password, String hash) {
-    return shouldVerifySucceed;
+  List<int> generateRandomBytes(int length) {
+    throw UnimplementedError();
+  }
+
+  @override
+  String generateRandomString(int length) {
+    throw UnimplementedError();
+  }
+
+  @override
+  String sha256Hash(List<int> data) {
+    throw UnimplementedError();
+  }
+
+  @override
+  bool verifyPassword(String password, String hash) {
+    throw UnimplementedError();
   }
 }
 

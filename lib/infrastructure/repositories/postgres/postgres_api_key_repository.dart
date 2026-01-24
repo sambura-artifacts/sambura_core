@@ -1,9 +1,9 @@
 import 'package:logging/logging.dart';
 import 'package:postgres/postgres.dart';
 import 'package:sambura_core/config/logger.dart';
-import 'package:sambura_core/domain/entities/api_key_entity.dart';
-import 'package:sambura_core/domain/repositories/api_key_repository.dart';
 import 'package:sambura_core/infrastructure/database/postgres_connector.dart';
+import 'package:sambura_core/domain/entities/entities.dart';
+import 'package:sambura_core/domain/repositories/repositories.dart';
 
 class PostgresApiKeyRepository implements ApiKeyRepository {
   final PostgresConnector _connector;
@@ -118,7 +118,10 @@ class PostgresApiKeyRepository implements ApiKeyRepository {
     try {
       final query = 'SELECT * FROM api_keys WHERE account_id = @accountId';
 
-      final result = await _connector.query(query, {'accountId': accountId});
+      final result = await _connector.query(
+        query,
+        substitutionValues: {'accountId': accountId},
+      );
 
       print("affectedRows: ${result.affectedRows}");
 
@@ -170,7 +173,10 @@ class PostgresApiKeyRepository implements ApiKeyRepository {
     ''';
 
     try {
-      final result = await _connector.query(sql, {'account_id': accountId});
+      final result = await _connector.query(
+        sql,
+        substitutionValues: {'account_id': accountId},
+      );
 
       final row = result.first.toColumnMap();
 

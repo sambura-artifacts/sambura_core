@@ -1,5 +1,4 @@
-import 'package:sambura_core/domain/value_objects/package_name.dart';
-import 'package:sambura_core/domain/value_objects/version.dart';
+import 'package:sambura_core/domain/value_objects/value_objects.dart';
 
 /// DTO de entrada para buscar artefato.
 class GetArtifactInput {

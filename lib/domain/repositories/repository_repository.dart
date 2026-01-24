@@ -1,4 +1,4 @@
-import 'package:sambura_core/domain/entities/repository_entity.dart';
+import 'package:sambura_core/domain/entities/entities.dart';
 
 abstract class RepositoryRepository {
   // Adiciona os parâmetros opcionais pra não quebrar quem já usa

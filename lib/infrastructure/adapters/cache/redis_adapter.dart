@@ -1,12 +1,12 @@
 import 'package:logging/logging.dart';
 import 'package:redis/redis.dart';
 import 'package:sambura_core/config/logger.dart';
-import 'package:sambura_core/application/ports/cache_port.dart';
+import 'package:sambura_core/application/ports/ports.dart';
 
 /// Adapter para Redis implementando ICachePort.
 ///
 /// Segue o padrão Hexagonal Architecture (Ports & Adapters).
-class RedisAdapter implements ICachePort {
+class RedisAdapter implements CachePort {
   final String _host;
   final int _port;
   final Logger _log = LoggerConfig.getLogger('RedisAdapter');
@@ -25,6 +25,7 @@ class RedisAdapter implements ICachePort {
 
       final conn = RedisConnection();
       _command = await conn.connect(_host, _port);
+
       _isConnected = true;
 
       _log.info('✅ Redis connected successfully');
@@ -156,6 +157,48 @@ class RedisAdapter implements ICachePort {
       _log.info('👋 Disconnecting from Redis');
       _isConnected = false;
       _command = null;
+    }
+  }
+
+  @override
+  Future<bool> isHealthy() async {
+    try {
+      final response = await _command!.send_object(['PING']);
+      return response == 'PONG';
+    } catch (e) {
+      _log.severe('❌ Erro de saúde no Redis: $e');
+      return false;
+    }
+  }
+
+  @override
+  Future<bool> acquireLock(
+    String key, {
+    Duration duration = const Duration(seconds: 30),
+  }) async {
+    try {
+      final response = await _command!.send_object([
+        "SET",
+        key,
+        "locked",
+        "EX",
+        duration.inSeconds.toString(),
+        "NX",
+      ]);
+
+      return response == "OK";
+    } catch (e) {
+      _log.warning('⚠️ Erro ao comunicar com Redis para lock: $e');
+      return false;
+    }
+  }
+
+  @override
+  Future<void> releaseLock(String key) async {
+    try {
+      await _command!.send_object(["DEL", key]);
+    } catch (e) {
+      _log.warning('⚠️ Erro ao liberar lock: $e');
     }
   }
 }

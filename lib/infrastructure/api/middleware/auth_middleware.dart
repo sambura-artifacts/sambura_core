@@ -1,20 +1,24 @@
 import 'dart:convert';
-
 import 'package:crypto/crypto.dart';
 import 'package:logging/logging.dart';
-import 'package:sambura_core/domain/repositories/account_repository.dart';
-import 'package:sambura_core/domain/repositories/api_key_repository.dart';
-import 'package:sambura_core/infrastructure/services/auth/auth_service.dart';
-import 'package:sambura_core/infrastructure/services/auth/hash_service.dart';
+
 import 'package:shelf/shelf.dart';
+
+// Ports
+
+// Adapters & Mappers
+import 'package:sambura_core/infrastructure/mappers/account_mapper.dart';
+import 'package:sambura_core/application/ports/ports.dart';
+import 'package:sambura_core/domain/repositories/repositories.dart';
 
 final _log = Logger('AuthMiddleware');
 
 Middleware authMiddleware(
   AccountRepository accountRepo,
-  AuthService authService,
   ApiKeyRepository keyRepo,
-  HashService hashService,
+  AuthPort authProvider,
+  CachePort cache,
+  MetricsPort metrics,
 ) {
   return (Handler innerHandler) {
     return (Request request) async {
@@ -26,73 +30,90 @@ Middleware authMiddleware(
 
       final token = authHeader.substring(7);
 
+      // --- 1. FLUXO DE API KEY (sb_...) ---
       if (token.startsWith('sb_')) {
         try {
           final hash = sha256.convert(utf8.encode(token)).toString();
-          _log.info("Hash $hash");
+          final cacheKey = 'auth:apikey:$hash';
 
-          final apiKeyData = await keyRepo.findByHash(hash);
-          _log.info("apiKeyData $apiKeyData");
+          final cachedUser = await cache.get(cacheKey);
+          if (cachedUser != null) {
+            // MÉTRICA: Cache Hit
+            metrics.recordAuthCache('hit', 'apikey');
 
-          if (apiKeyData == null) {
-            _log.warning('⚠️ ApiKey inválida ou não encontrada no banco.');
-            return Response(
-              401,
-              body: '{"error": "ApiKey inválida"}',
-              headers: {'content-type': 'application/json'},
-            );
+            final account = AccountMapper.fromMap(jsonDecode(cachedUser));
+            return innerHandler(request.change(context: {'user': account}));
           }
 
-          final isExpired =
-              apiKeyData.expiresAt != null &&
-              apiKeyData.expiresAt!.isBefore(DateTime.now());
+          final apiKeyData = await keyRepo.findByHash(hash);
+          if (apiKeyData == null || apiKeyData.isExpired) {
+            // MÉTRICA: Segurança
+            metrics.recordAuthFailure('invalid_apikey');
 
-          if (isExpired) {
-            _log.warning('⚠️ ApiKey expirada: ${apiKeyData.name}');
             return Response(
               401,
-              body: '{"error": "ApiKey expirada"}',
+              body: jsonEncode({'error': 'ApiKey inválida ou expirada'}),
               headers: {'content-type': 'application/json'},
             );
           }
 
           final account = await accountRepo.findById(apiKeyData.accountId);
-          if (account == null) {
-            _log.severe(
-              '🔥 ApiKey válida mas conta vinculada (ID: ${apiKeyData.accountId}) sumiu!',
+          if (account != null) {
+            // MÉTRICA: Cache Miss
+            metrics.recordAuthCache('miss', 'apikey');
+
+            await cache.set(
+              cacheKey,
+              jsonEncode(AccountMapper.toMap(account)),
+              ttl: const Duration(minutes: 5),
             );
-            return Response(
-              401,
-              body: '{"error": "Conta inválida"}',
-              headers: {'content-type': 'application/json'},
-            );
+
+            keyRepo.updateLastUsed(apiKeyData.id!);
+            return innerHandler(request.change(context: {'user': account}));
           }
-
-          _log.fine('✅ Acesso via ApiKey concedido: ${account.username}');
-          keyRepo.updateLastUsed(apiKeyData.id!);
-
-          final updatedRequest = request.change(context: {'user': account});
-          return innerHandler(updatedRequest);
         } catch (e, stack) {
-          _log.severe('💥 Erro ao validar ApiKey', e, stack);
-          return Response.internalServerError(
-            body: 'Erro interno na validação da chave',
-          );
+          _log.severe('Erro na validação de ApiKey', e, stack);
+          return Response.internalServerError();
         }
       }
 
+      // --- 2. FLUXO DE JWT (User Session) ---
       try {
-        final userId = authService.verifyToken(token);
-        if (userId != null) {
-          final account = await accountRepo.findById(int.parse(userId));
-          if (account != null) {
-            _log.fine('✅ Acesso via JWT concedido: ${account.username}');
-            final updatedRequest = request.change(context: {'user': account});
-            return innerHandler(updatedRequest);
-          }
+        final payload = authProvider.verifyToken(token);
+
+        if (payload == null) {
+          metrics.recordAuthFailure('invalid_jwt');
+          return innerHandler(request);
         }
-      } catch (e) {
-        _log.info('Token JWT inválido ou mal formatado ignorado.');
+
+        final String externalId = payload['sub'];
+        final cacheKey = 'auth:session:$externalId';
+
+        final cachedUser = await cache.get(cacheKey);
+        if (cachedUser != null) {
+          // MÉTRICA: Cache Hit
+          metrics.recordAuthCache('hit', 'jwt');
+
+          final account = AccountMapper.fromMap(jsonDecode(cachedUser));
+          return innerHandler(request.change(context: {'user': account}));
+        }
+
+        final account = await accountRepo.findByExternalId(externalId);
+        if (account != null) {
+          // MÉTRICA: Cache Miss
+          metrics.recordAuthCache('miss', 'jwt');
+
+          await cache.set(
+            cacheKey,
+            jsonEncode(AccountMapper.toMap(account)),
+            ttl: const Duration(minutes: 15),
+          );
+
+          return innerHandler(request.change(context: {'user': account}));
+        }
+      } catch (e, stack) {
+        _log.severe('Erro crítico no processamento de JWT', e, stack);
+        metrics.recordViolation('jwt_processing_error');
       }
 
       return innerHandler(request);

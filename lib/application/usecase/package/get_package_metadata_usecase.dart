@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'package:convert/convert.dart';
 import 'package:logging/logging.dart';
 import 'package:sambura_core/config/logger.dart';
-import 'package:sambura_core/domain/repositories/artifact_repository.dart';
+import 'package:sambura_core/domain/repositories/repositories.dart';
 
 class GetPackageMetadataUseCase {
   final ArtifactRepository _artifactRepo;
@@ -40,7 +40,7 @@ class GetPackageMetadataUseCase {
           continue;
         }
 
-        final hexHash = blob.hashValue;
+        final hexHash = blob.hash;
         final bytes = hex.decode(hexHash);
         final base64Hash = base64.encode(bytes);
         final integrity = "sha256-$base64Hash";

@@ -1,4 +1,4 @@
-import 'package:sambura_core/domain/entities/account_entity.dart';
+import 'package:sambura_core/domain/entities/entities.dart';
 
 /// Factory para criar instâncias de AccountEntity
 class AccountFactory {

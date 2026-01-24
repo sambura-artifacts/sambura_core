@@ -1,7 +1,9 @@
+import 'package:sambura_core/domain/entities/entities.dart';
+
 /// Port (Interface) para proxy de registries externos (NPM, PyPI, Maven, etc).
 ///
 /// Define o contrato para buscar e cachear pacotes de registries upstream.
-abstract class IRegistryProxyPort {
+abstract class RegistryProxyPort {
   /// Busca metadados de um pacote no registry externo.
   ///
   /// [packageName] - Nome do pacote
@@ -26,4 +28,12 @@ abstract class IRegistryProxyPort {
   /// [packageName] - Nome do pacote
   /// Returns: Lista de versões
   Future<List<String>> listVersions(String packageName);
+
+  Future<ArtifactEntity> fetchTarball({
+    required String packageName,
+    required String fileName,
+    required String repositoryName,
+  });
+
+  Future<ArtifactEntity> fetchAndStore(String packageName, String version);
 }

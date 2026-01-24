@@ -1,6 +1,6 @@
-import 'package:sambura_core/domain/exceptions/domain_exception.dart';
 import 'package:uuid/v7.dart';
 import 'package:uuid/validation.dart';
+import 'package:sambura_core/domain/exceptions/exceptions.dart';
 
 class ExternalId {
   final String value;

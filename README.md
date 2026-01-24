@@ -2,10 +2,11 @@
 
 > Registry privado universal de artefatos com proxy transparente, cache inteligente e Clean Architecture em Dart
 
+
+[![🛡️ Quality Gate](https://github.com/seu-usuario/sambura_core/actions/workflows/quality-gate.yml/badge.svg)](https://github.com/seu-usuario/sambura_core/actions)
 [![Dart Version](https://img.shields.io/badge/dart-%3E%3D3.0.0-blue.svg)](https://dart.dev/)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
-[![Coverage](https://img.shields.io/badge/coverage-80.1%25-brightgreen.svg)](COVERAGE_REPORT.md)
-[![Tests](https://img.shields.io/badge/tests-185%20total-blue.svg)]()
+[![Coverage](https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/usuario/id/raw/coverage.json)](COVERAGE_REPORT.md)
 
 ## 📋 Sumário
 
@@ -30,16 +31,25 @@
 **Samburá Core** é um registry privado universal de artefatos que permite:
 
 - 📦 **Gerenciar pacotes privados** de múltiplos ecossistemas
-- 🔐 **Autenticação JWT e API Keys** para controle de acesso granular
+- 🔐 **Autenticação JWT com UUID v7** + API Keys com cache Redis
 - 💾 **Armazenamento híbrido** S3 (MinIO) + PostgreSQL + Redis
 - 🔄 **Proxy transparente com cache** para registries públicos (NPM, Maven, PyPI)
-- ⚡ **Alta performance** com cache inteligente em Redis
-- 🎨 **Clean Architecture** garantindo manutenibilidade e testabilidade
+- ⚡ **Cache-aside pattern** com Redis para autenticação (JWT + API Keys)
+- 🎨 **Clean Architecture** com SOLID rigorosamente aplicado
 - 🧪 **Cobertura de testes** de 80.1% (335/418 linhas)
-- 🐳 **Docker ready** para deploy simplificado
+- 🐳 **Docker ready** com Grafana + Prometheus + Loki
 - 🔒 **Integração com Vault** para gestão segura de credenciais
+- 🆔 **UUID v7** para IDs externos (timestamp-sortable)
+- 🗺️ **Mappers** mantendo Domain Entities puros (sem lógica de serialização)
 
 ### 🎁 Funcionalidades Principais
+
+**Autenticação Moderna (Cache-Aside)**
+- JWT com UUID v7 como subject (timestamp-sortable)
+- Cache Redis de contas autenticadas (reduz load do DB)
+- API Keys com cache em memória
+- Separação clara: AuthMiddleware resolve identidade, RequireAuthMiddleware valida
+- Mappers para manter Domain Entities puros
 
 **Proxy NPM Transparente (Uplink)**
 - Busca automática de pacotes não encontrados localmente
@@ -53,11 +63,15 @@
 - Controle de acesso por repositório
 - Metadados completos e versionamento
 
-**Autenticação e Segurança**
-- Login JWT com refresh tokens
-- API Keys com permissões granulares
-- Integração com HashiCorp Vault
-- Rate limiting e proteção contra ataques
+**Observabilidade e Monitoramento**
+- Structured logging com contexto
+- Integração Grafana + Prometheus + Loki
+- Health checks detalhados (Postgres, Redis, MinIO)
+- Métricas Prometheus:
+  - Health: status e latência por componente
+  - Security: violações e falhas de autenticação
+  - Cache: hit/miss ratio e performance
+- Endpoint `/metrics` para scraping do Prometheus
 
 ## 🏗️ Arquitetura
 
@@ -67,19 +81,53 @@ O projeto segue os princípios da **Clean Architecture** com separação clara d
 ┌─────────────────────────────────────┐
 │          Presentation               │
 │  (Controllers, Routes, Presenters)  │
+│  ↓ AuthMiddleware (resolve user)    │
+│  ↓ RequireAuthMiddleware (validate) │
 ├─────────────────────────────────────┤
 │          Application                │
 │      (Use Cases, DTOs, Ports)       │
+│  ↓ Business rules & orchestration   │
 ├─────────────────────────────────────┤
 │            Domain                   │
 │  (Entities, Value Objects, Rules)   │
+│  ↓ Pure business logic (SOLID)      │
 ├─────────────────────────────────────┤
 │         Infrastructure              │
-│ (Repositories, Adapters, Services)  │
+│ (Repos, Adapters, Services, Cache)  │
+│  ↓ Redis Cache (Auth), Postgres,    │
+│     MinIO, Vault                    │
 └─────────────────────────────────────┘
 ```
 
-Para detalhes completos, veja [README_STRUCTURE.md](README_STRUCTURE.md).
+**Novidades na arquitetura:**
+- 🗺️ **Mappers**: Separam serialização do Domain (AccountMapper)
+- 🔄 **Cache-Aside**: Redis cache para auth (AuthMiddleware)
+- 🆔 **UUID v7**: IDs externos timestamp-sortable
+- 🎯 **Bootstrap Service**: Seed de dados iniciais
+- 📦 **Dependency Injection**: Container centralizado
+- 📚 **Barrel Files**: Imports limpos e organizados (v1.1)
+
+### 📚 Barrel Files (Imports Limpos)
+
+O projeto utiliza **barrel files** para imports mais limpos e organizados:
+
+```dart
+// ✅ BOM - Imports usando barrels
+import 'package:sambura_core/domain/entities/entities.dart';
+import 'package:sambura_core/domain/repositories/repositories.dart';
+import 'package:sambura_core/application/ports/ports.dart';
+
+// ❌ EVITE - Imports individuais
+import 'package:sambura_core/domain/entities/account_entity.dart';
+import 'package:sambura_core/domain/entities/artifact_entity.dart';
+import 'package:sambura_core/domain/repositories/account_repository.dart';
+```
+
+**Barrel files disponíveis:**
+- Domain: `entities/`, `factories/`, `value_objects/`, `repositories/`, `exceptions/`
+- Application: `usecases/`, `ports/`, `exceptions/`
+
+Para detalhes completos, veja [README_STRUCTURE.md](README_STRUCTURE.md) e [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
 ## 🛠️ Tecnologias
 
@@ -218,6 +266,26 @@ npm install @types/node
 Abra no navegador: `http://localhost:8080/api/v1/docs`
 
 ## 🌐 API
+
+### ⚠️ Estado Atual da API
+
+**Rotas Funcionais (Conectadas no MainRouter):**
+- ✅ `POST /api/v1/auth/login` - Login e geração de JWT
+- ✅ `POST /api/v1/auth/register` - Registro (requer autenticação)
+- ✅ `GET /api/v1/system/health` - Health check completo (Postgres, Redis, MinIO)
+- ✅ `GET /metrics` - Métricas Prometheus (saúde, segurança, cache)
+- ✅ `GET /api/v1/system/*` - Outras rotas do SystemController
+
+**Controllers Implementados mas NÃO Conectados:**
+- 🚧 ApiKeyController - CRUD de API Keys
+- 🚧 RepositoryController - CRUD de repositórios
+- 🚧 PackageController - Listagem e metadados NPM
+- 🚧 ArtifactController - Resolução e download
+- 🚧 BlobController - Download de blobs
+- 🚧 UploadController - Upload multipart/npm publish
+
+> 💡 Para conectar os controllers, edite `lib/infrastructure/api/routes/main_router.dart`
+> e siga as instruções no [swagger.yaml](specs/swagger.yaml)
 
 ### Endpoints Principais
 
@@ -410,6 +478,36 @@ npm install express            # Vem do NPM público
 GET /api/v1/npm/{repo}/{packageName}
 ```
 
+#### Observabilidade
+```bash
+# Health Check - Status de todos os componentes
+GET /api/v1/system/health
+Response:
+{
+  "status": "UP",
+  "checks": {
+    "postgres": {"status": "UP", "latency_ms": 2.3},
+    "redis": {"status": "UP", "latency_ms": 0.8},
+    "minio": {"status": "UP", "latency_ms": 5.1}
+  },
+  "timestamp": "2025-12-26T10:30:00Z"
+}
+
+# Métricas Prometheus (formato texto)
+GET /metrics
+Response:
+# HELP sambura_health_status Component health status (1=UP, 0=DOWN)
+# TYPE sambura_health_status gauge
+sambura_health_status{component="postgres"} 1
+sambura_health_status{component="redis"} 1
+sambura_health_status{component="minio"} 1
+
+# HELP sambura_health_latency_ms Component check latency in milliseconds
+# TYPE sambura_health_latency_ms gauge
+sambura_health_latency_ms{component="postgres"} 2.3
+...
+```
+
 Para documentação completa da API, acesse `/api/v1/docs` ou veja [specs/swagger.yaml](specs/swagger.yaml).
 
 ## 📁 Estrutura do Projeto
@@ -417,56 +515,115 @@ Para documentação completa da API, acesse `/api/v1/docs` ou veja [specs/swagge
 ```
 sambura_core/
 ├── bin/
-│   └── server.dart          # Ponto de entrada
+│   └── server.dart              # Ponto de entrada
 ├── lib/
-│   ├── application/         # Casos de uso e DTOs
+│   ├── application/             # Casos de uso e DTOs
 │   │   ├── usecase/
 │   │   │   ├── account/
 │   │   │   ├── api_key/
 │   │   │   ├── artifact/
 │   │   │   ├── auth/
+│   │   │   ├── health/         # ✨ Health check
 │   │   │   └── package/
 │   │   ├── dtos/
-│   │   ├── ports/
+│   │   ├── ports/               # Abstrações (AuthPort, MetricsPort, HealthCheckPort)
+│   │   ├── services/            # ✨ HealthCheckService
 │   │   └── exceptions/
-│   ├── domain/              # Regras de negócio
+│   ├── domain/                  # Regras de negócio
 │   │   ├── entities/
 │   │   ├── factories/
 │   │   ├── value_objects/
 │   │   ├── repositories/
 │   │   ├── services/
 │   │   └── exceptions/
-│   ├── infrastructure/      # Implementações
+│   ├── infrastructure/          # Implementações
 │   │   ├── adapters/
-│   │   │   ├── auth/
-│   │   │   ├── cache/
-│   │   │   ├── crypto/
-│   │   │   ├── secrets/
+│   │   │   ├── auth/           # ✨ LocalAuthAdapter, BcryptHashAdapter
+│   │   │   ├── health/         # ✨ Postgres, Redis, BlobStorage Health Checks
+│   │   │   ├── http/
+│   │   │   ├── observability/  # ✨ PrometheusMetricsAdapter
 │   │   │   └── storage/
 │   │   ├── api/
 │   │   │   ├── controller/
+│   │   │   │   ├── admin/      # ApiKeyController
+│   │   │   │   ├── artifact/   # Upload, Download, etc
+│   │   │   │   ├── auth/       # AuthController
+│   │   │   │   └── system/     # ✨ SystemController, MetricsController
 │   │   │   ├── presenter/
+│   │   │   │   └── auth/       # ✨ Login/Register presenters
 │   │   │   ├── middleware/
+│   │   │   │   ├── auth_middleware.dart            # ✨ Cache-aside
+│   │   │   │   ├── require_auth_middlware.dart     # ✨ Validation
+│   │   │   │   └── structured_log_middleware.dart  # ✨ Logging
 │   │   │   └── routes/
+│   │   ├── bootstrap/           # ✨ Bootstrap Service
+│   │   ├── mappers/             # ✨ AccountMapper
 │   │   ├── repositories/
 │   │   │   ├── postgres/
 │   │   │   └── blob/
 │   │   └── services/
-│   ├── shared/              # Código compartilhado
-│   └── config/              # Configurações
-├── test/                    # Testes
-├── docs/                    # Documentação
-├── sql/                     # Scripts SQL
-├── specs/                   # Swagger/OpenAPI
-├── docker-compose.yaml
-├── Dockerfile
+│   │       ├── auth/
+│   │       └── secrets/
+│   ├── shared/                  # Código compartilhado
+│   └── config/
+│       ├── app_config.dart
+│       ├── dependency_injection.dart  # ✨ DI Container
+│       ├── env.dart
+│       └── logger.dart
+├── test/                        # Testes (185 tests)
+├── docs/                        # Documentação
+│   ├── ARCHITECTURE.md
+│   ├── ci-cd.md
+│   ├── logging.md
+│   ├── namespace.md
+│   └── entitidades/
+├── docker/                      # ✨ Infraestrutura Docker
+│   ├── app/
+│   │   └── Dockerfile
+│   ├── monitoring/              # Grafana, Prometheus, Loki
+│   │   ├── grafana-datasources.yml
+│   │   ├── prometheus.yml
+│   │   └── promtail-config.yml
+│   ├── docker-compose.yml
+│   └── README.md
+├── sql/                         # Scripts SQL
+├── specs/                       # Swagger/OpenAPI
+│   └── swagger.yaml            # ✨ Atualizado com status real
 ├── Makefile
 └── pubspec.yaml
+
+✨ = Novos componentes
 ```
 
 Para detalhes completos, veja [README_STRUCTURE.md](README_STRUCTURE.md).
 
 ## 🔧 Desenvolvimento
+
+### ⚠️ Breaking Changes (v1.1)
+
+Se você está migrando de versões anteriores:
+
+1. **JWT Payload Changed**
+   - `sub` agora é UUID v7 (external_id) ao invés de sequential ID
+   - Campo `username` removido do payload (privacidade)
+   - Tokens antigos precisam ser regenerados
+
+2. **AuthMiddleware Requires Redis**
+   - Cache Redis agora é obrigatório
+   - Configure `REDIS_HOST` e `REDIS_PORT` no `.env`
+
+3. **AccountEntity.passwordHash is Nullable**
+   - Queries podem retornar accounts sem password
+   - Use `AccountMapper` para serialização
+
+4. **Docker Structure Changed**
+   - `Dockerfile` e `docker-compose.yaml` movidos para `docker/`
+   - Use `cd docker && docker-compose up`
+
+5. **Imports usando Barrel Files (v1.1)** ✨
+   - Use imports organizados: `import 'package:sambura_core/domain/entities/entities.dart';`
+   - Evite imports individuais para melhor manutenibilidade
+   - Veja [README_STRUCTURE.md](README_STRUCTURE.md) para detalhes
 
 ### Comandos úteis
 
@@ -608,7 +765,7 @@ Veja [CONTRIBUTING.md](CONTRIBUTING.md) para mais detalhes.
 
 ## �️ Roadmap
 
-### ✅ Concluído (v1.0)
+### ✅ Concluído (v1.0.0)
 - [x] Clean Architecture implementada
 - [x] Autenticação JWT + API Keys
 - [x] Suporte completo a NPM com proxy transparente
@@ -619,14 +776,27 @@ Veja [CONTRIBUTING.md](CONTRIBUTING.md) para mais detalhes.
 - [x] Documentação Swagger/OpenAPI
 - [x] Deploy Docker com docker-compose
 
-### 🚧 Em Desenvolvimento (v1.1)
+### ✅ Concluído (v1.0.1)
+- [x] Métricas e observabilidade (Prometheus)
+- [x] Health checks por componente (Postgres, Redis, MinIO)
+- [x] PrometheusMetricsAdapter com métricas de saúde, segurança e cache
+- [x] HealthCheckService orquestrando adapters
+- [x] Middlewares atualizados com métricas
+- [x] Barrel files para imports limpos e organizados
+- [x] Lock distribuído Redis para downloads concorrentes
+- [x] Upsert logic para prevenir duplicate key errors
+- [x] Sanitização de inputs com SecurityValidator
+- [x] Dashboard Grafana com provisionamento automático
+
+### 🚧 Em Desenvolvimento (v1.0.2)
+- [ ] Dashboards Grafana pré-configurados
+- [ ] Alertas automáticos via Prometheus AlertManager
 - [ ] Suporte a Maven (Java)
 - [ ] Suporte a PyPI (Python)
-- [ ] Interface Web (dashboard)
-- [ ] Métricas e observabilidade (Prometheus/Grafana)
+- [ ] Interface Web (dashboard administrativo)
 - [ ] Replicação entre instâncias
 
-### 🔮 Planejado (v2.0)
+### 🔮 Planejado (v1.0.3)
 - [ ] Suporte a Docker Registry
 - [ ] Suporte a NuGet (.NET)
 - [ ] Suporte a Cargo (Rust)
@@ -652,7 +822,7 @@ Este projeto está sob a licença MIT. Veja o arquivo [LICENSE](LICENSE) para ma
 
 ## 👥 Autores
 
-- **Matheus** - [GitHub](https://github.com/sambura)
+- **Matheus Assis** - [GitHub](https://github.com/marafu)
 
 ## 🙏 Agradecimentos
 

@@ -13,6 +13,7 @@ class EnvConfig extends Equatable {
   final Environment environment;
   final String appName;
   final int port;
+  final String publicOrigin;
 
   // ----------------------------------
   // 2. CONEXÃO DATABASE (Postgres)
@@ -40,6 +41,7 @@ class EnvConfig extends Equatable {
   final int siloPort;
   final String siloAccessKey;
   final String siloSecretKey;
+  final bool siloUseSSL;
   final String bucketName;
 
   // ----------------------------------
@@ -56,9 +58,17 @@ class EnvConfig extends Equatable {
   // ----------------------------------
   final String vaultUrl;
   final String vaultToken;
-  final String vaultSecretPath;
+  final String vaultAuthPath;
+  final String vaultDatabasePath;
+
+  // ----------------------------------
+  // 7. LOG
+  // ----------------------------------
+  final String logLevel;
+  final String logFilePath;
 
   const EnvConfig({
+    this.publicOrigin = "http://localhost:8080",
     required this.environment,
     this.appName = 'Sambura Core',
     required this.port,
@@ -77,13 +87,17 @@ class EnvConfig extends Equatable {
     required this.siloPort,
     required this.siloAccessKey,
     required this.siloSecretKey,
+    required this.siloUseSSL,
     required this.bucketName,
     required this.keycloakUrl,
     required this.keycloakRealm,
     required this.keycloakClientId,
     required this.vaultUrl,
     required this.vaultToken,
-    required this.vaultSecretPath,
+    required this.vaultAuthPath,
+    required this.vaultDatabasePath,
+    required this.logFilePath,
+    required this.logLevel,
   });
 
   @override
@@ -131,6 +145,10 @@ class Env {
       // GERAL
       environment: Environment.development,
       port: getInt('PORT', defaultValue: 8080),
+      publicOrigin: getString(
+        'PUBLIC_ORIGIN',
+        defaultValue: "http://localhost:8080",
+      ),
 
       // DATABASE (POSTGRES)
       dbHost: getString('DB_HOST', defaultValue: 'localhost'),
@@ -159,6 +177,7 @@ class Env {
         defaultValue: 'sambura_silo_secret',
       ),
       bucketName: getString('BUCKET_NAME', defaultValue: 'sambura-blobs'),
+      siloUseSSL: bool.fromEnvironment('SILO_USESSL', defaultValue: false),
 
       // KEYCLOAK
       keycloakUrl: getString(
@@ -172,11 +191,21 @@ class Env {
       ),
 
       // HASHICORP VAULT
-      vaultUrl: getString('VAULT_URL', defaultValue: 'http://localhost:8200'),
+      vaultUrl: getString('VAULT_ADDR', defaultValue: 'http://localhost:8200'),
       vaultToken: getString('VAULT_TOKEN', defaultValue: 'root_token_sambura'),
-      vaultSecretPath: getString(
-        'VAULT_SECRET_PATH',
-        defaultValue: 'secret/data/sambura/dev',
+      vaultAuthPath: getString(
+        'VAULT_AUTH_PATH',
+        defaultValue: 'secret/data/sambura/database',
+      ),
+      vaultDatabasePath: getString(
+        'VAULT_DATABASE_PATH',
+        defaultValue: 'secret/data/sambura/auth',
+      ),
+
+      logLevel: getString('LOG_LEVEL', defaultValue: 'INFO'),
+      logFilePath: getString(
+        'LOG_FILE_PATH',
+        defaultValue: '/app/logs/app.log',
       ),
     );
   }

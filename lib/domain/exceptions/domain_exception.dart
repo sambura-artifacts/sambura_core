@@ -41,3 +41,10 @@ class PackageNameException extends DomainException {
 class SemVerException extends DomainException {
   SemVerException(super.message);
 }
+
+class VersionConflictException extends DomainException {
+  VersionConflictException(String package, String version)
+    : super(
+        'A versão "$version" do pacote "$package" já existe e não pode ser sobrescrita.',
+      );
+}

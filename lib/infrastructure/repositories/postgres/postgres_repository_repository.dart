@@ -1,8 +1,8 @@
 import 'package:logging/logging.dart';
 import 'package:sambura_core/config/logger.dart';
-import 'package:sambura_core/domain/entities/repository_entity.dart';
-import 'package:sambura_core/domain/repositories/repository_repository.dart';
 import 'package:sambura_core/infrastructure/database/postgres_connector.dart';
+import 'package:sambura_core/domain/entities/entities.dart';
+import 'package:sambura_core/domain/repositories/repositories.dart';
 
 class PostgresRepositoryRepository implements RepositoryRepository {
   final PostgresConnector _db;
@@ -15,7 +15,7 @@ class PostgresRepositoryRepository implements RepositoryRepository {
     try {
       final result = await _db.query(
         'SELECT * FROM repositories ORDER BY created_at DESC LIMIT @limit OFFSET @offset',
-        {'limit': limit, 'offset': offset},
+        substitutionValues: {'limit': limit, 'offset': offset},
       );
       return result
           .map((row) => RepositoryEntity.fromMap(row.toColumnMap()))
@@ -31,7 +31,7 @@ class PostgresRepositoryRepository implements RepositoryRepository {
     try {
       final result = await _db.query(
         'SELECT * FROM repositories WHERE name = @name',
-        {'name': name},
+        substitutionValues: {'name': name},
       );
       if (result.isEmpty) return null;
       return RepositoryEntity.fromMap(result.first.toColumnMap());
@@ -46,7 +46,7 @@ class PostgresRepositoryRepository implements RepositoryRepository {
     try {
       final result = await _db.query(
         'SELECT * FROM repositories WHERE namespace = @namespace',
-        {'namespace': namespace},
+        substitutionValues: {'namespace': namespace},
       );
       return result
           .map((row) => RepositoryEntity.fromMap(row.toColumnMap()))
@@ -74,13 +74,14 @@ class PostgresRepositoryRepository implements RepositoryRepository {
         RETURNING id, name, namespace, is_public, created_at
       ''';
 
-      final params = {
-        'name': repository.name,
-        'namespace': repository.namespace,
-        'is_public': repository.isPublic,
-      };
-
-      final result = await _db.query(sql, params);
+      final result = await _db.query(
+        sql,
+        substitutionValues: {
+          'name': repository.name,
+          'namespace': repository.namespace,
+          'is_public': repository.isPublic,
+        },
+      );
 
       if (result.isEmpty) throw Exception("Linha vazia no retorno");
 

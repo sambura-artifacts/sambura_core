@@ -1,4 +1,4 @@
-import 'package:sambura_core/domain/entities/account_entity.dart';
+import 'package:sambura_core/domain/entities/entities.dart';
 
 abstract class AccountRepository {
   Future<void> create(AccountEntity account);
@@ -6,4 +6,5 @@ abstract class AccountRepository {
   Future<AccountEntity?> findByUsername(String username);
   Future<AccountEntity?> findById(int id);
   Future<AccountEntity?> findByExternalId(String externalId);
+  Future<bool> existsByRole(String role);
 }

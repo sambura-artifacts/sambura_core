@@ -1,12 +1,12 @@
 import 'package:dart_jsonwebtoken/dart_jsonwebtoken.dart';
 import 'package:logging/logging.dart';
 import 'package:sambura_core/config/logger.dart';
-import 'package:sambura_core/application/ports/auth_port.dart';
+import 'package:sambura_core/application/ports/ports.dart';
 
 /// Adapter para JWT implementando IAuthPort.
 ///
 /// Segue o padrão Hexagonal Architecture (Ports & Adapters).
-class JwtAdapter implements IAuthPort {
+class JwtAdapter implements AuthPort {
   final String _secret;
   final Duration _tokenDuration;
   final Logger _log = LoggerConfig.getLogger('JwtAdapter');

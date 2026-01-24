@@ -12,6 +12,7 @@ build/
 
 # Tokens internos do Makefile
 .token*
+.apikey*
 scripts
 
 # Possíveis arqivos baixados
@@ -29,6 +30,7 @@ scripts
 *.freezed.dart
 *.gr.dart
 test/coverage/
+test_results.json
 
 # Arquivos de configuração de debug
 flutter_debug.log
@@ -48,6 +50,14 @@ ios/Flutter/Generated.xcconfig
 *.ipr
 # ----------------------------------
 # 3. DOCKER & INFRA (Não comitar volumes/logs)
+# ----------------------------------
+
+# Logs da aplicação
+logs/
+*.log
+
+# Volumes do Docker (dados persistentes)
+docker/volumes/
 # ----------------------------------
 volumes/
 db_data/
@@ -69,3 +79,10 @@ tmp/
 
 # Coverage
 coverage
+
+
+# Possível teste NPM
+package.json
+package-lock.json
+yarn-lock.json
+node_modules/

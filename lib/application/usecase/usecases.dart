@@ -13,12 +13,19 @@ export 'api_key/list_api_keys_usecase.dart';
 export 'api_key/revoke_api_key_usecase.dart';
 
 // Artifact usecases
+export 'artifact/check_artifact_exists_usecase.dart';
 export 'artifact/create_artifact_usecase.dart';
+export 'artifact/download_artifact_tarball_usecase.dart';
 export 'artifact/download_artifact_usecase.dart';
 export 'artifact/get_artifact_by_id_usecase.dart';
 export 'artifact/get_artifact_download_stream_usecase.dart';
 export 'artifact/get_artifact_usecase.dart';
 export 'artifact/upload_artifact_usecase.dart';
 
+// Health usecases
+export 'health/get_server_health_usecase.dart';
+
 // Package usecases
 export 'package/get_package_metadata_usecase.dart';
+export 'package/proxy_package_metadata_usecase.dart';
+export 'package/proxy_package_tarball_usecase.dart';

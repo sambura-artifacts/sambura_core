@@ -2,12 +2,12 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:logging/logging.dart';
 import 'package:sambura_core/config/logger.dart';
-import 'package:sambura_core/application/ports/secret_port.dart';
+import 'package:sambura_core/application/ports/ports.dart';
 
 /// Adapter para HashiCorp Vault implementando ISecretPort.
 ///
 /// Segue o padrão Hexagonal Architecture (Ports & Adapters).
-class VaultAdapter implements ISecretPort {
+class VaultAdapter implements SecretPort {
   final String _endpoint;
   final String _token;
   final Logger _log = LoggerConfig.getLogger('VaultAdapter');

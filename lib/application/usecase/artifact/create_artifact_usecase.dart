@@ -1,12 +1,9 @@
 import 'package:logging/logging.dart';
 import 'package:sambura_core/config/logger.dart';
-import 'package:sambura_core/domain/entities/artifact_entity.dart';
-import 'package:sambura_core/domain/exceptions/domain_exception.dart';
-import 'package:sambura_core/domain/repositories/artifact_repository.dart';
-import 'package:sambura_core/domain/repositories/blob_repository.dart';
-import 'package:sambura_core/domain/repositories/package_repository.dart';
-import 'package:sambura_core/domain/repositories/repository_repository.dart';
 import 'package:sambura_core/infrastructure/api/dtos/artifact_input.dart';
+import 'package:sambura_core/domain/entities/entities.dart';
+import 'package:sambura_core/domain/exceptions/exceptions.dart';
+import 'package:sambura_core/domain/repositories/repositories.dart';
 
 class CreateArtifactUsecase {
   final ArtifactRepository _artifactRepository;
@@ -44,7 +41,7 @@ class CreateArtifactUsecase {
       _log.fine('Salvando blob a partir do stream de dados');
       final blob = await _blobRepository.saveFromStream(fileStream);
       _log.info(
-        'Blob salvo: ${blob.hashValue.substring(0, 12)}... (${blob.sizeBytes} bytes)',
+        'Blob salvo: ${blob.hash.substring(0, 12)}... (${blob.sizeBytes} bytes)',
       );
 
       // 3. Garantir que o Pacote existe (Busca ou Cria via Upsert)

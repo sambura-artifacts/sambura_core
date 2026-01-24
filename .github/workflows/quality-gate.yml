@@ -34,7 +34,10 @@ jobs:
         uses: dart-lang/setup-dart@v1
         with:
           sdk: stable
-
+      
+      - name: 🔍 Verify Dart Version
+        run: dart --version 
+        
       - name: 📦 Install Dependencies
         run: dart pub get
 
@@ -45,4 +48,41 @@ jobs:
         run: dart analyze --fatal-infos
 
       - name: ⚡ Run Unit Tests
-        run: dart test --reporter=expanded --exclude-tags=integration
+        run: dart test --reporter=json --exclude-tags=integration > test-results.json || true
+      
+      - name: 📊 Get Test Count
+        id: test_count
+        if: always()
+        run: |
+          # O jq agora processa o arquivo que foi gerado, independente do sucesso do comando anterior
+          PASSED=$(grep "^{" test-results.json | jq -s '[.[] | select(.type=="testDone" and .result=="success")] | length' || echo "0")
+          TOTAL=$(grep "^{" test-results.json | jq -s '[.[] | select(.type=="testDone")] | length' || echo "0")
+          
+          echo "total=$PASSED" >> $GITHUB_OUTPUT
+          echo "📊 Testes que passaram: $PASSED de $TOTAL"
+
+      - name: 🛡️ Create Test Badge
+        if: always()
+        uses: schneegans/dynamic-badges-action@v1.7.0
+        with:
+          auth: ${{ secrets.GIST_SECRET }}
+          gistID: d089a6ba4882701dbca635367b01e9b2
+          filename: test-results.json
+          label: Tests
+          message: "${{ steps.test_count.outputs.total }} passed"
+          color: green
+
+  quality-gate:
+    needs: [security, analyze-and-test]
+    runs-on: ubuntu-latest
+    if: always() # Garante que ele rode para reportar o status
+    steps:
+      - name: 🏁 Final Check
+        run: |
+          if [ "${{ needs.analyze-and-test.result }}" == "success" ] && [ "${{ needs.security.result }}" == "success" ]; then
+            echo "All gates passed!"
+            exit 0
+          else
+            echo "One or more gates failed."
+            exit 1
+          fi

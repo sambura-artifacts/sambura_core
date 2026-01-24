@@ -1,6 +1,6 @@
 name: sambura_core
 description: The Core API Gateway, Authentication Manager, and Metadata Orchestrator for Samburá Artifacts. 
-version: 0.0.1
+version: 1.0.1
 repository: https://github.com/sambura-artifacts/sambura_core
 
 environment:
@@ -20,6 +20,8 @@ dependencies:
   mime: ^2.0.0
   minio: ^3.5.8
   postgres: ^3.5.9
+  prometheus_client: ^1.0.0+1
+  prometheus_client_shelf: ^1.0.0+1
   redis: ^4.0.0
   shelf: ^1.4.2
   shelf_multipart: ^2.0.1

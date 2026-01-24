@@ -3,18 +3,18 @@ import 'dart:typed_data';
 import 'package:crypto/crypto.dart';
 import 'package:convert/convert.dart';
 import 'package:mime/mime.dart';
-import 'package:sambura_core/domain/repositories/blob_repository.dart';
+import 'package:sambura_core/domain/repositories/repositories.dart';
 
 class BlobEntity {
   final int? id; // ID serial (gerado pelo Worker no DB)
-  final String hashValue; // SHA-256 (Identidade única do arquivo)
+  final String hash; // SHA-256 (Identidade única do arquivo)
   final int sizeBytes; // Tamanho real em disco
   final String mimeType; // Tipo do arquivo (ex: application/zip)
   final DateTime? createdAt;
 
   BlobEntity._({
     this.id,
-    required this.hashValue,
+    required this.hash,
     required this.sizeBytes,
     required this.mimeType,
     this.createdAt,
@@ -25,7 +25,7 @@ class BlobEntity {
     required int size,
     required String mime,
   }) {
-    return BlobEntity._(hashValue: hash, sizeBytes: size, mimeType: mime);
+    return BlobEntity._(hash: hash, sizeBytes: size, mimeType: mime);
   }
 
   /// Ponto de entrada para processar um binário e gerar a entidade BlobEntity.
@@ -59,7 +59,7 @@ class BlobEntity {
       final detectedMime = _detectRealMimeType(headerBytes);
 
       return BlobEntity._(
-        hashValue: hashOutput.events.single.toString(),
+        hash: hashOutput.events.single.toString(),
         sizeBytes: totalBytes,
         mimeType: detectedMime,
         createdAt: DateTime.now(),
@@ -70,42 +70,25 @@ class BlobEntity {
   }
 
   Future<Stream<List<int>>> toStream(BlobRepository storage) async {
-    return storage.readAsStream(hashValue);
+    return storage.readAsStream(hash);
   }
 
-  factory BlobEntity.restore(
-    int id,
-    String hash,
-    int size,
-    String mime,
-    DateTime createdAt,
-  ) {
+  factory BlobEntity.restore({
+    required int? id,
+    required String hash,
+    required int size,
+    required String mime,
+    required DateTime? createdAt,
+  }) {
     return BlobEntity._(
       id: id,
-      hashValue: hash,
+      hash: hash,
       sizeBytes: size,
       mimeType: mime,
       createdAt: createdAt,
     );
   }
 
-  Map<String, dynamic> toJson() {
-    return {'hash': hashValue, 'size': sizeBytes, 'mime': mimeType};
-  }
-
-  factory BlobEntity.fromMap(Map<String, dynamic> map) {
-    return BlobEntity._(
-      id: map['id'] as int?,
-      hashValue: (map['hash_value'] ?? '') as String,
-      sizeBytes: map['size_bytes'] as int,
-      mimeType: (map['mime_type'] ?? 'application/octet-stream') as String,
-      createdAt: map['created_at'] != null
-          ? (map['created_at'] is DateTime
-                ? map['created_at'] as DateTime
-                : DateTime.parse(map['created_at'] as String))
-          : null,
-    );
-  }
   static String _detectRealMimeType(List<int> headerBytes) {
     if (headerBytes.isEmpty) return 'application/octet-stream';
 

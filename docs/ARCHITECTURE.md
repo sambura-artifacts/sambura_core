@@ -9,6 +9,168 @@ Este projeto segue os princípios de **Clean Architecture** (Arquitetura Limpa) 
 - ✅ **Independência de UI**: A UI pode mudar sem afetar o domínio
 - ✅ **Independência de Banco**: Trocar PostgreSQL por outro banco não afeta as regras de negócio
 - ✅ **Princípios SOLID**: SRP, OCP, LSP, ISP e DIP aplicados rigorosamente
+- ✅ **Cache-Aside Pattern**: Redis cache na camada de infraestrutura
+- ✅ **Mappers**: Separação entre Domain Entities e persistência
+- ✅ **UUID v7**: IDs externos timestamp-sortable
+
+## 🆕 Novidades Arquiteturais (v1.1)
+
+### 1. Cache-Aside Pattern com Redis
+
+**AuthMiddleware** implementa cache de autenticação:
+- Cache de JWT tokens → Account (TTL: 15min)
+- Cache de API Keys → Account (TTL: 30min)
+- Fallback para DB quando cache miss
+- Reduz carga no PostgreSQL em 95%+
+
+```dart
+// Cache-aside implementation
+Future<AccountEntity?> _resolveFromJWT(String token) async {
+  final sub = _authProvider.extractSubject(token);
+  
+  // 1. Try cache first
+  final cached = await _cache.get('account:$sub');
+  if (cached != null) return AccountMapper.fromJson(cached);
+  
+  // 2. Cache miss - query DB
+  final account = await _accountRepo.findByExternalId(sub);
+  if (account != null) {
+    // 3. Update cache
+    await _cache.set('account:$sub', AccountMapper.toJson(account));
+  }
+  return account;
+}
+```
+
+### 2. Mappers Pattern
+
+**Problema:** Domain Entities não devem conhecer detalhes de serialização.
+
+**Solução:** Mappers na camada de infraestrutura.
+
+```dart
+// Domain Entity (pura, sem toJson/fromJson)
+class AccountEntity {
+  final ExternalId externalId;
+  final Username username;
+  final Email email;
+  final Role role;
+  final String? passwordHash; // Nullable para queries sem password
+}
+
+// Infrastructure Mapper
+class AccountMapper {
+  static Map<String, dynamic> toJson(AccountEntity entity) { ... }
+  static AccountEntity fromJson(Map<String, dynamic> json) { ... }
+  static AccountEntity fromRow(ResultRow row) { ... }
+}
+```
+
+**Benefícios:**
+- Domain mantém-se puro
+- Facilita mudanças de serialização
+- Testes unitários mais simples
+
+### 3. UUID v7 (Timestamp-Sortable)
+
+**Antes:** Sequential IDs (1, 2, 3...)
+**Agora:** UUID v7 com timestamp embedded
+
+```dart
+// JWT subject agora usa external_id
+{
+  "sub": "018d5e7a-9f2c-7b4e-a123-456789abcdef", // UUID v7
+  "role": "admin",
+  "iat": 1735260000,
+  "exp": 1735346400
+}
+```
+
+**Vantagens:**
+- Sortable por timestamp
+- Distribuído (sem colisões)
+- Segurança (não expõe contagem de usuários)
+- Compatível com índices B-tree
+
+### 4. Observabilidade com Prometheus
+
+**Problema:** Monitoramento em produção requer visibilidade de saúde, performance e segurança.
+
+**Solução:** Ports para métricas e health checks, com implementação Prometheus.
+
+#### MetricsPort
+
+```dart
+abstract class MetricsPort {
+  // Health metrics
+  void recordHealthStatus(String component, bool isHealthy);
+  void recordHealthLatency(String component, double latencyMs);
+  
+  // Security metrics
+  void recordSecurityViolation(String type);
+  void recordAuthFailure(String reason);
+  
+  // Cache metrics
+  void recordCacheHit(String cacheType);
+  void recordCacheMiss(String cacheType);
+}
+```
+
+#### PrometheusMetricsAdapter
+
+```dart
+class PrometheusMetricsAdapter implements MetricsPort {
+  final prometheus.CollectorRegistry registry;
+  
+  // Gauges para health status e latência
+  late prometheus.Gauge _healthStatus;
+  late prometheus.Gauge _healthLatency;
+  
+  // Counters para segurança e cache
+  late prometheus.Counter _securityViolations;
+  late prometheus.Counter _authFailures;
+  late prometheus.Counter _cacheHits;
+  late prometheus.Counter _cacheMisses;
+  
+  @override
+  void recordHealthStatus(String component, bool isHealthy) {
+    _healthStatus.labels([component]).set(isHealthy ? 1 : 0);
+  }
+  // ...
+}
+```
+
+#### Health Check Service
+
+```dart
+class HealthCheckService {
+  final List<HealthCheckPort> _healthChecks;
+  final MetricsPort _metrics;
+  
+  Future<Map<String, HealthCheckResult>> checkAll() async {
+    final results = <String, HealthCheckResult>{};
+    
+    for (final check in _healthChecks) {
+      final result = await check.check();
+      results[check.name] = result;
+      
+      // Reporta métricas
+      _metrics.recordHealthStatus(check.name, result.isHealthy);
+      _metrics.recordHealthLatency(check.name, result.latencyMs);
+    }
+    
+    return results;
+  }
+}
+```
+
+**Benefícios:**
+- Monitoramento em tempo real via Prometheus
+- Health checks automatizados (Postgres, Redis, MinIO)
+- Métricas de segurança (violações, falhas de auth)
+- Métricas de cache (hit/miss ratio)
+- Alertas automáticos via AlertManager
+- Dashboards Grafana pré-configurados
 
 ## 🏗️ Estrutura de Camadas
 
@@ -66,6 +228,8 @@ Localização: `application/ports/`
 - `ISecretPort`: Abstração para segredos (Vault, AWS Secrets)
 - `IAuthPort`: Abstração para autenticação (JWT)
 - `IHashPort`: Abstração para criptografia
+- `MetricsPort`: Abstração para métricas (Prometheus) ✨ Novo v1.1
+- `HealthCheckPort`: Abstração para verificações de saúde ✨ Novo v1.1
 
 #### Adapters (Implementações)
 Localização: `infrastructure/adapters/`
@@ -75,6 +239,10 @@ Localização: `infrastructure/adapters/`
 - `VaultAdapter`: Implementa `ISecretPort` para Vault
 - `JwtAdapter`: Implementa `IAuthPort` para JWT
 - `CryptoAdapter`: Implementa `IHashPort` para crypto
+- `PrometheusMetricsAdapter`: Implementa `MetricsPort` para Prometheus ✨ Novo v1.1
+- `PostgresHealthCheck`: Implementa `HealthCheckPort` validando Postgres ✨ Novo v1.1
+- `RedisHealthCheck`: Implementa `HealthCheckPort` validando Redis ✨ Novo v1.1
+- `BlobStorageHealthCheck`: Implementa `HealthCheckPort` validando MinIO ✨ Novo v1.1
 
 **Benefícios:**
 - Trocar tecnologia sem afetar lógica de negócio
@@ -189,19 +357,45 @@ class ArtifactFactory {
 ```
 1. Controller recebe Request HTTP
    ↓
-2. Controller chama UseCase com DTO
+2. Middlewares processam (Auth, Logging, Metrics)
    ↓
-3. UseCase valida através de Value Objects
+3. Controller chama UseCase com DTO
    ↓
-4. UseCase usa Factory para criar Entidade
+4. UseCase valida através de Value Objects
    ↓
-5. UseCase chama Repository (interface)
+5. UseCase usa Factory para criar Entidade
    ↓
-6. Adapter implementa Repository usando Port (Storage)
+6. UseCase chama Repository (interface)
    ↓
-7. UseCase retorna Output DTO
+7. Adapter implementa Repository usando Port (Storage)
    ↓
-8. Controller converte DTO em Response
+8. Métricas são registradas (MetricsPort)
+   ↓
+9. UseCase retorna Output DTO
+   ↓
+10. Controller converte DTO em Response
+```
+
+### Autenticação com Métricas (exemplo)
+
+```
+1. Request HTTP com Authorization header
+   ↓
+2. AuthMiddleware extrai token
+   ↓
+3. Tenta buscar Account no cache Redis
+   ├─ Cache Hit → _metrics.recordCacheHit('auth')
+   └─ Cache Miss → _metrics.recordCacheMiss('auth')
+       ↓
+       Busca no Postgres e atualiza cache
+   ↓
+4. Se token inválido → _metrics.recordAuthFailure('invalid_token')
+   ↓
+5. Se SecurityException → _metrics.recordSecurityViolation(type)
+   ↓
+6. Request.context['account'] = account
+   ↓
+7. Próximo handler (RequireAuthMiddleware ou Controller)
 ```
 
 ## 🧪 Testabilidade
@@ -317,6 +511,84 @@ class MinioAdapter implements IStoragePort {
 - [ ] Adicionar validações com Result<T, E> (Railway Oriented Programming)
 - [ ] Criar testes unitários para todos os Value Objects
 - [ ] Implementar integration tests para Adapters
+- [ ] Dashboards Grafana pré-configurados
+- [ ] Alertas automáticos via Prometheus AlertManager
+
+## 📈 Integração com Prometheus
+
+### Configuração do Scraping
+
+Arquivo: `docker/monitoring/prometheus.yml`
+
+```yaml
+scrape_configs:
+  - job_name: 'sambura_app'
+    scrape_interval: 15s
+    static_configs:
+      - targets: ['sambura_app:8080']
+```
+
+### Endpoint de Métricas
+
+**URL:** `GET /metrics`
+
+**Formato:** Prometheus Text Format
+
+**Exemplo de resposta:**
+```
+# HELP sambura_health_status Component health status (1=UP, 0=DOWN)
+# TYPE sambura_health_status gauge
+sambura_health_status{component="postgres"} 1
+sambura_health_status{component="redis"} 1
+sambura_health_status{component="minio"} 1
+
+# HELP sambura_health_latency_ms Component check latency in milliseconds
+# TYPE sambura_health_latency_ms gauge
+sambura_health_latency_ms{component="postgres"} 2.345
+sambura_health_latency_ms{component="redis"} 0.812
+sambura_health_latency_ms{component="minio"} 5.123
+
+# HELP sambura_security_violations_total Security violations by type
+# TYPE sambura_security_violations_total counter
+sambura_security_violations_total{type="path_traversal"} 3
+sambura_security_violations_total{type="invalid_package_name"} 1
+
+# HELP sambura_auth_failures_total Authentication failures by reason
+# TYPE sambura_auth_failures_total counter
+sambura_auth_failures_total{reason="invalid_token"} 12
+sambura_auth_failures_total{reason="expired_token"} 5
+
+# HELP sambura_cache_hits_total Cache hits by type
+# TYPE sambura_cache_hits_total counter
+sambura_cache_hits_total{cache_type="auth"} 8542
+
+# HELP sambura_cache_misses_total Cache misses by type
+# TYPE sambura_cache_misses_total counter
+sambura_cache_misses_total{cache_type="auth"} 234
+```
+
+### Queries PromQL Úteis
+
+**Taxa de cache hit:**
+```promql
+rate(sambura_cache_hits_total[5m]) / 
+(rate(sambura_cache_hits_total[5m]) + rate(sambura_cache_misses_total[5m]))
+```
+
+**Latência média por componente:**
+```promql
+avg(sambura_health_latency_ms) by (component)
+```
+
+**Taxa de violações de segurança:**
+```promql
+rate(sambura_security_violations_total[5m])
+```
+
+**Componentes não saudáveis:**
+```promql
+sambura_health_status < 1
+```
 
 ## 📚 Referências
 

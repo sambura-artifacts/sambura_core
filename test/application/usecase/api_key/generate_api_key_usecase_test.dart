@@ -90,6 +90,7 @@ void main() {
       final result = await usecase.execute(
         accountId: accountId,
         keyName: keyName,
+        expiresInDays: 30,
       );
 
       // Assert
@@ -112,10 +113,12 @@ void main() {
       final result1 = await usecase.execute(
         accountId: accountId,
         keyName: 'key-1',
+        expiresInDays: 30,
       );
       final result2 = await usecase.execute(
         accountId: accountId,
         keyName: 'key-2',
+        expiresInDays: 30,
       );
 
       expect(result1.plainKey, isNot(equals(result2.plainKey)));
@@ -127,7 +130,11 @@ void main() {
 
       // Act & Assert
       expect(
-        () => usecase.execute(accountId: 123, keyName: 'test-key'),
+        () => usecase.execute(
+          accountId: 123,
+          keyName: 'test-key',
+          expiresInDays: 30,
+        ),
         throwsA(isA<Exception>()),
       );
     });
@@ -136,6 +143,7 @@ void main() {
       final result = await usecase.execute(
         accountId: 123,
         keyName: 'format-test',
+        expiresInDays: 30,
       );
 
       // Verifica prefixo e se o restante contém caracteres alfanuméricos/base64-safe

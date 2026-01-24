@@ -1,16 +1,16 @@
 // lib/application/usecase/create_account_usecase.dart
 import 'package:logging/logging.dart';
 import 'package:sambura_core/config/logger.dart';
-import 'package:sambura_core/domain/entities/account_entity.dart';
-import 'package:sambura_core/infrastructure/services/auth/hash_service.dart';
-import 'package:sambura_core/domain/repositories/account_repository.dart';
+import 'package:sambura_core/application/ports/ports.dart';
+import 'package:sambura_core/domain/entities/entities.dart';
+import 'package:sambura_core/domain/repositories/repositories.dart';
 
 class CreateAccountUsecase {
   final AccountRepository _repo;
-  final HashService _hashService;
+  final HashPort _hash;
   final Logger _log = LoggerConfig.getLogger('CreateAccountUsecase');
 
-  CreateAccountUsecase(this._repo, this._hashService);
+  CreateAccountUsecase(this._repo, this._hash);
 
   Future<void> execute({
     required String username,
@@ -24,7 +24,7 @@ class CreateAccountUsecase {
 
     try {
       _log.fine('Gerando hash da senha');
-      final passwordHash = _hashService.hashPassword(password);
+      final passwordHash = _hash.hashPassword(password);
 
       final account = AccountEntity.create(
         username: username,

@@ -1,23 +1,46 @@
 class ApplicationException implements Exception {
   final String message;
-  ApplicationException(this.message);
+  final dynamic details;
+  ApplicationException({required this.message, this.details});
 }
 
 class ApiKeyNotFoundException extends ApplicationException {
   ApiKeyNotFoundException(String apiKey)
-    : super('API Key "$apiKey" não encontrado.');
+    : super(message: 'API Key "$apiKey" não encontrado.');
 }
 
 class ListApiKeyNotFoundException extends ApplicationException {
-  ListApiKeyNotFoundException() : super('Nenhuma API Key foi encontrada.');
+  ListApiKeyNotFoundException()
+    : super(message: 'Nenhuma API Key foi encontrada.');
 }
 
 class AccountNotFoundException extends ApplicationException {
   AccountNotFoundException(String externalId)
-    : super('Seu usuário não foi encontrado.');
+    : super(message: 'Seu usuário não foi encontrado.');
 }
 
 class AccountNotPermissionException extends ApplicationException {
   AccountNotPermissionException(String externalId)
-    : super('Seu usuário não tem permissão para realizar a ação.');
+    : super(message: 'Seu usuário não tem permissão para realizar a ação.');
+}
+
+class ExternalResourceNotFoundException extends ApplicationException {
+  ExternalResourceNotFoundException(String resource, {super.details})
+    : super(
+        message:
+            'O recurso "$resource" não foi encontrado no registro externo.',
+      );
+}
+
+class ExternalServiceUnavailableException extends ApplicationException {
+  ExternalServiceUnavailableException(String service, {super.details})
+    : super(
+        message:
+            'O serviço externo "$service" está temporariamente indisponível.',
+      );
+}
+
+class ExternalRegistryAuthException extends ApplicationException {
+  ExternalRegistryAuthException({super.details})
+    : super(message: 'Falha na autenticação com o registro externo.');
 }
