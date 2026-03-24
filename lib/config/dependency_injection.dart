@@ -1,6 +1,13 @@
 import 'package:logging/logging.dart';
 import 'package:sambura_core/config/env.dart';
 import 'package:http/http.dart' as http;
+import 'package:sambura_core/application/usecase/artifact/download_and_proxy_artifact_usecase.dart';
+import 'package:sambura_core/application/usecase/artifact/package_handler/package_handler_factory.dart';
+import 'package:sambura_core/infrastructure/api/controller/artifact/docker_controller.dart';
+import 'package:sambura_core/infrastructure/api/controller/artifact/maven_controller.dart';
+import 'package:sambura_core/infrastructure/api/controller/artifact/npm_controller.dart';
+import 'package:sambura_core/infrastructure/api/controller/artifact/nuget_controller.dart';
+import 'package:sambura_core/infrastructure/api/controller/artifact/pypi_controller.dart';
 
 // Ports
 
@@ -18,6 +25,8 @@ import 'package:sambura_core/infrastructure/adapters/observability/prometheus_me
 import 'package:sambura_core/infrastructure/adapters/storage/minio_storage_adapter.dart';
 import 'package:sambura_core/infrastructure/adapters/health/blob_storage_health_check.dart';
 import 'package:sambura_core/infrastructure/adapters/health/postgres_health_check.dart';
+import 'package:sambura_core/infrastructure/api/controller/artifact/repository_controller.dart';
+import 'package:sambura_core/infrastructure/api/controller/auth/auth_controller.dart';
 import 'package:sambura_core/infrastructure/api/controller/system/metrics_controller.dart';
 
 // Database & Repositories
@@ -41,7 +50,6 @@ import 'package:sambura_core/application/usecase/artifact/get_artifact_by_id_use
 import 'package:sambura_core/application/usecase/artifact/get_artifact_download_stream_usecase.dart';
 import 'package:sambura_core/application/usecase/artifact/get_artifact_usecase.dart';
 import 'package:sambura_core/application/usecase/artifact/upload_artifact_usecase.dart';
-import 'package:sambura_core/application/usecase/artifact/download_artifact_tarball_usecase.dart';
 import 'package:sambura_core/application/usecase/artifact/check_artifact_exists_usecase.dart';
 import 'package:sambura_core/application/usecase/package/get_package_metadata_usecase.dart';
 import 'package:sambura_core/application/usecase/package/proxy_package_metadata_usecase.dart';
@@ -51,8 +59,6 @@ import 'package:sambura_core/application/usecase/health/get_server_health_usecas
 import 'package:sambura_core/infrastructure/api/controller/artifact/blob_controller.dart';
 import 'package:sambura_core/infrastructure/api/controller/artifact/package_controller.dart';
 import 'package:sambura_core/infrastructure/api/controller/artifact/artifact_controller.dart';
-import 'package:sambura_core/infrastructure/api/controller/artifact/repository_controller.dart';
-import 'package:sambura_core/infrastructure/api/controller/auth/auth_controller.dart';
 import 'package:sambura_core/infrastructure/api/controller/admin/api_key_controller.dart';
 import 'package:sambura_core/infrastructure/api/controller/artifact/upload_controller.dart';
 import 'package:sambura_core/infrastructure/api/controller/system/system_controller.dart';
@@ -68,6 +74,11 @@ class DependencyInjection {
   late final AuthController authController;
   late final ApiKeyController apiKeyController;
   late final ArtifactController artifactController;
+  late final NpmController npmController;
+  late final MavenController mavenController;
+  late final PypiController pypiController;
+  late final NugetController nugetController;
+  late final DockerController dockerController;
   late final RepositoryController repositoryController;
   late final PackageController packageController;
   late final BlobController blobController;
@@ -205,7 +216,7 @@ class DependencyInjection {
     );
     final checkArtifactExistsUseCase = CheckArtifactExistsUseCase(artifactRepo);
 
-    final downloadArtifactTarballUseCase = DownloadArtifactTarballUseCase(
+    final packageHandlerFactory = PackageHandlerFactory(
       httpClient,
       createArtifactUseCase,
       getArtifactDownloadStreamUsecase,
@@ -213,8 +224,25 @@ class DependencyInjection {
       di.metricsPort,
     );
 
+    final downloadAndProxyArtifactUsecase = DownloadAndProxyArtifactUsecase(
+      getArtifactDownloadStreamUsecase,
+      repositoryRepo,
+      packageHandlerFactory,
+    );
+
     // 8. CONTROLLERS
-    di.authController = AuthController(di.createAccountUsecase, loginUsecase);
+    di.authController = AuthController(
+      di.createAccountUsecase,
+      loginUsecase,
+      di.authProvider,
+    );
+
+    di.npmController = NpmController(downloadAndProxyArtifactUsecase);
+    di.mavenController = MavenController(downloadAndProxyArtifactUsecase);
+    di.pypiController = PypiController(downloadAndProxyArtifactUsecase);
+    di.nugetController = NugetController(downloadAndProxyArtifactUsecase);
+    di.dockerController = DockerController(downloadAndProxyArtifactUsecase);
+
     di.apiKeyController = ApiKeyController(
       generateApiKeyUsecase,
       listApiKeysUsecase,
@@ -236,9 +264,8 @@ class DependencyInjection {
       getArtifactUseCase,
       GetArtifactByIdUseCase(artifactRepo),
       getArtifactDownloadStreamUsecase,
-      generateApiKeyUsecase,
       proxyPackageMetadataUseCase,
-      downloadArtifactTarballUseCase,
+      generateApiKeyUsecase,
       di.metricsPort,
     );
     di.systemController = SystemController(healthUseCase);
@@ -248,6 +275,11 @@ class DependencyInjection {
       env,
       di.authController,
       di.artifactController,
+      di.npmController,
+      di.mavenController,
+      di.pypiController,
+      di.nugetController,
+      di.dockerController,
       di.blobController,
       di.systemController,
       MetricsController(),
@@ -255,7 +287,7 @@ class DependencyInjection {
       di.accountRepository,
       di.authProvider,
       di.cachePort,
-      di.metricsPort, // Injetando a porta de métricas no router para o middleware
+      di.metricsPort,
     );
 
     di.adminRouter = AdminRouter(di.apiKeyController);

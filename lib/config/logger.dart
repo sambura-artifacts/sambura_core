@@ -10,10 +10,21 @@ class LoggerConfig {
   }) {
     if (_initialized) return;
 
-    final logDir = Directory(filePath);
-    if (!logDir.existsSync()) logDir.createSync();
+    Directory logDir = Directory(filePath);
+    try {
+      if (!logDir.existsSync()) {
+        logDir.createSync(recursive: true);
+      }
+    } catch (e) {
+      // Fallback to a writable temp directory if the default is not available.
+      final tempPath = '${Directory.systemTemp.path}/sambura_core_logs';
+      logDir = Directory(tempPath);
+      if (!logDir.existsSync()) {
+        logDir.createSync(recursive: true);
+      }
+    }
 
-    final logFile = File('$filePath/app.log');
+    final logFile = File('${logDir.path}/app.log');
 
     Logger.root.level = level;
     Logger.root.onRecord.listen((record) {

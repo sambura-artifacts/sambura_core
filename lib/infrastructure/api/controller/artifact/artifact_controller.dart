@@ -2,31 +2,26 @@ import 'dart:convert';
 import 'package:logging/logging.dart';
 import 'package:shelf/shelf.dart';
 import 'package:sambura_core/application/usecase/api_key/generate_api_key_usecase.dart';
-import 'package:sambura_core/application/usecase/artifact/download_artifact_tarball_usecase.dart';
 import 'package:sambura_core/application/usecase/artifact/get_artifact_by_id_usecase.dart';
 import 'package:sambura_core/application/usecase/artifact/get_artifact_download_stream_usecase.dart';
 import 'package:sambura_core/application/usecase/package/proxy_package_metadata_usecase.dart';
 import 'package:sambura_core/application/usecase/artifact/get_artifact_usecase.dart';
 import 'package:sambura_core/application/usecase/artifact/create_artifact_usecase.dart';
 import 'package:sambura_core/config/logger.dart';
-import 'package:sambura_core/infrastructure/api/helpers/package_path_parser.dart';
 import 'package:sambura_core/infrastructure/api/presenter/artifact/artifact_presenter.dart';
 import 'package:sambura_core/infrastructure/api/presenter/error_presenter.dart';
 import 'package:sambura_core/infrastructure/api/dtos/artifact_input.dart';
 import 'package:shelf_router/shelf_router.dart';
-import 'package:sambura_core/application/exceptions/exceptions.dart';
 import 'package:sambura_core/application/ports/ports.dart';
 import 'package:sambura_core/domain/entities/entities.dart';
-import 'package:sambura_core/domain/exceptions/exceptions.dart';
 
 class ArtifactController {
   final CreateArtifactUsecase _createArtifactUseCase;
   final GetArtifactUseCase _getArtifactUseCase;
   final GetArtifactByIdUseCase _getByIdUseCase;
   final GetArtifactDownloadStreamUsecase _getArtifactDownloadStreamUsecase;
-  final GenerateApiKeyUsecase _generateApiKeyUsecase;
   final ProxyPackageMetadataUseCase _proxyPackageMetadataUseCase;
-  final DownloadArtifactTarballUseCase _downloadArtifactTarballUseCase;
+  final GenerateApiKeyUsecase _generateApiKeyUsecase;
   final MetricsPort _metrics;
   final Logger _log = LoggerConfig.getLogger('ArtifactController');
 
@@ -35,12 +30,12 @@ class ArtifactController {
     this._getArtifactUseCase,
     this._getByIdUseCase,
     this._getArtifactDownloadStreamUsecase,
-    this._generateApiKeyUsecase,
     this._proxyPackageMetadataUseCase,
-    this._downloadArtifactTarballUseCase,
+    this._generateApiKeyUsecase,
     this._metrics,
   );
 
+  /// Download genérico por versão (Útil para resolvers internos)
   Future<Response> downloadByVersion(
     Request request,
     String namespace,
@@ -68,30 +63,11 @@ class ArtifactController {
           );
         }
 
-        _log.info('🌐 Mirroring: $name@$version');
-
-        final input = ArtifactInput(
-          repositoryName: namespace,
-          namespace: namespace,
-          packageName: name,
-          version: version,
-          path: '$name/-/$name-$version.tgz',
-        );
-
-        final stream = await _downloadArtifactTarballUseCase.executeProxyStream(
-          remoteUrl: 'https://registry.npmjs.org/$name/-/$name-$version.tgz',
-          input: input,
-        );
-
-        return Response.ok(
-          stream,
-          headers: {
-            'Content-Type': 'application/octet-stream',
-            'X-Sambura-Cache': 'MISS',
-          },
+        return Response.notFound(
+          jsonEncode({'error': 'Artefato não encontrado no cache local.'}),
         );
       } catch (e, stack) {
-        _log.severe('❌ Erro no download por versão', e, stack);
+        _log.severe('❌ Erro no download genérico', e, stack);
         return ErrorPresenter.internalServerError(
           "Erro no download.",
           request.url.path,
@@ -99,179 +75,6 @@ class ArtifactController {
         );
       }
     });
-  }
-
-  Future<Response> downloadTarball(Request request) {
-    final path = request.url.path;
-
-    return _measure('GET', path, () async {
-      try {
-        final repo = request.params['repo']!.trim();
-        final package = request.params['package']!.trim();
-        final filename = request.params['filename']!.replaceAll(';', '').trim();
-
-        SecurityValidator.validatePackagePath(package);
-
-        final nameOnly = PackagePathParser.extractName(package);
-        final version = PackagePathParser.extractVersion(filename);
-
-        // 1. Tenta buscar do Silo Local
-        final local = await _getArtifactDownloadStreamUsecase.execute(
-          namespace: repo,
-          name: nameOnly,
-          version: version,
-        );
-
-        if (local != null) {
-          return Response.ok(
-            local.stream,
-            headers: {
-              'Content-Type': 'application/octet-stream',
-              'Content-Length': local.blob.sizeBytes.toString(),
-            },
-          );
-        }
-
-        // 2. Fallback para Proxy (NPM Registry)
-        final input = ArtifactInput(
-          repositoryName: repo,
-          namespace: repo,
-          packageName: nameOnly,
-          version: version,
-          path: '$package/-/$filename',
-        );
-
-        final stream = await _downloadArtifactTarballUseCase.executeProxyStream(
-          remoteUrl: 'https://registry.npmjs.org/$package/-/$filename',
-          input: input,
-        );
-
-        return Response.ok(
-          stream,
-          headers: {'Content-Type': 'application/octet-stream'},
-        );
-      } on RepositoryNotFoundException catch (e) {
-        return Response.notFound(jsonEncode({'error': e.toString()}));
-      } on ExternalServiceUnavailableException catch (e) {
-        _log.warning('🌐 NPM indisponível para $path: ${e.message}');
-        return Response.internalServerError(
-          body: jsonEncode({
-            'error': 'Registro externo (NPM) indisponível no momento.',
-          }),
-        );
-      } catch (e, stack) {
-        _log.severe('💥 Erro inesperado no download:', e, stack);
-        rethrow;
-      }
-    });
-  }
-
-  /// GET /npm/:repo/:packageName
-  /// Ponto central para metadados e redirecionamento de tarballs (Lazy Mirroring)
-  Future<Response> getPackageMetadata(Request request) {
-    final path = request.url.path;
-
-    return _measure('GET', path, () async {
-      final baseUrl = request.requestedUri.origin;
-      final instance = request.url.path;
-
-      try {
-        final repo = request.params['repo'] ?? '';
-        final packageName = request.params['packageName'] ?? '';
-
-        SecurityValidator.validateGenericInput(repo);
-        SecurityValidator.validatePackagePath(packageName);
-
-        // 1. Tratamento de Binários (.tgz)
-        if (packageName.endsWith('.tgz')) {
-          return await _handleTarballRequest(repo, packageName);
-        }
-
-        // 2. Tratamento de Ações de Registro (ex: -/v1/search)
-        if (packageName.startsWith('-/')) {
-          final result = await _proxyPackageMetadataUseCase.execute(
-            packageName,
-            repoName: repo,
-            queryParams: request.url.queryParameters,
-          );
-          return Response.ok(
-            jsonEncode(result),
-            headers: {'Content-Type': 'application/json'},
-          );
-        }
-
-        // 3. Metadados de Pacote (JSON)
-        final result = await _proxyPackageMetadataUseCase.execute(
-          packageName,
-          repoName: repo,
-          queryParams: request.url.queryParameters,
-        );
-
-        if (result == null) {
-          return Response.notFound(jsonEncode({'error': 'Not found'}));
-        }
-
-        return Response.ok(
-          result is Map ? jsonEncode(result) : result,
-          headers: {'Content-Type': 'application/json'},
-        );
-      } on SecurityException catch (e) {
-        _log.warning('🛡️ Segurança: ${e.message}');
-        _metrics.recordViolation('invalid_package_format');
-        return Response.forbidden('Requisição negada por segurança.');
-      } catch (e, stack) {
-        _log.severe('❌ Erro no Metadata:', e, stack);
-        return ErrorPresenter.internalServerError(
-          "Erro ao processar metadados.",
-          instance,
-          baseUrl,
-        );
-      }
-    });
-  }
-
-  /// Lógica interna para gerenciar o Stream do Tarball
-  Future<Response> _handleTarballRequest(String repo, String path) async {
-    final nameOnly = PackagePathParser.extractName(path);
-    final version = PackagePathParser.extractVersion(path);
-
-    // Tenta cache local primeiro
-    final local = await _getArtifactDownloadStreamUsecase.execute(
-      namespace: repo,
-      name: nameOnly,
-      version: version,
-    );
-
-    if (local != null) {
-      _log.info('🚀 Cache Hit: $path');
-      return Response.ok(
-        local.stream,
-        headers: {
-          'Content-Type': 'application/octet-stream',
-          'Content-Length': local.blob.sizeBytes.toString(),
-        },
-      );
-    }
-
-    // Cache Miss: Proxy + Lazy Mirroring
-    _log.info('🌐 Proxy Stream: $path');
-    final input = ArtifactInput(
-      repositoryName: repo,
-      namespace: repo,
-      packageName: nameOnly,
-      version: version,
-      path: path,
-    );
-
-    final stream = await _downloadArtifactTarballUseCase.executeProxyStream(
-      remoteUrl: 'https://registry.npmjs.org/$path',
-      input: input,
-    );
-
-    return Response.ok(
-      stream,
-      headers: {'Content-Type': 'application/octet-stream'},
-    );
   }
 
   /// POST /upload/:repository/:namespace/:package/:version
@@ -290,11 +93,10 @@ class ArtifactController {
         final relativePath = request.url.pathSegments.skip(3).join('/');
 
         final input = ArtifactInput(
-          repositoryName: repo,
-          namespace: ns,
+          namespace: repo,
           packageName: pkg,
           version: ver,
-          path: relativePath,
+          fileName: relativePath,
         );
 
         _log.info('📤 Recebendo upload: $pkg@$ver no repo $repo');

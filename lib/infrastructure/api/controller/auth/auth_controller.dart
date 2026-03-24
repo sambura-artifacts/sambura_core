@@ -6,13 +6,19 @@ import 'package:logging/logging.dart';
 import 'package:sambura_core/config/logger.dart';
 import 'package:sambura_core/application/usecase/account/create_account_usecase.dart';
 import 'package:sambura_core/application/usecase/auth/login_usecase.dart';
+import 'package:sambura_core/application/ports/ports.dart';
 
 class AuthController {
   final CreateAccountUsecase _createAccountUsecase;
   final LoginUsecase _loginUsecase;
+  final AuthPort _authPort;
   final Logger _log = LoggerConfig.getLogger('AuthController');
 
-  AuthController(this._createAccountUsecase, this._loginUsecase);
+  AuthController(
+    this._createAccountUsecase,
+    this._loginUsecase,
+    this._authPort,
+  );
 
   // POST /api/v1/public/auth/register
   Future<Response> register(Request request) async {
@@ -86,6 +92,54 @@ class AuthController {
     } catch (e, stack) {
       _log.severe('[REQ:$requestId] Erro crítico no login.', e, stack);
       return LoginPresenter.error(e);
+    }
+  }
+
+  // POST /api/v1/admin/auth/refresh
+  Future<Response> refreshToken(Request request) async {
+    final requestId = DateTime.now().millisecondsSinceEpoch.toString();
+    _log.info('[REQ:$requestId] Recebida solicitação de renovação de token.');
+
+    try {
+      final authHeader = request.headers['Authorization'];
+
+      if (authHeader == null || !authHeader.startsWith('Bearer ')) {
+        _log.warning('[REQ:$requestId] Token ausente ou inválido.');
+        return Response.unauthorized(
+          jsonEncode({'error': 'Token ausente ou inválido'}),
+          headers: {'content-type': 'application/json'},
+        );
+      }
+
+      final token = authHeader.substring(7);
+
+      try {
+        // Renova o token usando o AuthPort
+        final newToken = _authPort.refreshToken(token);
+
+        _log.info('[REQ:$requestId] Token renovado com sucesso.');
+
+        return Response.ok(
+          jsonEncode({
+            'token': newToken,
+            'type': 'Bearer',
+            'expiresIn': 86400, // 24 horas em segundos
+          }),
+          headers: {'content-type': 'application/json'},
+        );
+      } on Exception catch (e) {
+        _log.warning('[REQ:$requestId] Falha ao renovar token: $e');
+        return Response.unauthorized(
+          jsonEncode({'error': 'Token inválido ou expirado'}),
+          headers: {'content-type': 'application/json'},
+        );
+      }
+    } catch (e, stack) {
+      _log.severe('[REQ:$requestId] Erro crítico ao renovar token.', e, stack);
+      return Response.internalServerError(
+        body: jsonEncode({'error': 'Erro interno no servidor'}),
+        headers: {'content-type': 'application/json'},
+      );
     }
   }
 }
