@@ -17,6 +17,11 @@ class ProtectedRouter {
   Router get router {
     final router = Router();
 
+    // Auth routes (protected)
+    router.post('/auth/refresh', _authController.refreshToken);
+
+    router.post('/auth/login', _authController.login);
+
     router.post('/auth/register', _authController.register);
 
     router.mount('/admin', _adminRouter.router.call);

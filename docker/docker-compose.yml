@@ -12,6 +12,8 @@ volumes:
   loki_data:
   prometheus_data:
   grafana_data:
+  logs_volume:
+  docs_volume:
 
 services:
   # --- APPLICATION ---
@@ -20,8 +22,8 @@ services:
       context: ..
       dockerfile: docker/app/Dockerfile
     volumes:
-      - ./logs:/app/logs
-      - ../specs:/app/specs
+      - logs_volume:/app/logs
+      - docs_volume:/app/docs
     container_name: sambura_app
     ports:
       - "8080:8080"
@@ -168,6 +170,7 @@ services:
     volumes:
       - ../logs:/var/log/sambura:ro
       - ./monitoring/promtail-config.yml:/etc/promtail/config.yml
+      - /var/run/docker.sock:/var/run/docker.sock:ro  # Permite que o promtail leia os logs dos containers Docker
     command: -config.file=/etc/promtail/config.yml
     networks: ["monitoring"]
     depends_on: [loki]

@@ -69,6 +69,7 @@ class MainRouter {
 
     // --- Rotas Protegidas ---
     // (Ex: Register, Admin, Upload, Management)
+    // Monta apenas rotas específicas do protected router que não conflitam
     v1.mount(
       '/',
       Pipeline()

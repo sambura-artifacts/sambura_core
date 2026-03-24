@@ -17,7 +17,7 @@ dependencies:
   get_it: ^9.2.0
   http: ^1.6.0
   logging: ^1.2.0
-  mime: ^2.0.0
+  mime: ^1.0.6
   minio: ^3.5.8
   postgres: ^3.5.9
   prometheus_client: ^1.0.0+1
@@ -26,7 +26,6 @@ dependencies:
   shelf: ^1.4.2
   shelf_multipart: ^2.0.1
   shelf_router: ^1.1.2
-  shelf_swagger_ui: ^1.0.0+2
   uuid: ^4.5.2
  
 

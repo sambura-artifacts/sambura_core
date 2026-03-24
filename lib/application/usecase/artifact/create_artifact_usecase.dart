@@ -24,17 +24,17 @@ class CreateArtifactUsecase {
     Stream<List<int>> fileStream,
   ) async {
     _log.info(
-      'Iniciando criação de artefato: ${input.packageName}@${input.version} em ${input.repositoryName}',
+      'Iniciando criação de artefato: ${input.packageName}@${input.version} em ${input.namespace}',
     );
 
     try {
       // 1. Validar Repositório
-      _log.fine('Buscando repositório: ${input.repositoryName}');
-      final repo = await _repositoryRepository.getByName(input.repositoryName);
+      _log.fine('Buscando repositório: ${input.namespace}');
+      final repo = await _repositoryRepository.getByName(input.namespace);
 
       if (repo == null) {
-        _log.severe('✗ Repositório não encontrado: ${input.repositoryName}');
-        throw RepositoryNotFoundException(input.repositoryName);
+        _log.severe('✗ Repositório não encontrado: ${input.namespace}');
+        throw RepositoryNotFoundException(input.namespace);
       }
 
       // 2. Persistir o Binário (Blob) no MinIO/S3
@@ -59,7 +59,7 @@ class CreateArtifactUsecase {
         packageName: package.name,
         namespace: input.namespace,
         version: input.version,
-        path: input.path,
+        path: input.fileName ?? '',
         blob: blob,
       );
 

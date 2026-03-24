@@ -1,8 +1,12 @@
+enum RepositoryType { npm, maven, pypi, nuget, docker, generic }
+
 class RepositoryEntity {
   final int? id; // ID serial do Postgres
   final String name; // Nome amigável (ex: "production-main")
   final String namespace; // O dono/escopo (ex: "minha-empresa")
   final bool isPublic; // Se qualquer um pode baixar sem token
+  final RepositoryType type;
+  final String? remoteUrl;
   final DateTime? createdAt;
 
   RepositoryEntity._({
@@ -10,6 +14,8 @@ class RepositoryEntity {
     required this.name,
     required this.namespace,
     required this.isPublic,
+    required this.type,
+    this.remoteUrl,
     this.createdAt,
   });
 
@@ -18,11 +24,15 @@ class RepositoryEntity {
     required String name,
     required String namespace,
     bool isPublic = false,
+    RepositoryType type = RepositoryType.generic,
+    String? remoteUrl,
   }) {
     return RepositoryEntity._(
       name: name,
       namespace: namespace,
       isPublic: isPublic,
+      type: type,
+      remoteUrl: remoteUrl,
       createdAt: DateTime.now(),
     );
   }
@@ -31,10 +41,13 @@ class RepositoryEntity {
     return RepositoryEntity._(
       id: map['id'] is int ? map['id'] as int : null,
       name: map['name'] as String,
-      // AJUSTE: Use 'namespace' em vez de 'type'
-      namespace: (map['namespace'] ?? map['type'] ?? 'default') as String,
-      // AJUSTE: Use 'is_public' (como vem do JSON/DB) para o 'isPublic'
+      namespace: (map['namespace'] ?? 'default') as String,
       isPublic: map['is_public'] ?? map['isPublic'] ?? false,
+      type: RepositoryType.values.firstWhere(
+        (e) => e.toString() == 'RepositoryType.${map['type']}',
+        orElse: () => RepositoryType.generic,
+      ),
+      remoteUrl: map['remote_url'] as String?,
       createdAt: map['created_at'] != null
           ? (map['created_at'] is DateTime
                 ? map['created_at'] as DateTime
@@ -48,12 +61,16 @@ class RepositoryEntity {
     String? name,
     String? namespace,
     bool? isPublic,
+    RepositoryType? type,
+    String? remoteUrl,
   }) {
     return RepositoryEntity._(
       id: id ?? this.id,
       name: name ?? this.name,
       namespace: namespace ?? this.namespace,
       isPublic: isPublic ?? this.isPublic,
+      type: type ?? this.type,
+      remoteUrl: remoteUrl ?? this.remoteUrl,
       createdAt: createdAt,
     );
   }
@@ -65,6 +82,8 @@ class RepositoryEntity {
       'name': name,
       'namespace': namespace,
       'is_public': isPublic,
+      'type': type.name,
+      'remote_url': remoteUrl,
       'created_at': createdAt?.toIso8601String(),
     };
   }

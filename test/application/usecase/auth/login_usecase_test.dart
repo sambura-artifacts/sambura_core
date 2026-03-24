@@ -68,7 +68,7 @@ class MockHashService implements HashPort {
 
   @override
   bool verifyPassword(String password, String hash) {
-    throw UnimplementedError();
+    return shouldVerifySucceed;
   }
 }
 

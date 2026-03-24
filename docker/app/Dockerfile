@@ -13,7 +13,7 @@ WORKDIR /app
 COPY pubspec.yaml pubspec.lock ./
 
 # Instala dependências
-RUN dart pub get
+RUN dart pub get && dart pub outdated && dart pub upgrade
 
 # Copia código fonte
 COPY . .

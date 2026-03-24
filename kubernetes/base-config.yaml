@@ -1,0 +1,35 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: sambura
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: sambura-config
+  namespace: sambura
+data:
+  # App
+  LOG_LEVEL: "INFO"
+  PORT: "8080"
+  
+  # Database (RDS Endpoint do Terraform)
+  DB_HOST: "SUBSTITUIR_PELO_RDS_ENDPOINT"
+  DB_PORT: "5432"
+  DB_NAME: "sambura_metadata"
+  DB_USER: "sambura"
+
+  # Redis (Interno no K8s)
+  REDIS_HOST: "redis-service"
+  REDIS_PORT: "6379"
+
+  # RabbitMQ (Interno no K8s)
+  RABBITMQ_HOST: "rabbitmq-service"
+  RABBITMQ_PORT: "5672"
+  RABBITMQ_USER: "guest"
+
+  # Storage (S3 Bucket do Terraform)
+  SILO_HOST: "s3.amazonaws.com"
+  SILO_PORT: "443"
+  SILO_USESSL: "true"
+  BUCKET_NAME: "SUBSTITUIR_PELO_S3_BUCKET_NAME"

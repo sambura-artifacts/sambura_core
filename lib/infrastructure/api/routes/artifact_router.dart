@@ -19,10 +19,6 @@ class ArtifactRouter {
 
   Router get router {
     final router = Router();
-    router.get(
-      '/api/v1/npm/<repo>/<package|.*>/-/<filename>',
-      _artifactController.downloadTarball,
-    );
     // Gestão de Estrutura
     router.get('/repositories', _repositoryController.list);
     router.post('/repositories', _repositoryController.save);
