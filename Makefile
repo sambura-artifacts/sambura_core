@@ -99,31 +99,27 @@ docker-down: ## Para todos os containers
 docker-purge: ## Para todos os containers e remove volumes
 	@echo "🛑 Removendo infraestrutura e volumes..."
 	@docker compose -f docker/docker-compose.yml down --volumes
+	@rm -rf .apikey .token
 	@echo "✅ Infraestrutura removida completamente."
-
-docker-logs: ## Mostra logs dos containers
-	@docker compose -f docker/docker-compose.yml logs
-
-docker-logs-full: ## Acompanha logs dos containers em tempo real
-	@docker compose -f docker/docker-compose.yml logs -f
-
-# Alias para compatibilidade
-up: docker-up
-down: docker-down
-
-docker-down: ## Para todos os containers e remove redes
-	docker compose -f docker/docker-compose.yml down
-	@echo "🛑 Infraestrutura offline."
-
-docker-purge: ## Para todos os containers e remove redes
-	docker compose -f docker/docker-compose.yml down --volumes
-	@echo "🛑 Infraestrutura excluída."
 
 docker-logs: ## Acompanha os logs dos containers
 	docker compose -f docker/docker-compose.yml logs 
 
+docker-logs-app: ## Acompanha os logs do container da aplicação
+	docker compose -f docker/docker-compose.yml logs -f sambura_app
+
 docker-logs-full: ## Acompanha os logs dos containers
 	docker compose -f docker/docker-compose.yml logs -f
+
+
+# Alias para compatibilidade
+up: docker-up
+down: docker-down
+rebuild: docker-rebuild
+log: docker-logs-app
+logs: docker-logs-full
+purge: docker-purge
+
 
 # ==============================================================================
 # BANCO DE DADOS
@@ -176,7 +172,7 @@ DEBUG ?= false
 
 auth-login:
 	@echo "🔍 Verificando Vault..."
-	@if ! curl -v -m 2 $(VAULT_API_URL)/sys/health >/dev/null; then \
+	@if ! curl -m 2 $(VAULT_API_URL)/sys/health >/dev/null; then \
 		echo "❌ Vault não está acessível"; \
 		exit 1; \
 	fi
@@ -193,7 +189,6 @@ auth-login:
 	LOGIN_RES=$$(curl -s "$(API_URL)/auth/login" \
 		-H "Content-Type: application/json" \
 		-d "{\"username\": \"$$ADMIN_USER\", \"password\": \"$$ADMIN_PASS\"}"); \
-	echo "$$LOGIN_RES"; \
 	if [ "$(DEBUG)" = "true" ]; then echo "🐞 [DEBUG] API Response: $$LOGIN_RES"; fi; \
 	TOKEN=$$(echo "$$LOGIN_RES" | python3 -c "import json,sys; data=json.load(sys.stdin); print(data.get('token',''))"); \
 	if [ -n "$$TOKEN" ] && [ "$$TOKEN" != "null" ]; then \

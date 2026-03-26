@@ -2,9 +2,18 @@ import 'dart:convert';
 import 'package:sambura_core/infrastructure/exceptions/infrastructure_exception.dart';
 import 'package:shelf/shelf.dart';
 import 'package:sambura_core/domain/exceptions/exceptions.dart';
+import 'package:sambura_core/application/exceptions/exceptions.dart';
 
 class ErrorPresenter {
   static Response fromException(Object e, String instance, String baseUrl) {
+    if (e is ExternalServiceUnavailableException) {
+      return serviceUnavailable(e.message, instance, baseUrl);
+    }
+
+    if (e is ExternalResourceNotFoundException) {
+      return notFound(e.message, instance, baseUrl);
+    }
+
     if (e is DomainException) {
       if (e is RepositoryNotFoundException || e is ArtifactNotFoundException) {
         return notFound(e.message, instance, baseUrl);
@@ -59,6 +68,10 @@ class ErrorPresenter {
     );
   }
 
+  static Response notFoundRoute(String instance, String baseUrl) {
+    return notFound('Route not found', instance, baseUrl);
+  }
+
   static Response conflict(String detail, String instance, String baseUrl) {
     final body = jsonEncode({
       "type": "$baseUrl/docs/errors/conflict",
@@ -90,6 +103,25 @@ class ErrorPresenter {
       "instance": instance,
     });
     return Response.internalServerError(
+      body: body,
+      headers: {'Content-Type': 'application/problem+json'},
+    );
+  }
+
+  static Response serviceUnavailable(
+    String detail,
+    String instance,
+    String baseUrl,
+  ) {
+    final body = jsonEncode({
+      "type": "${baseUrl}/docs/errors/service-unavailable",
+      "title": "Service Unavailable",
+      "status": 503,
+      "detail": detail,
+      "instance": instance,
+    });
+    return Response(
+      503,
       body: body,
       headers: {'Content-Type': 'application/problem+json'},
     );

@@ -3,6 +3,8 @@ networks:
     driver: bridge
   monitoring:
     driver: bridge
+  external:
+    driver: bridge
 
 volumes:
   postgres_data:
@@ -64,6 +66,7 @@ services:
     networks:
       - sambura_network
       - monitoring
+      - external
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/api/v1/system/health"]
       interval: 10s
