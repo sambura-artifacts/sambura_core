@@ -1,7 +1,5 @@
-import 'package:prometheus_client/prometheus_client.dart';
-import 'package:prometheus_client_shelf/shelf_handler.dart'
-    as prometheus_handler;
 import 'package:sambura_core/config/env.dart';
+import 'package:sambura_core/infrastructure/api/presenter/error_presenter.dart';
 import 'package:shelf/shelf.dart';
 import 'package:shelf_router/shelf_router.dart';
 
@@ -35,11 +33,13 @@ class MainRouter {
   );
 
   Handler get handler {
-    final router = Router();
-
-    router.get(
-      '/metrics',
-      prometheus_handler.prometheusHandler(CollectorRegistry.defaultRegistry),
+    final router = Router(
+      notFoundHandler: (Request request) {
+        return ErrorPresenter.notFoundRoute(
+          request.requestedUri.path,
+          _config.publicOrigin,
+        );
+      },
     );
 
     final apiPipeline = Pipeline()
@@ -61,7 +61,14 @@ class MainRouter {
   }
 
   Router _buildApiRoutes() {
-    final v1 = Router();
+    final v1 = Router(
+      notFoundHandler: (Request request) {
+        return ErrorPresenter.notFoundRoute(
+          request.requestedUri.path,
+          _config.publicOrigin,
+        );
+      },
+    );
 
     // --- Rotas Públicas ---
     // (Ex: Login, Docs, Health, Proxy de Leitura)

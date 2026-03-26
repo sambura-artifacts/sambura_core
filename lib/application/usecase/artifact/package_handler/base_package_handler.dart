@@ -58,8 +58,17 @@ abstract class BasePackageHandler implements PackageHandler {
     final remoteUrl = buildRemoteUrl(input);
 
     try {
-      log.info('🌐 Iniciando download via Proxy $handlerName: $remoteUrl');
+      // Pequeno delay para evitar rate limiting do remoto
+      await Future.delayed(const Duration(milliseconds: 150));
+
+      log.info('📍 URL remota construída: $remoteUrl');
+      log.info(
+        '🌐 Iniciando download via Proxy $handlerName para ${input.packageName}@${input.version}',
+      );
+
       final response = await httpClient.stream(remoteUrl);
+
+      log.info('✓ Stream obtido do remoto (${response.length} bytes)');
 
       metrics.observeHistogram(
         'sambura_${handlerName}_proxy_resolution_duration_ms',
@@ -81,10 +90,10 @@ abstract class BasePackageHandler implements PackageHandler {
                 labels: {'package': input.packageName, 'status': 'success'},
               );
               log.info(
-                '✅ Artefato ($handlerName) persistido com sucesso: ${input.packageName}',
+                '✅ Artefato ($handlerName) persistido com sucesso: ${input.packageName}@${input.version}',
               );
             })
-            .catchError((e) {
+            .catchError((e, stackTrace) {
               metrics.incrementCounter(
                 'sambura_artifact_persistence_errors_total',
               );
@@ -93,7 +102,11 @@ abstract class BasePackageHandler implements PackageHandler {
                 stopwatch.elapsedMilliseconds / 1000.0,
                 labels: {'package': input.packageName, 'status': 'error'},
               );
-              log.severe('❌ Erro ao persistir artefato ($handlerName): $e');
+              log.severe(
+                '❌ Erro ao persistir artefato ($handlerName) para ${input.packageName}',
+                e,
+                stackTrace,
+              );
             })
             .whenComplete(() async {
               await cache.releaseLock(lockKey);
@@ -102,10 +115,22 @@ abstract class BasePackageHandler implements PackageHandler {
       );
 
       return streamToReturn;
-    } catch (e) {
+    } on ExternalServiceUnavailableException catch (e) {
       await cache.releaseLock(lockKey);
       metrics.incrementCounter('sambura_${handlerName}_proxy_errors_total');
-      log.severe('❌ Falha na resolução do proxy ($handlerName): $e');
+      log.severe(
+        '🚨 Falha de conectividade no proxy ($handlerName): ${e.message}',
+        e,
+      );
+      rethrow;
+    } catch (e, stackTrace) {
+      await cache.releaseLock(lockKey);
+      metrics.incrementCounter('sambura_${handlerName}_proxy_errors_total');
+      log.severe(
+        '❌ Erro inesperado no proxy ($handlerName) para $remoteUrl',
+        e,
+        stackTrace,
+      );
       rethrow;
     }
   }

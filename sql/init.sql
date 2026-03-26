@@ -30,7 +30,9 @@ CREATE TABLE IF NOT EXISTS repositories (
     id SERIAL PRIMARY KEY,
     name TEXT UNIQUE NOT NULL,       -- ex: 'npm-proxy', 'dart-internal'
     namespace TEXT NOT NULL,         -- ex: 'npm', 'pub', 'docker'
+    type TEXT NOT NULL DEFAULT 'generic', -- Tipo do repositório: 'npm', 'maven', 'pypi', 'nuget', 'docker', 'generic'
     is_public BOOLEAN DEFAULT false, -- Indica se aceita requisições sem auth ou se é Proxy
+    remote_url TEXT,                 -- URL remota para proxy (opcional)
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
@@ -119,18 +121,18 @@ CREATE INDEX IF NOT EXISTS idx_api_keys_hash ON api_keys(key_hash);
 -- -----------------------------------------------------------------------------
 
 -- 8.1 Repositório Proxy (Mundo Externo)
--- Nome: npm-proxy | Namespace: npm | Público: true
-INSERT INTO repositories (name, namespace, is_public) 
-VALUES ('npm-proxy', 'npm', true)
+-- Nome: public | Namespace: npm | Público: true
+INSERT INTO repositories (name, namespace, type, is_public) 
+VALUES ('public', 'npm', 'npm', true)
 ON CONFLICT (name) DO NOTHING;
 
 -- 8.2 Repositório Hosted (Interno da Empresa)
 -- Nome: npm-internal | Namespace: npm | Público: false
-INSERT INTO repositories (name, namespace, is_public) 
-VALUES ('npm-internal', 'npm', false)
+INSERT INTO repositories (name, namespace, type, is_public) 
+VALUES ('npm-internal', 'npm', 'npm', false)
 ON CONFLICT (name) DO NOTHING;
 
 -- 8.3 Repositório Dart/Flutter (Exemplo)
-INSERT INTO repositories (name, namespace, is_public) 
-VALUES ('sambura-pub', 'pub', false)
+INSERT INTO repositories (name, namespace, type, is_public) 
+VALUES ('sambura-pub', 'pub', 'generic', false)
 ON CONFLICT (name) DO NOTHING;

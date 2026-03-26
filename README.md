@@ -788,15 +788,16 @@ Veja [CONTRIBUTING.md](CONTRIBUTING.md) para mais detalhes.
 - [x] Sanitização de inputs com SecurityValidator
 - [x] Dashboard Grafana com provisionamento automático
 
-### 🚧 Em Desenvolvimento (v1.0.2)
-- [ ] Dashboards Grafana pré-configurados
-- [ ] Alertas automáticos via Prometheus AlertManager
-- [ ] Suporte a Maven (Java)
-- [ ] Suporte a PyPI (Python)
+### ✅ Concluído (v1.0.2)
+- [x] Dashboards Grafana pré-configurados
+- [x] Alertas automáticos via Prometheus AlertManager
+- [x] Suporte a Maven (Java)
+- [x] Suporte a PyPI (Python)
+- [x] Suporte a NuGet (.NET)
 - [ ] Interface Web (dashboard administrativo)
 - [ ] Replicação entre instâncias
 
-### 🔮 Planejado (v1.0.3)
+### 🚧 Em Desenvolvimento (v1.0.3)
 - [ ] Suporte a Docker Registry
 - [ ] Suporte a NuGet (.NET)
 - [ ] Suporte a Cargo (Rust)

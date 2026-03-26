@@ -1,7 +1,7 @@
 import 'package:logging/logging.dart';
 import 'package:sambura_core/config/env.dart';
 import 'package:http/http.dart' as http;
-import 'package:sambura_core/application/usecase/artifact/download_and_proxy_artifact_usecase.dart';
+import 'package:sambura_core/application/usecase/artifact/download_npm_artifact_usecase.dart';
 import 'package:sambura_core/application/usecase/artifact/package_handler/package_handler_factory.dart';
 import 'package:sambura_core/infrastructure/api/controller/artifact/docker_controller.dart';
 import 'package:sambura_core/infrastructure/api/controller/artifact/maven_controller.dart';
@@ -28,6 +28,7 @@ import 'package:sambura_core/infrastructure/adapters/health/postgres_health_chec
 import 'package:sambura_core/infrastructure/api/controller/artifact/repository_controller.dart';
 import 'package:sambura_core/infrastructure/api/controller/auth/auth_controller.dart';
 import 'package:sambura_core/infrastructure/api/controller/system/metrics_controller.dart';
+import 'package:sambura_core/infrastructure/api/routes/package_manager_router.dart';
 
 // Database & Repositories
 import 'package:sambura_core/infrastructure/database/postgres_connector.dart';
@@ -89,6 +90,7 @@ class DependencyInjection {
   late final AdminRouter adminRouter;
   late final ProtectedRouter protectedRouter;
   late final ArtifactRouter artifactRouter;
+  late final PackageManagerRouter packageManagerRouter;
 
   late final AuthPort authProvider;
   late final HashPort hashPort;
@@ -180,7 +182,6 @@ class DependencyInjection {
       di.hashPort,
       authSecrets['jwt_secret'],
     );
-    final healthUseCase = GetServerHealthUseCase(healthService);
 
     final generateApiKeyUsecase = GenerateApiKeyUsecase(di.apiKeyRepository);
     final listApiKeysUsecase = ListApiKeysUsecase(di.apiKeyRepository);
@@ -224,7 +225,7 @@ class DependencyInjection {
       di.metricsPort,
     );
 
-    final downloadAndProxyArtifactUsecase = DownloadAndProxyArtifactUsecase(
+    final downloadAndProxyArtifactUsecase = DownloadNpmArtifactUsecase(
       getArtifactDownloadStreamUsecase,
       repositoryRepo,
       packageHandlerFactory,
@@ -268,21 +269,28 @@ class DependencyInjection {
       generateApiKeyUsecase,
       di.metricsPort,
     );
-    di.systemController = SystemController(healthUseCase);
+
+    di.systemController = SystemController(
+      GetServerHealthUseCase(healthService),
+      MetricsController(),
+    );
 
     // 9. ROUTERS
-    di.publicRouter = PublicRouter(
-      env,
-      di.authController,
-      di.artifactController,
+    di.packageManagerRouter = PackageManagerRouter(
       di.npmController,
       di.mavenController,
       di.pypiController,
       di.nugetController,
       di.dockerController,
+    );
+
+    di.publicRouter = PublicRouter(
+      env,
+      di.packageManagerRouter,
+      di.authController,
+      di.artifactController,
       di.blobController,
       di.systemController,
-      MetricsController(),
       di.apiKeyRepository,
       di.accountRepository,
       di.authProvider,
@@ -301,6 +309,7 @@ class DependencyInjection {
       di.authController,
       di.adminRouter,
       di.artifactRouter,
+      di.packageManagerRouter,
     );
 
     log.info('✅ Injeção de Dependências concluída com sucesso.');

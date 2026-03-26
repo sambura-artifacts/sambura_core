@@ -15,7 +15,7 @@ export 'api_key/revoke_api_key_usecase.dart';
 // Artifact usecases
 export 'artifact/check_artifact_exists_usecase.dart';
 export 'artifact/create_artifact_usecase.dart';
-export 'artifact/download_and_proxy_artifact_usecase.dart';
+export 'artifact/download_npm_artifact_usecase.dart';
 export 'artifact/download_artifact_usecase.dart';
 export 'artifact/get_artifact_by_id_usecase.dart';
 export 'artifact/get_artifact_download_stream_usecase.dart';
