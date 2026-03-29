@@ -122,17 +122,48 @@ CREATE INDEX IF NOT EXISTS idx_api_keys_hash ON api_keys(key_hash);
 
 -- 8.1 Repositório Proxy (Mundo Externo)
 -- Nome: public | Namespace: npm | Público: true
-INSERT INTO repositories (name, namespace, type, is_public) 
-VALUES ('public', 'npm', 'npm', true)
+INSERT INTO repositories (name, namespace, type, is_public, remote_url) 
+VALUES ('public', 'npm', 'npm', true, 'https://registry.npmjs.org/')
 ON CONFLICT (name) DO NOTHING;
 
 -- 8.2 Repositório Hosted (Interno da Empresa)
 -- Nome: npm-internal | Namespace: npm | Público: false
-INSERT INTO repositories (name, namespace, type, is_public) 
-VALUES ('npm-internal', 'npm', 'npm', false)
+INSERT INTO repositories (name, namespace, type, is_public, remote_url) 
+VALUES ('npm-internal', 'npm', 'npm', false, 'https://registry.npmjs.org/')
 ON CONFLICT (name) DO NOTHING;
 
 -- 8.3 Repositório Dart/Flutter (Exemplo)
-INSERT INTO repositories (name, namespace, type, is_public) 
-VALUES ('sambura-pub', 'pub', 'generic', false)
+INSERT INTO repositories (name, namespace, type, is_public, remote_url) 
+VALUES ('sambura-pub', 'pub', 'generic', false, 'https://pub.dev/'  )
 ON CONFLICT (name) DO NOTHING;
+
+-- 8.4 Repositório Docker (Exemplo)
+INSERT INTO repositories (name, namespace, type, is_public, remote_url) 
+VALUES ('sambura-docker', 'docker', 'docker', false, 'https://registry.hub.docker.com/')
+ON CONFLICT (name) DO NOTHING;
+
+-- 8.5 Repositório Maven (Exemplo)
+INSERT INTO repositories (name, namespace, type, is_public, remote_url) 
+VALUES ('sambura-maven', 'maven', 'maven', false, 'https://repo.maven.apache.org/maven2/')
+ON CONFLICT (name) DO NOTHING;  
+
+-- 8.6 Repositório NuGet (Exemplo)
+INSERT INTO repositories (name, namespace, type, is_public, remote_url) 
+VALUES ('sambura-nuget', 'nuget', 'nuget', false, 'https://api.nuget.org/v3/index.json')
+ON CONFLICT (name) DO NOTHING;
+
+-- 8.7 Repositório PyPI (Exemplo)
+INSERT INTO repositories (name, namespace, type, is_public, remote_url) 
+VALUES ('sambura-pypi', 'pypi', 'pypi', false, 'https://pypi.org/simple/')
+ON CONFLICT (name) DO NOTHING;  
+
+-- 8.8 Repositório Genérico (Exemplo)  
+INSERT INTO repositories (name, namespace, type, is_public, remote_url)
+VALUES ('sambura-generic', 'generic', 'generic', false, null)
+ON CONFLICT (name) DO NOTHING;  
+
+------------------------------------------------------------------------------
+-- Fim da Inicialização do Banco de Dados
+-- Este script deve ser idempotente e pode ser executado múltiplas vezes sem causar erros.
+-- Ele estabelece a estrutura fundamental para o funcionamento do Samburá Core.
+-- =============================================================================
