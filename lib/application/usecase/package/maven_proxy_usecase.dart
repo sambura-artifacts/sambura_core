@@ -13,7 +13,7 @@ class MavenProxyUseCase {
   /// path: 'org/apache/maven/maven-model/3.8.1/maven-model-3.8.1.jar'
   Future<dynamic> execute(String path) async {
     _log.info('🌐 Maven Proxy Request: $path');
-    
+
     try {
       final baseUri = Uri.https(remoteHost, '/maven2/$path');
       _log.info('🌐 Proxy Request: $baseUri');

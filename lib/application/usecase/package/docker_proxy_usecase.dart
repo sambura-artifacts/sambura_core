@@ -13,10 +13,10 @@ class DockerProxyUseCase {
   /// path: 'v2/library/node/manifests/latest' ou 'v2/library/node/blobs/sha256:...'
   Future<dynamic> execute(String path, {Map<String, String>? headers}) async {
     _log.info('🌐 Docker Proxy Request: $path');
-    
+
     try {
       final uri = Uri.https(remoteHost, path);
-      
+
       // Docker Hub requer autenticação via Bearer Token mesmo para imagens públicas
       // Para este MVP, vamos assumir que o HttpClientAdapter lida com redirecionamentos
       // e autenticação anônima se necessário, ou injetar o token aqui.

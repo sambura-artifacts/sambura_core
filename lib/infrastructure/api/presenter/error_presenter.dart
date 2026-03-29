@@ -114,7 +114,7 @@ class ErrorPresenter {
     String baseUrl,
   ) {
     final body = jsonEncode({
-      "type": "${baseUrl}/docs/errors/service-unavailable",
+      "type": "$baseUrl/docs/errors/service-unavailable",
       "title": "Service Unavailable",
       "status": 503,
       "detail": detail,

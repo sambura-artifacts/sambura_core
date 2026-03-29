@@ -1,6 +1,8 @@
 /// Data Transfer Object (DTO) para entrada de novos artefatos.
 /// Centraliza os metadados necessários antes do processamento do binário.
 class ArtifactInput {
+  final String
+  remoteUrl; // URL do repositório remoto (ex: https://registry.npmjs.org/)
   final String namespace; // ex: npm-private
   final String packageName; // ex: core-lib ou @scope/core-lib
   final String version; // ex: 1.0.0
@@ -9,6 +11,7 @@ class ArtifactInput {
   final Map<String, dynamic> metadata; // Metadados específicos do tipo de repo
 
   ArtifactInput({
+    this.remoteUrl = '',
     required this.namespace,
     required this.packageName,
     required this.version,

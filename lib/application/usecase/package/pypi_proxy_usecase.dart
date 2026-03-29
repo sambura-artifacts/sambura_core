@@ -11,9 +11,12 @@ class PypiProxyUseCase {
 
   /// Executa o proxy de busca para o PyPI (Simple API ou Download)
   /// path: 'simple/requests/' ou 'packages/.../requests-2.31.0-py3-none-any.whl'
-  Future<dynamic> execute(String path, {Map<String, String>? queryParams}) async {
+  Future<dynamic> execute(
+    String path, {
+    Map<String, String>? queryParams,
+  }) async {
     _log.info('🌐 PyPI Proxy Request: $path');
-    
+
     try {
       final uri = Uri.https(remoteHost, path, queryParams);
       _log.info('🌐 Proxy Request URI: $uri');

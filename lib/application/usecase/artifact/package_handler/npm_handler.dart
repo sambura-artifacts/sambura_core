@@ -23,13 +23,17 @@ class NpmHandler extends BasePackageHandler {
 
   @override
   Uri buildRemoteUrl(ArtifactInput input) {
-    // Para pacotes scoped (@scope/package), o filename usa o nome unscoped
-    log.info(
-      'Construindo URL remota para NPM: ${input.packageName}@${input.version}',
-    );
     final unscopedName = input.packageName.split('/').last;
+    final baseUrl = input.remoteUrl.endsWith('/')
+        ? input.remoteUrl.substring(0, input.remoteUrl.length - 1)
+        : input.remoteUrl;
+
+    log.info(
+      'Construindo URL remota para NPM: ${input.remoteUrl}/${input.namespace}/${input.packageName}@${input.version}',
+    );
+
     final remoteUrl = Uri.parse(
-      'https://registry.npmjs.org/${input.packageName}/-/${unscopedName}-${input.version}.tgz',
+      '$baseUrl/${input.packageName}/-/$unscopedName-${input.version}.tgz',
     );
     return remoteUrl;
   }

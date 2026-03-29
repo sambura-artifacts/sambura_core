@@ -22,12 +22,45 @@ class HttpClientAdapter extends HttpClientPort {
   }
 
   @override
-  Future<HttpClientResponse> post({
-    required String uri,
+  Future<HttpClientResponse> post(
+    Uri uri, {
     Map<String, String>? headers,
-    data,
-  }) {
-    throw UnimplementedError();
+    dynamic body,
+  }) async {
+    final response = await http.post(uri, headers: headers, body: body);
+    return HttpClientResponse(
+      statusCode: response.statusCode,
+      body: response.body,
+      bodyBytes: response.bodyBytes,
+    );
+  }
+
+  @override
+  Future<HttpClientResponse> put(
+    Uri uri, {
+    Map<String, String>? headers,
+    dynamic body,
+  }) async {
+    final response = await http.put(uri, headers: headers, body: body);
+    return HttpClientResponse(
+      statusCode: response.statusCode,
+      body: response.body,
+      bodyBytes: response.bodyBytes,
+    );
+  }
+
+  @override
+  Future<HttpClientResponse> delete(
+    Uri uri, {
+    Map<String, String>? headers,
+    dynamic body,
+  }) async {
+    final response = await http.delete(uri, headers: headers, body: body);
+    return HttpClientResponse(
+      statusCode: response.statusCode,
+      body: response.body,
+      bodyBytes: response.bodyBytes,
+    );
   }
 
   @override

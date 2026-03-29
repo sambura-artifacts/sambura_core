@@ -11,10 +11,14 @@ class NugetProxyUseCase {
 
   /// Executa o proxy de busca para o NuGet V3 API
   /// path: 'v3/index.json' ou 'v3-flatcontainer/package/version/package.version.nupkg'
-  Future<dynamic> execute(String path, {String? host, Map<String, String>? queryParams}) async {
+  Future<dynamic> execute(
+    String path, {
+    String? host,
+    Map<String, String>? queryParams,
+  }) async {
     final targetHost = host ?? remoteHost;
     _log.info('🌐 NuGet Proxy Request: $path (Host: $targetHost)');
-    
+
     try {
       final uri = Uri.https(targetHost, path, queryParams);
       _log.info('🌐 Proxy Request URI: $uri');

@@ -1,6 +1,7 @@
 import 'dart:typed_data';
 import 'package:crypto/crypto.dart';
 import 'package:logging/logging.dart';
+import 'package:sambura_core/application/ports/composition_analysis_port.dart';
 import 'package:sambura_core/config/logger.dart';
 import 'package:sambura_core/domain/entities/entities.dart';
 import 'package:sambura_core/domain/repositories/repositories.dart';
@@ -10,6 +11,7 @@ class UploadArtifactUsecase {
   final PackageRepository _packageRepo;
   final RepositoryRepository _repoRepo;
   final BlobRepository _blobRepo;
+  final CompositionAnalysisPort _scaPort;
   final Logger _log = LoggerConfig.getLogger('UploadArtifactUsecase');
 
   UploadArtifactUsecase(
@@ -17,6 +19,7 @@ class UploadArtifactUsecase {
     this._packageRepo,
     this._repoRepo,
     this._blobRepo,
+    this._scaPort,
   );
 
   Future<void> execute({
@@ -53,8 +56,6 @@ class UploadArtifactUsecase {
         'Repositório encontrado: ${repository.name} (ID: ${repository.id})',
       );
 
-      // 3. Busca ou Cria o Pacote (Auto-provisionamento)
-      _log.fine('Buscando pacote: $packageName');
       final packages = await _packageRepo.findByRepositoryNameAndPackageName(
         repoName,
         packageName,
