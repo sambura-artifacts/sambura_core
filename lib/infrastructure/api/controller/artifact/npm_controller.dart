@@ -1,18 +1,19 @@
 import 'dart:async';
+import 'dart:convert';
+import 'package:sambura_core/application/usecase/usecases.dart';
 import 'package:shelf/shelf.dart';
 import 'package:logging/logging.dart';
 import 'package:sambura_core/config/app_config.dart';
 import 'package:sambura_core/config/logger.dart';
 import 'package:sambura_core/application/exceptions/exceptions.dart';
-import 'package:sambura_core/application/usecase/artifact/download_npm_artifact_usecase.dart';
 import 'package:sambura_core/infrastructure/api/dtos/artifact_input.dart';
 import 'package:sambura_core/infrastructure/api/presenter/error_presenter.dart';
 
 class NpmController {
-  final DownloadNpmArtifactUsecase _downloadAndProxyArtifactUsecase;
+  final DownloadNpmArtifactUsecase _artifactUsecase;
   final Logger _log = LoggerConfig.getLogger('NpmController');
 
-  NpmController(this._downloadAndProxyArtifactUsecase);
+  NpmController(this._artifactUsecase);
 
   Future<Response> downloadTarball(
     Request request,
@@ -54,7 +55,7 @@ class NpmController {
         '🌐 [NPM Download] Requisição recebida: $repo/${input.packageName}@${input.version}',
       );
 
-      final stream = await _downloadAndProxyArtifactUsecase.execute(input);
+      final stream = await _artifactUsecase.execute(input);
 
       if (stream == null) {
         _log.warning(
@@ -67,6 +68,20 @@ class NpmController {
         '✅ Stream obtido com sucesso para ${input.packageName}@${input.version}',
       );
       return Response.ok(stream);
+    } on InsecureArtifactException catch (e, stackTrace) {
+      _log.warning(
+        '⚠️ Artefato inseguro detectado ao processar download NPM: $repo/$package/-/$filename',
+        e,
+        stackTrace,
+      );
+      return ErrorPresenter.forbidden(
+        jsonEncode({
+          "error": "Politicas de segurança (Samburá)",
+          "message": e.message,
+        }),
+        request.requestedUri.path,
+        AppConfig.baseUrl,
+      );
     } on ExternalServiceUnavailableException catch (e, stackTrace) {
       _log.severe(
         '🚨 Serviço externo indisponível ao processar download NPM: $repo/$package/-/$filename',

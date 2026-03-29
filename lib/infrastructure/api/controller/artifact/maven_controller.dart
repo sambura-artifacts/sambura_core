@@ -3,11 +3,11 @@ import 'dart:async';
 import 'package:shelf/shelf.dart';
 import 'package:logging/logging.dart';
 import 'package:sambura_core/config/logger.dart';
-import 'package:sambura_core/application/usecase/artifact/download_npm_artifact_usecase.dart';
+import 'package:sambura_core/application/usecase/artifact/download_and_proxy_artifact_usecase.dart';
 import 'package:sambura_core/infrastructure/api/dtos/artifact_input.dart';
 
 class MavenController {
-  final DownloadNpmArtifactUsecase _downloadAndProxyArtifactUsecase;
+  final DownloadAndProxyArtifactUsecase _downloadAndProxyArtifactUsecase;
   final Logger _log = LoggerConfig.getLogger('MavenController');
 
   MavenController(this._downloadAndProxyArtifactUsecase);

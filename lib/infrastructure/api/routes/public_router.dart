@@ -1,9 +1,5 @@
 import 'dart:io';
-import 'package:prometheus_client/prometheus_client.dart';
-import 'package:prometheus_client_shelf/shelf_handler.dart'
-    as prometheus_handler;
 import 'package:sambura_core/config/env.dart';
-import 'package:sambura_core/infrastructure/api/middleware/error_handler_middleware.dart';
 import 'package:sambura_core/infrastructure/api/routes/package_manager_router.dart';
 import 'package:shelf/shelf.dart';
 import 'package:shelf_router/shelf_router.dart';
@@ -11,7 +7,6 @@ import 'package:sambura_core/infrastructure/api/controller/auth/auth_controller.
 import 'package:sambura_core/infrastructure/api/controller/artifact/artifact_controller.dart';
 import 'package:sambura_core/infrastructure/api/controller/artifact/blob_controller.dart';
 import 'package:sambura_core/infrastructure/api/controller/system/system_controller.dart';
-import 'package:sambura_core/infrastructure/api/middleware/auth_middleware.dart';
 import 'package:sambura_core/application/ports/ports.dart';
 import 'package:sambura_core/domain/repositories/repositories.dart';
 
@@ -45,11 +40,6 @@ class PublicRouter {
   Router get router {
     final router = Router();
 
-    router.get(
-      '/metrics',
-      prometheus_handler.prometheusHandler(CollectorRegistry.defaultRegistry),
-    );
-
     // Servir o arquivo swagger.yaml diretamente
     router.get('/specs/swagger.yaml', (Request request) {
       return Response.ok(
@@ -67,39 +57,7 @@ class PublicRouter {
 
     // 4. Package Manager Proxy Routes (Legacy + API prefix compatibility)
     // Rota esperada pela documentação: /api/v1/npm, /api/v1/maven, /api/v1/pypi, /api/v1/nuget, /api/v1/docker
-    router.mount(
-      '/packages',
-      _packageManagerRouter.router.call,
-    ); // compatibilidade com versões antigas
-    router.mount('/', _packageManagerRouter.router.call);
-
-    // 5. Pipeline Protegida com Métricas
-    final secureResolverPipeline = Pipeline()
-        .addMiddleware(errorHandler(_config.publicOrigin, _metricsPort))
-        .addMiddleware(
-          authMiddleware(
-            _accountRepo,
-            _apiKeyRepo,
-            _authProvider,
-            _cache,
-            _metricsPort,
-          ),
-        )
-        .addHandler((Request request) async {
-          final inner = Router();
-          inner.get(
-            '/download/<namespace>/<name>/<version>',
-            _artifactController.downloadByVersion,
-          );
-          inner.get('/blobs/<hash>', _blobController.download);
-          inner.get(
-            '/<repositoryName>/<packageName>/<version>',
-            _artifactController.resolve,
-          );
-          return inner.call(request);
-        });
-
-    router.mount('/', secureResolverPipeline);
+    router.mount('/packages', _packageManagerRouter.router.call);
 
     return router;
   }

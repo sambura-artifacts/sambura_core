@@ -1,4 +1,5 @@
-import 'package:sambura_core/infrastructure/api/controller/artifact/npm_controller.dart';
+import 'package:sambura_core/infrastructure/api/routes/managers/managers.dart';
+
 import 'package:sambura_core/infrastructure/api/controller/artifact/maven_controller.dart';
 import 'package:sambura_core/infrastructure/api/controller/artifact/pypi_controller.dart';
 import 'package:sambura_core/infrastructure/api/controller/artifact/nuget_controller.dart';
@@ -6,14 +7,14 @@ import 'package:sambura_core/infrastructure/api/controller/artifact/docker_contr
 import 'package:shelf_router/shelf_router.dart';
 
 class PackageManagerRouter {
-  final NpmController _npmController;
+  final NpmRouter _npmRouter;
   final MavenController _mavenController;
   final PypiController _pypiController;
   final NugetController _nugetController;
   final DockerController _dockerController;
 
   PackageManagerRouter(
-    this._npmController,
+    this._npmRouter,
     this._mavenController,
     this._pypiController,
     this._nugetController,
@@ -24,22 +25,12 @@ class PackageManagerRouter {
     final router = Router();
 
     // 4. NPM Proxy Routes
-    router.get(
-      '/npm/<repo>/<package|.*>/-/<filename>',
-      _npmController.downloadTarball,
-    );
-    router.get(
-      '/npm/<repo>/<packageName|.*>',
-      _npmController.getPackageMetadata,
-    );
+    router.mount('/npm/', _npmRouter.router.call);
 
     // 5. Maven Routes
+    router.get('/maven/<path|.+>', _mavenController.downloadArtifact);
     router.get(
-      '/maven/<repo>/<groupId>/<artifactId>/<version>/<filename>',
-      _mavenController.downloadArtifact,
-    );
-    router.get(
-      '/maven/<repo>/<groupId>/<artifactId>/maven-metadata.xml',
+      '/maven/<path|.+/maven-metadata.xml>',
       _mavenController.getMetadata,
     );
 
