@@ -5,9 +5,10 @@ class RepositoryEntity {
   final String name; // Nome amigável (ex: "production-main")
   final String namespace; // O dono/escopo (ex: "minha-empresa")
   final bool isPublic; // Se qualquer um pode baixar sem token
-  final RepositoryType type;
-  final String? remoteUrl;
-  final DateTime? createdAt;
+  final RepositoryType type; // Tipo do repositório (npm, maven, etc)
+  final String
+  remoteUrl; // URL do repositório real (ex: "https://registry.npmjs.org/")
+  final DateTime? createdAt; // Timestamp de criação
 
   RepositoryEntity._({
     this.id,
@@ -15,7 +16,7 @@ class RepositoryEntity {
     required this.namespace,
     required this.isPublic,
     required this.type,
-    this.remoteUrl,
+    required this.remoteUrl,
     this.createdAt,
   });
 
@@ -24,8 +25,9 @@ class RepositoryEntity {
     required String name,
     required String namespace,
     bool isPublic = false,
+    bool active = true,
     RepositoryType type = RepositoryType.generic,
-    String? remoteUrl,
+    required String remoteUrl,
   }) {
     return RepositoryEntity._(
       name: name,
@@ -47,7 +49,7 @@ class RepositoryEntity {
         (e) => e.toString() == 'RepositoryType.${map['type']}',
         orElse: () => RepositoryType.generic,
       ),
-      remoteUrl: map['remote_url'] as String?,
+      remoteUrl: map['remote_url'] as String,
       createdAt: map['created_at'] != null
           ? (map['created_at'] is DateTime
                 ? map['created_at'] as DateTime

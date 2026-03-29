@@ -67,6 +67,12 @@ class EnvConfig extends Equatable {
   final String logLevel;
   final String logFilePath;
 
+  // ----------------------------------
+  // 8. SCA - DEPENDENCY-TRACK
+  // ----------------------------------
+  final String dtrackApiUrl;
+  final String dtrackApiKey;
+
   const EnvConfig({
     this.publicOrigin = "http://localhost:8080",
     required this.environment,
@@ -98,6 +104,8 @@ class EnvConfig extends Equatable {
     required this.vaultDatabasePath,
     required this.logFilePath,
     required this.logLevel,
+    required this.dtrackApiUrl,
+    required this.dtrackApiKey,
   });
 
   @override
@@ -206,6 +214,14 @@ class Env {
       logFilePath: getString(
         'LOG_FILE_PATH',
         defaultValue: '/app/logs/app.log',
+      ),
+      dtrackApiUrl: getString(
+        'DTRACK_API_URL',
+        defaultValue: 'http://localhost:8090',
+      ),
+      dtrackApiKey: getString(
+        'DTRACK_API_KEY',
+        defaultValue: 'dtrack_api_key_placeholder',
       ),
     );
   }

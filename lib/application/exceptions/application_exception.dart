@@ -44,3 +44,11 @@ class ExternalRegistryAuthException extends ApplicationException {
   ExternalRegistryAuthException({super.details})
     : super(message: 'Falha na autenticação com o registro externo.');
 }
+
+class InsecureArtifactException extends ApplicationException {
+  InsecureArtifactException(String packageId, String version, {super.details})
+    : super(
+        message:
+            'O artefato $packageId@$version falhou na análise de segurança.',
+      );
+}

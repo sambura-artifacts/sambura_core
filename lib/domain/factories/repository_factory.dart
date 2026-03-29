@@ -4,14 +4,18 @@ import 'package:sambura_core/domain/entities/entities.dart';
 class RepositoryFactory {
   /// Cria um novo repositório
   static RepositoryEntity create({
+    required String remoteUrl,
     required String name,
     required String namespace,
     bool isPublic = false,
+    bool active = true,
   }) {
     return RepositoryEntity.create(
+      remoteUrl: remoteUrl,
       name: name,
       namespace: namespace,
       isPublic: isPublic,
+      active: active,
     );
   }
 

@@ -37,6 +37,7 @@ IMAGE_TAG ?= v1.0.1
 # URLs e dados para setup
 REPO_URL ?= $(API_URL)/admin/repositories
 REPO_DATA ?= '{"name": "npm-registry", "namespace": "npm", "is_public": true, "type": "proxy"}'
+REPO_MAVEN ?= '{"name": "maven-registry", "namespace": "maven", "is_public": true, "type": "proxy"}'
 API_KEYS_URL ?= $(API_URL)/admin/api-keys
 
 # Flags de debug
@@ -224,13 +225,22 @@ create-apikey:
 # ==============================================================================
 # REPOSITÓRIOS & STORAGE
 # ==============================================================================
-create-repo: ## Cria o repositório npm-proxy usando o token JWT
+create-npm-repo: ## Cria o repositório npm-proxy usando o token JWT
 	@if [ ! -f .token ]; then echo "❌ Erro: Cadê o token? Roda 'make auth-login' primeiro!"; exit 1; fi
 	@echo "🏗️  Criando repositório: npm-proxy..."
 	@curl -s -X POST $(REPO_URL) \
 		-H "Authorization: Bearer $$(cat .token)" \
 		-H "Content-Type: application/json" \
 		-d $(REPO_DATA)
+	@echo "\n✅ Repositório pronto para cachear pacotes!"
+
+create-maven-repo: ## Cria o repositório maven-proxy usando o token JWT
+	@if [ ! -f .token ]; then echo "❌ Erro: Cadê o token? Roda 'make auth-login' primeiro!"; exit 1; fi
+	@echo "🏗️  Criando repositório: maven-proxy..."
+	@curl -iv -X POST $(REPO_URL) \
+		-H "Authorization: Bearer $$(cat .token)" \
+		-H "Content-Type: application/json" \
+		-d $(REPO_MAVEN)
 	@echo "\n✅ Repositório pronto para cachear pacotes!"
 
 setup-s3: ## Garante que o bucket do MinIO existe
