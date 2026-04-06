@@ -2,10 +2,7 @@ import 'dart:io';
 import 'dart:typed_data';
 import 'package:async/async.dart';
 
-import 'package:sambura_core/config/barrel.dart';
 import 'package:sambura_core/domain/barrel.dart';
-import 'package:sambura_core/application/barrel.dart';
-import 'package:sambura_core/infrastructure/barrel.dart';
 
 class FileSystemBlobRepository implements BlobRepository {
   final String _basePath;
