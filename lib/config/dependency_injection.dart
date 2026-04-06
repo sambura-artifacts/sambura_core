@@ -248,17 +248,9 @@ class DependencyInjection {
     );
 
     di.publicRouter = PublicRouter(
-      env,
       di.packageManagerRouter,
       di.authController,
-      di.artifactController,
-      di.blobController,
       di.systemController,
-      di.apiKeyRepository,
-      di.accountRepository,
-      di.authProvider,
-      di.cachePort,
-      di.metricsPort,
     );
 
     di.adminRouter = AdminRouter(di.apiKeyController, di.namespaceController);

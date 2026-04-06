@@ -1,40 +1,18 @@
 import 'dart:io';
-import 'package:sambura_core/config/env.dart';
-import 'package:sambura_core/infrastructure/api/routes/package_manager_router.dart';
 import 'package:shelf/shelf.dart';
 import 'package:shelf_router/shelf_router.dart';
-import 'package:sambura_core/infrastructure/api/controller/auth/auth_controller.dart';
-import 'package:sambura_core/infrastructure/api/controller/artifact/artifact_controller.dart';
-import 'package:sambura_core/infrastructure/api/controller/artifact/blob_controller.dart';
-import 'package:sambura_core/infrastructure/api/controller/system/system_controller.dart';
-import 'package:sambura_core/application/ports/ports.dart';
-import 'package:sambura_core/domain/repositories/repositories.dart';
+
+import 'package:sambura_core/infrastructure/barrel.dart';
 
 class PublicRouter {
-  final EnvConfig _config;
   final PackageManagerRouter _packageManagerRouter;
   final AuthController _authController;
-  final ArtifactController _artifactController;
-  final BlobController _blobController;
   final SystemController _systemController;
-  final ApiKeyRepository _apiKeyRepo;
-  final AccountRepository _accountRepo;
-  final AuthPort _authProvider;
-  final CachePort _cache;
-  final MetricsPort _metricsPort;
 
   PublicRouter(
-    this._config,
     this._packageManagerRouter,
     this._authController,
-    this._artifactController,
-    this._blobController,
     this._systemController,
-    this._apiKeyRepo,
-    this._accountRepo,
-    this._authProvider,
-    this._cache,
-    this._metricsPort,
   );
 
   Router get router {
