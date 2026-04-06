@@ -205,7 +205,7 @@ auth-login:
 	fi
 
 
-API_KEYS_URL = $(API_URL)/admin/api-keys
+API_KEYS_URL = $(API_URL)/admin/api-key
 
 create-apikey:
 	@if [ ! -f .token ]; then echo "❌ Erro: Rode 'make auth-login' primeiro."; exit 1; fi

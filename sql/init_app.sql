@@ -21,37 +21,52 @@ CREATE TABLE IF NOT EXISTS blobs (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
+-- ---------------------------------------------------------------------------
+-- 2. PACKAGE MANAGERS (Maven, NPM, Nuget, etc...)
+-- ---------------------------------------------------------------------------
+-- Objetivo: Garantir isolamento de pacotes por repositórios
+-- Criando granularidade nos bloqueios de pacotes
+CREATE TABLE IF NOT EXISTS package_manager (
+    id SERIAL PRIMARY KEY,
+    slug VARCHAR(20) UNIQUE NOT NULL, -- 'npm', 'maven', 'pypi'
+    name VARCHAR(50) NOT NULL,        -- 'Node Package Manager', 'Apache Maven'
+    description TEXT,
+    icon_url TEXT,                    -- Útil para Dashboard
+    default_upstream TEXT,            -- ex: 'https://registry.npmjs.org/'
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
 -- -----------------------------------------------------------------------------
--- 2. REPOSITORIES (Camada de Configuração/Escopo)
+-- 3. NAMESPACES (Camada de Configuração/Escopo)
 -- -----------------------------------------------------------------------------
 -- Objetivo: Isolar ambientes e comportamentos.
 -- Um repositório define a 'casa' dos pacotes (ex: npm, pub, maven).
-CREATE TABLE IF NOT EXISTS repositories (
+CREATE TABLE IF NOT EXISTS namespaces (
     id SERIAL PRIMARY KEY,
+    package_manager_id INTEGER NOT NULL REFERENCES package_manager(id),
     name TEXT UNIQUE NOT NULL,       -- ex: 'npm-proxy', 'dart-internal'
-    namespace TEXT NOT NULL,         -- ex: 'npm', 'pub', 'docker'
-    type TEXT NOT NULL DEFAULT 'generic', -- Tipo do repositório: 'npm', 'maven', 'pypi', 'nuget', 'docker', 'generic'
+    escope VARCHAR(30) NOT NULL,
     is_public BOOLEAN DEFAULT false, -- Indica se aceita requisições sem auth ou se é Proxy
     remote_url TEXT,                 -- URL remota para proxy (opcional)
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
 -- -----------------------------------------------------------------------------
--- 3. PACKAGES (Camada de Catálogo/Projeto)
+-- 4. PACKAGES (Camada de Catálogo/Projeto)
 -- -----------------------------------------------------------------------------
 -- Objetivo: Agrupar versões de um mesmo software.
 -- O pacote 'express' pertence a um repositório específico.
 CREATE TABLE IF NOT EXISTS packages (
     id SERIAL PRIMARY KEY,
-    repository_id INTEGER NOT NULL REFERENCES repositories(id) ON DELETE CASCADE,
+    namespace_id INTEGER NOT NULL REFERENCES namespaces(id) ON DELETE CASCADE,
     name TEXT NOT NULL,              -- ex: 'express', 'dio', 'shelf'
     description TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    CONSTRAINT unique_package_per_repo UNIQUE(repository_id, name)
+    CONSTRAINT unique_package_per_repo UNIQUE(namespace_id, name)
 );
 
 -- -----------------------------------------------------------------------------
--- 4. ARTIFACTS (Camada de Versão/Release)
+-- 5. ARTIFACTS (Camada de Versão/Release)
 -- -----------------------------------------------------------------------------
 -- Objetivo: Ligar um nome/versão amigável a um Blob físico.
 -- É aqui que o usuário 'baixa' o arquivo. O artifact é o 'ponteiro' para o conteúdo.
@@ -67,7 +82,7 @@ CREATE TABLE IF NOT EXISTS artifacts (
 );
 
 -- -----------------------------------------------------------------------------
--- 5. ACCOUNTS (Gestão de Identidade)
+-- 6. ACCOUNTS (Gestão de Identidade)
 -- -----------------------------------------------------------------------------
 -- Objetivo: Armazenar credenciais e permissões.
 -- Parte vital do monólito que futuramente será desacoplada para um Auth Service.
@@ -83,7 +98,7 @@ CREATE TABLE IF NOT EXISTS accounts (
 );
 
 -- -----------------------------------------------------------------------------
--- 6. API KEYS (Autenticação Programática)
+-- 7. API KEYS (Autenticação Programática)
 -- -----------------------------------------------------------------------------
 -- Objetivo: Permitir que máquinas (CI/CD) publiquem ou baixem artefatos.
 -- Armazenamos apenas o hash da chave para segurança máxima.
@@ -99,7 +114,7 @@ CREATE TABLE IF NOT EXISTS api_keys (
 );
 
 -- -----------------------------------------------------------------------------
--- 7. ÍNDICES (Otimização de Performance)
+-- 8. ÍNDICES (Otimização de Performance)
 -- -----------------------------------------------------------------------------
 -- Buscas por UUID (comum em APIs REST)
 CREATE INDEX IF NOT EXISTS idx_artifacts_external_id ON artifacts(external_id);
@@ -107,7 +122,8 @@ CREATE INDEX IF NOT EXISTS idx_accounts_external_id ON accounts(external_id);
 
 -- Buscas de pacotes e versões (hot path das ferramentas de package manager)
 CREATE INDEX IF NOT EXISTS idx_artifacts_package_lookup ON artifacts(package_id, version);
-CREATE INDEX IF NOT EXISTS idx_packages_repo_name ON packages(repository_id, name);
+CREATE INDEX IF NOT EXISTS idx_packages_namespace_name ON packages(namespace_id, name);
+CREATE INDEX IF NOT EXISTS idx_namespaces_pm_id ON namespaces(package_manager_id);
 
 -- Performance em joins de download (Blob -> Artifact)
 CREATE INDEX IF NOT EXISTS idx_artifacts_blob_id ON artifacts(blob_id);
@@ -117,50 +133,27 @@ CREATE INDEX IF NOT EXISTS idx_accounts_username ON accounts(username);
 CREATE INDEX IF NOT EXISTS idx_api_keys_hash ON api_keys(key_hash);
 
 -- -----------------------------------------------------------------------------
--- 8. SEEDS (Dados Iniciais)
+-- 9. SEEDS (Dados Iniciais)
+-- -----------------------------------------------------------------------------
+-- -----------------------------------------------------------------------------
+-- 9. SEEDS (Dados Iniciais)
 -- -----------------------------------------------------------------------------
 
--- 8.1 Repositório Proxy (Mundo Externo)
+-- 9.0 Populando os Package Managers (Obrigatório para as Foreign Keys)
+INSERT INTO package_manager (id, slug, name, default_upstream) VALUES 
+(1, 'npm', 'Node Package Manager', 'https://registry.npmjs.org/'),
+(2, 'maven', 'Apache Maven', 'https://repo.maven.apache.org/maven2/'),
+(3, 'generic', 'Generic Storage', NULL)
+ON CONFLICT (id) DO NOTHING;
+-- ATENÇÃO: Se usar o Postgres 10+, é melhor resetar a sequência do ID após forçar a inserção
+SELECT setval('package_manager_id_seq', (SELECT MAX(id) FROM package_manager));
+
+-- 9.1 Repositório Proxy (Mundo Externo)
 -- Nome: public | Namespace: npm | Público: true
-INSERT INTO repositories (name, namespace, type, is_public, remote_url) 
-VALUES ('public', 'npm', 'npm', true, 'https://registry.npmjs.org/')
+-- Agora o ID 1 (npm) existe e a Foreign Key vai passar!
+INSERT INTO namespaces (package_manager_id, name, escope, is_public, remote_url) 
+VALUES (1, 'npm-public', 'npm', true, 'https://registry.npmjs.org/')
 ON CONFLICT (name) DO NOTHING;
-
--- 8.2 Repositório Hosted (Interno da Empresa)
--- Nome: npm-internal | Namespace: npm | Público: false
-INSERT INTO repositories (name, namespace, type, is_public, remote_url) 
-VALUES ('npm-internal', 'npm', 'npm', false, 'https://registry.npmjs.org/')
-ON CONFLICT (name) DO NOTHING;
-
--- 8.3 Repositório Dart/Flutter (Exemplo)
-INSERT INTO repositories (name, namespace, type, is_public, remote_url) 
-VALUES ('sambura-pub', 'pub', 'generic', false, 'https://pub.dev/'  )
-ON CONFLICT (name) DO NOTHING;
-
--- 8.4 Repositório Docker (Exemplo)
-INSERT INTO repositories (name, namespace, type, is_public, remote_url) 
-VALUES ('sambura-docker', 'docker', 'docker', false, 'https://registry.hub.docker.com/')
-ON CONFLICT (name) DO NOTHING;
-
--- 8.5 Repositório Maven (Exemplo)
-INSERT INTO repositories (name, namespace, type, is_public, remote_url) 
-VALUES ('sambura-maven', 'maven', 'maven', false, 'https://repo.maven.apache.org/maven2/')
-ON CONFLICT (name) DO NOTHING;  
-
--- 8.6 Repositório NuGet (Exemplo)
-INSERT INTO repositories (name, namespace, type, is_public, remote_url) 
-VALUES ('sambura-nuget', 'nuget', 'nuget', false, 'https://api.nuget.org/v3/index.json')
-ON CONFLICT (name) DO NOTHING;
-
--- 8.7 Repositório PyPI (Exemplo)
-INSERT INTO repositories (name, namespace, type, is_public, remote_url) 
-VALUES ('sambura-pypi', 'pypi', 'pypi', false, 'https://pypi.org/simple/')
-ON CONFLICT (name) DO NOTHING;  
-
--- 8.8 Repositório Genérico (Exemplo)  
-INSERT INTO repositories (name, namespace, type, is_public, remote_url)
-VALUES ('sambura-generic', 'generic', 'generic', false, null)
-ON CONFLICT (name) DO NOTHING;  
 
 ------------------------------------------------------------------------------
 -- Fim da Inicialização do Banco de Dados

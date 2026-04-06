@@ -16,8 +16,9 @@ volumes:
   grafana_data:
   logs_volume:
   docs_volume:
-  dtrack_data:
+  postgres_dtrack_data:
   dtrack_db_data:
+  dtrack_data:
 
 services:
   # --- APPLICATION ---
@@ -33,7 +34,7 @@ services:
       - "8080:8080"
     environment:
       # Database
-      DB_HOST: postgres
+      DB_HOST: postgres_app
       DB_PORT: 5432
       DB_USER: sambura
       DB_PASSWORD: sambura_db_secret
@@ -79,7 +80,7 @@ services:
       timeout: 5s
       retries: 5
     depends_on:
-      postgres: { condition: service_healthy }
+      postgres_app: { condition: service_healthy }
       redis: { condition: service_healthy }
       rabbitmq: { condition: service_healthy }
       minio: { condition: service_healthy }
@@ -89,7 +90,7 @@ services:
     restart: unless-stopped
 
   # --- DATABASE ---
-  postgres:
+  postgres_app:
     image: postgres:16-alpine
     container_name: sambura_db
     environment:
@@ -99,7 +100,6 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ../sql/init_app.sql:/docker-entrypoint-initdb.d/init_app.sql
-      - ../sql/init_dtrack.sql:/docker-entrypoint-initdb.d/init_dtrack.sql
     ports:
       - "5432:5432"
     healthcheck:
@@ -243,7 +243,7 @@ services:
     entrypoint: >
       /bin/sh -c "
         sleep 2;
-        vault kv put secret/sambura/database host=postgres port=5432 user=sambura password=sambura_db_secret name=sambura_metadata;
+        vault kv put secret/sambura/database host=postgres_app port=5432 user=sambura password=sambura_db_secret name=sambura_metadata;
         vault kv put secret/sambura/auth jwt_secret=chave_mestra token_expiration=3600;
         vault kv put secret/sambura/auth jwt_secret=chave_mestra_sambura_2025 pepper=pimenta_no_reino;
         echo 'Segredos injetados!';"
@@ -255,7 +255,7 @@ services:
     networks:
       - sambura_network
     depends_on:
-      postgres: { condition: service_healthy }
+      postgres_app: { condition: service_healthy }
       minio: { condition: service_healthy }
     volumes:
       - ../sql:/sql
@@ -267,11 +267,30 @@ services:
       /bin/sh -c "
         apk add --no-cache postgresql-client aws-cli;
         echo '🏗️  Iniciando DB Init...';
-        psql -h postgres -U sambura -d sambura_metadata -f /sql/init.sql;
+        psql -h postgres_app -U sambura -d sambura_metadata -f /sql/init.sql;
         echo '📥 Configurando bucket no MinIO...';
         aws --endpoint-url http://minio:9000 s3 mb s3://sambura-blobs 2>/dev/null || echo '✅ Bucket já existe.';
         echo '🚀 INFRA PRONTA!';"
 
+
+  postgres_dtrack:
+    image: postgres:16-alpine
+    container_name: sambura-dtrack-db
+    environment:
+      POSTGRES_USER: sambura
+      POSTGRES_PASSWORD: sambura_db_secret
+      POSTGRES_DB: sambura_metadata
+    volumes:
+      - postgres_dtrack_data:/var/lib/postgresql/data
+      - ../sql/init_dtrack.sql:/docker-entrypoint-initdb.d/init_dtrack.sql
+    ports:
+      - "5435:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sambura -d sambura_metadata"]
+      interval: 5s
+      retries: 5
+    networks:
+      - sambura_network
 # 🛡️ DEPENDENCY-TRACK - Software Composition Analysis (SCA)
   dtrack-apiserver:
     image: dependencytrack/apiserver:latest
@@ -279,7 +298,7 @@ services:
     environment:
       - EXTRA_JAVA_OPTIONS=-Xmx2G -Xms1G
       - ALPINE_DATABASE_MODE=external
-      - ALPINE_DATABASE_URL=jdbc:postgresql://postgres:5432/dtrack_db
+      - ALPINE_DATABASE_URL=jdbc:postgresql://postgres_dtrack:5432/dtrack_db
       - ALPINE_DATABASE_DRIVER=org.postgresql.Driver
       - ALPINE_DATABASE_USERNAME=dtrack_user
       - ALPINE_DATABASE_PASSWORD=dtrack_password
