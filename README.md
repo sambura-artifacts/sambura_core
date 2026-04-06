@@ -3,7 +3,7 @@
 > Registry privado universal de artefatos com proxy transparente, cache inteligente e Clean Architecture em Dart
 
 
-[![🛡️ Quality Gate](https://github.com/seu-usuario/sambura_core/actions/workflows/quality-gate.yml/badge.svg)](https://github.com/seu-usuario/sambura_core/actions)
+[![🛡️ Quality Gate](https://github.com/sambura-artifacts/sambura_core/actions/workflows/quality-gate.yml/badge.svg)](https://github.com/sambura-artifacts/sambura_core/actions)
 [![Dart Version](https://img.shields.io/badge/dart-%3E%3D3.0.0-blue.svg)](https://dart.dev/)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![Coverage](https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/usuario/id/raw/coverage.json)](COVERAGE_REPORT.md)
