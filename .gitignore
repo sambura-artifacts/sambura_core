@@ -89,3 +89,7 @@ node_modules/
 
 # Request
 --request
+
+
+# SBOM file
+*bom.json*
