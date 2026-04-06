@@ -1,7 +1,8 @@
 import 'dart:convert';
 import 'package:shelf/shelf.dart';
-import 'package:sambura_core/application/usecase/api_key/generate_api_key_usecase.dart';
-import 'package:sambura_core/domain/entities/entities.dart';
+
+import 'package:sambura_core/domain/barrel.dart';
+import 'package:sambura_core/application/barrel.dart';
 
 class ApiKeyPresenter {
   /// Resposta de sucesso ao criar uma nova API key

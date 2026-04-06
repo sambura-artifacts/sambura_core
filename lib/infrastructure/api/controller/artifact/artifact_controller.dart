@@ -1,36 +1,25 @@
 import 'dart:convert';
 import 'package:logging/logging.dart';
 import 'package:shelf/shelf.dart';
-import 'package:sambura_core/application/usecase/api_key/generate_api_key_usecase.dart';
-import 'package:sambura_core/application/usecase/artifact/get_artifact_by_id_usecase.dart';
-import 'package:sambura_core/application/usecase/artifact/get_artifact_download_stream_usecase.dart';
-import 'package:sambura_core/application/usecase/package/proxy_package_metadata_usecase.dart';
-import 'package:sambura_core/application/usecase/artifact/get_artifact_usecase.dart';
-import 'package:sambura_core/application/usecase/artifact/create_artifact_usecase.dart';
-import 'package:sambura_core/config/logger.dart';
-import 'package:sambura_core/infrastructure/api/presenter/artifact/artifact_presenter.dart';
-import 'package:sambura_core/infrastructure/api/presenter/error_presenter.dart';
-import 'package:sambura_core/infrastructure/api/dtos/artifact_input.dart';
 import 'package:shelf_router/shelf_router.dart';
-import 'package:sambura_core/application/ports/ports.dart';
-import 'package:sambura_core/domain/entities/entities.dart';
+
+import 'package:sambura_core/config/barrel.dart';
+import 'package:sambura_core/domain/barrel.dart';
+import 'package:sambura_core/application/barrel.dart';
+import 'package:sambura_core/infrastructure/barrel.dart';
 
 class ArtifactController {
   final CreateArtifactUsecase _createArtifactUseCase;
-  final GetArtifactUseCase _getArtifactUseCase;
-  final GetArtifactByIdUseCase _getByIdUseCase;
   final GetArtifactDownloadStreamUsecase _getArtifactDownloadStreamUsecase;
-  final ProxyPackageMetadataUseCase _proxyPackageMetadataUseCase;
+  final NpmProxyPackageMetadataUseCase _npmProxyPackageMetadataUseCase;
   final GenerateApiKeyUsecase _generateApiKeyUsecase;
   final MetricsPort _metrics;
   final Logger _log = LoggerConfig.getLogger('ArtifactController');
 
   ArtifactController(
     this._createArtifactUseCase,
-    this._getArtifactUseCase,
-    this._getByIdUseCase,
     this._getArtifactDownloadStreamUsecase,
-    this._proxyPackageMetadataUseCase,
+    this._npmProxyPackageMetadataUseCase,
     this._generateApiKeyUsecase,
     this._metrics,
   );
@@ -92,7 +81,7 @@ class ArtifactController {
         // Extrai o caminho relativo (ex: nome do arquivo .tgz)
         final relativePath = request.url.pathSegments.skip(3).join('/');
 
-        final input = ArtifactInput(
+        final input = InfraestructureArtifactInput(
           namespace: repo,
           packageName: pkg,
           version: ver,
@@ -119,80 +108,6 @@ class ArtifactController {
       } catch (e) {
         // O _measure capturará o erro e registrará como status 500 nas métricas
         rethrow;
-      }
-    });
-  }
-
-  /// GET /artifacts/:externalId
-  /// Busca metadados de um artefato específico via UUID
-  Future<Response> getByExternalId(Request request, String externalId) {
-    final path = request.url.path;
-
-    return _measure('GET', path, () async {
-      final baseUrl = request.requestedUri.origin;
-
-      try {
-        final artifact = await _getByIdUseCase.execute(externalId);
-
-        if (artifact == null) {
-          return ErrorPresenter.notFound(
-            'Artefato não encontrado.',
-            path,
-            baseUrl,
-          );
-        }
-
-        return Response.ok(
-          jsonEncode(ArtifactPresenter.createArtifact(artifact, baseUrl)),
-          headers: {'Content-Type': 'application/json'},
-        );
-      } catch (e, stack) {
-        _log.severe('❌ Erro ao buscar por ID: $externalId', e, stack);
-        return ErrorPresenter.internalServerError(
-          "Erro na busca por ID.",
-          path,
-          baseUrl,
-        );
-      }
-    });
-  }
-
-  /// GET /resolve/:repository/:package/:version
-  /// Resolve a localização do artefato (Banco ou Proxy)
-  Future<Response> resolve(
-    Request request,
-    String repositoryName,
-    String packageName,
-    String version,
-  ) {
-    final path = request.url.path;
-
-    return _measure('GET', path, () async {
-      final baseUrl = request.requestedUri.origin;
-
-      try {
-        final artifact = await _getArtifactUseCase.execute(
-          repositoryName: repositoryName,
-          packageName: packageName,
-          version: version,
-        );
-
-        if (artifact == null) {
-          return ErrorPresenter.notFound(
-            'Artefato não encontrado.',
-            path,
-            baseUrl,
-          );
-        }
-
-        return ArtifactPresenter.success(artifact);
-      } catch (e, stack) {
-        _log.severe('❌ Erro na resolução: $packageName@$version', e, stack);
-        return ErrorPresenter.internalServerError(
-          "Erro na resolução.",
-          path,
-          baseUrl,
-        );
       }
     });
   }
@@ -247,7 +162,7 @@ class ArtifactController {
       final queryParams = request.url.queryParameters;
 
       try {
-        final result = await _proxyPackageMetadataUseCase.execute(
+        final result = await _npmProxyPackageMetadataUseCase.execute(
           '/-/v1/search',
           repoName: repo,
           queryParams: queryParams,

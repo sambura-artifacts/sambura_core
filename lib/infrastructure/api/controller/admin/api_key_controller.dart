@@ -1,13 +1,12 @@
 import 'dart:convert';
 import 'package:logging/logging.dart';
-import 'package:sambura_core/config/logger.dart';
-import 'package:sambura_core/application/usecase/api_key/generate_api_key_usecase.dart';
-import 'package:sambura_core/application/usecase/api_key/list_api_keys_usecase.dart';
-import 'package:sambura_core/application/usecase/api_key/revoke_api_key_usecase.dart';
 import 'package:shelf/shelf.dart';
 import 'package:shelf_router/shelf_router.dart';
-import 'package:sambura_core/infrastructure/api/presenter/admin/api_key_presenter.dart';
-import 'package:sambura_core/domain/entities/entities.dart';
+
+import 'package:sambura_core/config/barrel.dart';
+import 'package:sambura_core/domain/barrel.dart';
+import 'package:sambura_core/application/barrel.dart';
+import 'package:sambura_core/infrastructure/barrel.dart';
 
 class ApiKeyController {
   final GenerateApiKeyUsecase _generateApiKeyUsecase;

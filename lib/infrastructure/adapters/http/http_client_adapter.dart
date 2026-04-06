@@ -1,9 +1,9 @@
 import 'dart:typed_data';
 import 'package:logging/logging.dart';
 import 'package:http/http.dart' as http;
-import 'package:sambura_core/application/exceptions/exceptions.dart';
-import 'package:sambura_core/application/ports/ports.dart';
 import 'package:sambura_core/config/logger.dart';
+
+import 'package:sambura_core/application/barrel.dart';
 
 class HttpClientAdapter extends HttpClientPort {
   final http.Client _client;
@@ -16,6 +16,7 @@ class HttpClientAdapter extends HttpClientPort {
     final response = await http.get(uri, headers: headers);
     return HttpClientResponse(
       statusCode: response.statusCode,
+      headers: response.headers,
       body: response.body,
       bodyBytes: response.bodyBytes,
     );
@@ -30,6 +31,7 @@ class HttpClientAdapter extends HttpClientPort {
     final response = await http.post(uri, headers: headers, body: body);
     return HttpClientResponse(
       statusCode: response.statusCode,
+      headers: response.headers,
       body: response.body,
       bodyBytes: response.bodyBytes,
     );
@@ -44,6 +46,7 @@ class HttpClientAdapter extends HttpClientPort {
     final response = await http.put(uri, headers: headers, body: body);
     return HttpClientResponse(
       statusCode: response.statusCode,
+      headers: response.headers,
       body: response.body,
       bodyBytes: response.bodyBytes,
     );
@@ -58,6 +61,7 @@ class HttpClientAdapter extends HttpClientPort {
     final response = await http.delete(uri, headers: headers, body: body);
     return HttpClientResponse(
       statusCode: response.statusCode,
+      headers: response.headers,
       body: response.body,
       bodyBytes: response.bodyBytes,
     );

@@ -1,10 +1,8 @@
 import 'package:logging/logging.dart';
-import 'package:sambura_core/config/logger.dart';
-import 'package:sambura_core/infrastructure/database/postgres_connector.dart';
-import 'package:sambura_core/infrastructure/mappers/artifact_mapper.dart';
-import 'package:sambura_core/infrastructure/mappers/blob_mapper.dart';
-import 'package:sambura_core/domain/entities/entities.dart';
-import 'package:sambura_core/domain/repositories/repositories.dart';
+
+import 'package:sambura_core/config/barrel.dart';
+import 'package:sambura_core/domain/barrel.dart';
+import 'package:sambura_core/infrastructure/barrel.dart';
 
 class PostgresArtifactRepository implements ArtifactRepository {
   final PostgresConnector _connection;
@@ -58,7 +56,7 @@ class PostgresArtifactRepository implements ArtifactRepository {
           SELECT a.*, b.hash as blob_hash, b.size_bytes, b.mime_type 
           FROM artifacts a
           JOIN packages p ON a.package_id = p.id
-          JOIN repositories r ON p.repository_id = r.id
+          JOIN namespaces r ON p.namespace_id = r.id
           JOIN blobs b ON a.blob_id = b.id
           WHERE r.namespace = @namespace AND a.path = @path
           LIMIT 1
@@ -247,7 +245,7 @@ class PostgresArtifactRepository implements ArtifactRepository {
 
   @override
   Future<ArtifactEntity?> findOne(
-    String repoName,
+    String namespace,
     String packageName,
     String version,
   ) async {
@@ -257,13 +255,13 @@ class PostgresArtifactRepository implements ArtifactRepository {
     FROM artifacts a
     JOIN packages p ON a.package_id = p.id
     JOIN repositories r ON p.repository_id = r.id
-    WHERE r.name = @repoName 
+    WHERE r.name = @namespace 
       AND p.name = @packageName 
       AND a.version = @version
     LIMIT 1
     ''',
       substitutionValues: {
-        'repoName': repoName,
+        'namespace': namespace,
         'packageName': packageName,
         'version': version,
       },
@@ -277,7 +275,7 @@ class PostgresArtifactRepository implements ArtifactRepository {
 
   @override
   Future<List<ArtifactEntity>> findAllVersions(
-    String repoName,
+    String namespace,
     String packageName,
   ) async {
     final results = await _connection.query(
@@ -289,11 +287,11 @@ class PostgresArtifactRepository implements ArtifactRepository {
       b.id as b_id, b.hash as b_hash, b.size_bytes as b_size_bytes, b.mime_type as b_mime_type, b.created_at as b_at
     FROM artifacts a
     JOIN packages p ON a.package_id = p.id
-    JOIN repositories r ON p.repository_id = r.id
+    JOIN namespaces r ON p.namespace_id = r.id
     JOIN blobs b ON a.blob_id = b.id
-    WHERE p.name = @packageName AND r.name = @repoName
+    WHERE p.name = @packageName AND r.name = @namespace
   ''',
-      substitutionValues: {'packageName': packageName, 'repoName': repoName},
+      substitutionValues: {'packageName': packageName, 'namespace': namespace},
     );
 
     return results.map((row) {

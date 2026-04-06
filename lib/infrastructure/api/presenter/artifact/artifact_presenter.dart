@@ -1,6 +1,9 @@
+import 'dart:typed_data';
+
 import 'package:shelf/shelf.dart';
 import 'dart:convert';
-import 'package:sambura_core/domain/entities/entities.dart';
+
+import 'package:sambura_core/domain/barrel.dart';
 
 class ArtifactPresenter {
   static Response success(ArtifactEntity artifact) {
@@ -54,4 +57,18 @@ class ArtifactPresenter {
         }),
         headers: {'Content-Type': 'application/json'},
       );
+
+  static Response returnTarballStream(
+    Stream<Uint8List> stream,
+    String version,
+  ) {
+    return Response.ok(
+      stream,
+      headers: {
+        'Content-Type': 'application/octet-stream',
+        'Content-Disposition': 'attachment; filename="package-$version.tgz"',
+        'x-sambura-version': version,
+      },
+    );
+  }
 }

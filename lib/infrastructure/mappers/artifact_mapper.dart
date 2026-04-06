@@ -1,4 +1,4 @@
-import 'package:sambura_core/domain/entities/entities.dart';
+import 'package:sambura_core/domain/barrel.dart';
 
 class ArtifactMapper {
   static ArtifactEntity fromMap(Map<String, dynamic> map) {
