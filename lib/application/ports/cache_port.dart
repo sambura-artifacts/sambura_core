@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 /// Port (Interface) para serviço de cache.
 ///
 /// Define o contrato para operações de cache distribuído.
@@ -10,11 +12,24 @@ abstract class CachePort {
   /// [ttl] - Time to live em segundos (opcional)
   Future<void> set(String key, String value, {Duration? ttl});
 
+  /// Armazena um valor no cache com tempo de expiração.
+  ///
+  /// [key] - Chave única
+  /// [value] - Valor a ser armazenado
+  /// [ttl] - Time to live em segundos (opcional)
+  Future<void> setBinary(String key, Uint8List value, {Duration? ttl});
+
   /// Recupera um valor do cache.
   ///
   /// [key] - Chave única
   /// Returns: Valor armazenado ou null se não existir/expirado
   Future<String?> get(String key);
+
+  /// Recupera um valor de cache em formato binário
+  ///
+  /// [key] - Chave única
+  /// Returns: Valor (binário) armazenado ou null se não existir/expirado
+  Future<Uint8List?> getBinary(String key);
 
   /// Remove um valor do cache.
   ///

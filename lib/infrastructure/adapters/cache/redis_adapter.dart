@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:logging/logging.dart';
 import 'package:redis/redis.dart';
 import 'package:sambura_core/config/logger.dart';
@@ -44,9 +46,9 @@ class RedisAdapter implements CachePort {
 
   @override
   Future<void> set(String key, String value, {Duration? ttl}) async {
-    _ensureConnected();
-
     try {
+      _ensureConnected();
+
       if (ttl != null) {
         await _command!.send_object(['SETEX', key, ttl.inSeconds, value]);
       } else {
@@ -62,9 +64,9 @@ class RedisAdapter implements CachePort {
 
   @override
   Future<String?> get(String key) async {
-    _ensureConnected();
-
     try {
+      _ensureConnected();
+
       final value = await _command!.send_object(['GET', key]);
 
       if (value == null) {
@@ -82,9 +84,9 @@ class RedisAdapter implements CachePort {
 
   @override
   Future<void> delete(String key) async {
-    _ensureConnected();
-
     try {
+      _ensureConnected();
+
       await _command!.send_object(['DEL', key]);
       _log.fine('🗑️  Deleted key: $key');
     } catch (e) {
@@ -95,9 +97,9 @@ class RedisAdapter implements CachePort {
 
   @override
   Future<bool> exists(String key) async {
-    _ensureConnected();
-
     try {
+      _ensureConnected();
+
       final result = await _command!.send_object(['EXISTS', key]);
       return result == 1;
     } catch (e) {
@@ -108,9 +110,9 @@ class RedisAdapter implements CachePort {
 
   @override
   Future<void> invalidatePattern(String pattern) async {
-    _ensureConnected();
-
     try {
+      _ensureConnected();
+
       // SCAN para encontrar chaves que correspondem ao padrão
       final keys = await _command!.send_object(['KEYS', pattern]);
 
@@ -126,9 +128,9 @@ class RedisAdapter implements CachePort {
 
   @override
   Future<int> increment(String key, {int delta = 1}) async {
-    _ensureConnected();
-
     try {
+      _ensureConnected();
+
       final result = await _command!.send_object(['INCRBY', key, delta]);
       _log.fine('➕ Incremented key $key by $delta: $result');
       return result as int;
@@ -140,9 +142,9 @@ class RedisAdapter implements CachePort {
 
   @override
   Future<void> expire(String key, Duration ttl) async {
-    _ensureConnected();
-
     try {
+      _ensureConnected();
+
       await _command!.send_object(['EXPIRE', key, ttl.inSeconds]);
       _log.fine('⏰ Set expiration for key $key: ${ttl.inSeconds}s');
     } catch (e) {
@@ -199,6 +201,44 @@ class RedisAdapter implements CachePort {
       await _command!.send_object(["DEL", key]);
     } catch (e) {
       _log.warning('⚠️ Erro ao liberar lock: $e');
+    }
+  }
+
+  @override
+  Future<Uint8List?> getBinary(String key) async {
+    try {
+      _ensureConnected();
+
+      final value = await _command!.send_object(['GET', key]);
+
+      if (value == null) {
+        _log.fine('🔍 Key not found: $key');
+        return null;
+      }
+
+      _log.fine('✅ Got key: $key');
+      return value;
+    } catch (e) {
+      _log.warning('⚠️  Failed to get key $key: $e');
+      return null;
+    }
+  }
+
+  @override
+  Future<void> setBinary(String key, Uint8List value, {Duration? ttl}) async {
+    try {
+      _ensureConnected();
+
+      if (ttl != null) {
+        await _command!.send_object(['SETEX', key, ttl.inSeconds, value]);
+      } else {
+        await _command!.send_object(['SET', key, value]);
+      }
+
+      _log.fine('✅ Set key: $key');
+    } catch (e) {
+      _log.warning('⚠️  Failed to set key $key: $e');
+      rethrow;
     }
   }
 }
