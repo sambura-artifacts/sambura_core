@@ -2,11 +2,13 @@ import 'dart:typed_data';
 
 class HttpClientResponse {
   final int statusCode;
+  final Map<String, String> headers;
   final List<int> bodyBytes;
   final dynamic body;
 
   HttpClientResponse({
     required this.statusCode,
+    required this.headers,
     required this.bodyBytes,
     required this.body,
   });
