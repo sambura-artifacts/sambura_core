@@ -1,5 +1,6 @@
-import 'package:sambura_core/infrastructure/services/auth/hash_service.dart';
 import 'package:test/test.dart';
+
+import 'package:sambura_core/infrastructure/barrel.dart';
 
 void main() {
   group('HashService', () {

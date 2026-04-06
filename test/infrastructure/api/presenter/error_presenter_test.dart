@@ -1,7 +1,7 @@
 import 'dart:convert';
-
-import 'package:sambura_core/infrastructure/api/presenter/error_presenter.dart';
 import 'package:test/test.dart';
+
+import 'package:sambura_core/infrastructure/barrel.dart';
 
 void main() {
   group('ErrorPresenter', () {

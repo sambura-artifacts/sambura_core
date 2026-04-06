@@ -1,8 +1,9 @@
 import 'dart:convert';
-import 'package:sambura_core/application/usecase/api_key/generate_api_key_usecase.dart';
-import 'package:sambura_core/domain/entities/api_key_entity.dart';
-import 'package:sambura_core/infrastructure/api/presenter/admin/api_key_presenter.dart';
 import 'package:test/test.dart';
+
+import 'package:sambura_core/domain/barrel.dart';
+import 'package:sambura_core/application/barrel.dart';
+import 'package:sambura_core/infrastructure/barrel.dart';
 
 void main() {
   group('ApiKeyPresenter', () {
@@ -212,7 +213,7 @@ void main() {
       test('deve retornar response 500 com erro e stack trace', () async {
         // Arrange
         const detail = 'Erro crítico';
-        const instance = '/api/v1/admin/api-keys';
+        const instance = '/api/v1/admin/api-key';
         final error = Exception('Test error');
         final stack = StackTrace.current;
 

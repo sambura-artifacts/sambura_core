@@ -1,4 +1,4 @@
-import 'package:sambura_core/application/exceptions/application_exception.dart';
+import 'package:sambura_core/application/exception/application_exception.dart';
 import 'package:test/test.dart';
 
 void main() {

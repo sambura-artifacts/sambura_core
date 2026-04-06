@@ -1,6 +1,7 @@
 import 'package:logging/logging.dart';
-import 'package:sambura_core/config/logger.dart';
 import 'package:test/test.dart';
+
+import 'package:sambura_core/config/barrel.dart';
 
 void main() {
   group('LoggerConfig', () {

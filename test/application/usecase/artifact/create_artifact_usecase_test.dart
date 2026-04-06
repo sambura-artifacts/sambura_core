@@ -1,12 +1,11 @@
 import 'dart:async';
 
 import 'package:mocktail/mocktail.dart';
-import 'package:sambura_core/domain/entities/entities.dart';
-import 'package:sambura_core/domain/exceptions/exceptions.dart';
-import 'package:sambura_core/domain/repositories/repositories.dart';
-import 'package:sambura_core/infrastructure/api/dtos/artifact_input.dart';
-import 'package:sambura_core/application/usecase/artifact/create_artifact_usecase.dart';
 import 'package:test/test.dart';
+
+import 'package:sambura_core/domain/barrel.dart';
+import 'package:sambura_core/application/barrel.dart';
+import 'package:sambura_core/infrastructure/barrel.dart';
 
 class MockArtifactRepository extends Mock implements ArtifactRepository {}
 
@@ -14,7 +13,7 @@ class MockPackageRepository extends Mock implements PackageRepository {}
 
 class MockBlobRepository extends Mock implements BlobRepository {}
 
-class MockRepositoryRepository extends Mock implements RepositoryRepository {}
+class MockNamespaceRepository extends Mock implements NamespaceRepository {}
 
 class FakeArtifactEntity extends Fake implements ArtifactEntity {}
 
@@ -28,26 +27,28 @@ void main() {
   late MockArtifactRepository mockArtifactRepository;
   late MockPackageRepository mockPackageRepository;
   late MockBlobRepository mockBlobRepository;
-  late MockRepositoryRepository mockRepositoryRepository;
+  late MockNamespaceRepository mockNamespaceRepository;
 
   setUp(() {
     mockArtifactRepository = MockArtifactRepository();
     mockPackageRepository = MockPackageRepository();
     mockBlobRepository = MockBlobRepository();
-    mockRepositoryRepository = MockRepositoryRepository();
+    mockNamespaceRepository = MockNamespaceRepository();
 
     useCase = CreateArtifactUsecase(
       mockArtifactRepository,
       mockPackageRepository,
       mockBlobRepository,
-      mockRepositoryRepository,
+      mockNamespaceRepository,
     );
   });
 
   group('CreateArtifactUsecase', () {
     test('deve criar artefato com sucesso', () async {
       // Arrange
-      final input = ArtifactInput(
+      final input = InfraestructureArtifactInput(
+        packageManager: 'npm',
+        remoteUrl: 'npm-remote-url',
         namespace: 'test-repo',
         packageName: 'test-package',
         version: '1.0.0',
@@ -56,11 +57,13 @@ void main() {
       final fileStream = Stream.fromIterable([
         <int>[1, 2, 3],
       ]);
-      final repo = RepositoryEntity.fromMap({
+      final repo = NamespaceEntity.fromMap({
         'id': 1,
+        'package_manager': 'npm',
         'name': 'test-repo',
-        'namespace': 'test-namespace',
+        'escope': 'test-escope',
         'is_public': true,
+        'remote_url': 'npm-remote-url',
       });
       final blob = BlobEntity.create(
         hash: 'hash123',
@@ -83,14 +86,14 @@ void main() {
       );
 
       when(
-        () => mockRepositoryRepository.getByName('test-repo'),
+        () => mockNamespaceRepository.getByName('test-repo'),
       ).thenAnswer((_) async => repo);
       when(
         () => mockBlobRepository.saveFromStream(any()),
       ).thenAnswer((_) async => blob);
       when(
         () => mockPackageRepository.ensurePackage(
-          repositoryId: 1,
+          namespaceId: 1,
           name: 'test-package',
         ),
       ).thenAnswer((_) async => package);
@@ -100,15 +103,14 @@ void main() {
 
       // Act
       final result = await useCase.execute(input, fileStream);
-
       // Assert
       expect(result, isNotNull);
-      expect(result!.version, '1.0.0');
-      verify(() => mockRepositoryRepository.getByName('test-repo')).called(1);
+      expect(result!.version.toString(), '1.0.0');
+      verify(() => mockNamespaceRepository.getByName('test-repo')).called(1);
       verify(() => mockBlobRepository.saveFromStream(any())).called(1);
       verify(
         () => mockPackageRepository.ensurePackage(
-          repositoryId: 1,
+          namespaceId: 1,
           name: 'test-package',
         ),
       ).called(1);
@@ -119,7 +121,7 @@ void main() {
       'deve lançar RepositoryNotFoundException quando repositório não existe',
       () async {
         // Arrange
-        final input = ArtifactInput(
+        final input = InfraestructureArtifactInput(
           namespace: 'non-existent-repo',
           packageName: 'test-package',
           version: '1.0.0',
@@ -130,7 +132,7 @@ void main() {
         ]);
 
         when(
-          () => mockRepositoryRepository.getByName('non-existent-repo'),
+          () => mockNamespaceRepository.getByName('non-existent-repo'),
         ).thenAnswer((_) async => null);
 
         // Act & Assert
@@ -139,7 +141,7 @@ void main() {
           throwsA(isA<RepositoryNotFoundException>()),
         );
         verify(
-          () => mockRepositoryRepository.getByName('non-existent-repo'),
+          () => mockNamespaceRepository.getByName('non-existent-repo'),
         ).called(1);
       },
     );

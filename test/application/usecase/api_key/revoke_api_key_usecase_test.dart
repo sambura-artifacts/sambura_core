@@ -1,4 +1,4 @@
-import 'package:sambura_core/application/exceptions/application_exception.dart';
+import 'package:sambura_core/application/exception/application_exception.dart';
 import 'package:sambura_core/application/usecase/api_key/revoke_api_key_usecase.dart';
 import 'package:sambura_core/domain/entities/account_entity.dart';
 import 'package:sambura_core/domain/entities/api_key_entity.dart';

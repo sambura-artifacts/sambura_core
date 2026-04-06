@@ -1,17 +1,12 @@
 import 'package:mocktail/mocktail.dart';
 import 'package:shelf/shelf.dart';
 import 'package:shelf_router/shelf_router.dart';
-import 'package:sambura_core/config/env.dart';
-import 'package:sambura_core/domain/repositories/repositories.dart';
-import 'package:sambura_core/infrastructure/api/controller/artifact/artifact_controller.dart';
-import 'package:sambura_core/infrastructure/api/controller/artifact/blob_controller.dart';
-import 'package:sambura_core/infrastructure/api/controller/auth/auth_controller.dart';
-import 'package:sambura_core/infrastructure/api/controller/system/system_controller.dart';
-import 'package:sambura_core/infrastructure/api/controller/system/metrics_controller.dart';
-import 'package:sambura_core/infrastructure/api/routes/package_manager_router.dart';
-import 'package:sambura_core/infrastructure/api/routes/public_router.dart';
-import 'package:sambura_core/application/ports/ports.dart';
 import 'package:test/test.dart';
+
+import 'package:sambura_core/config/barrel.dart';
+import 'package:sambura_core/domain/barrel.dart';
+import 'package:sambura_core/application/barrel.dart';
+import 'package:sambura_core/infrastructure/barrel.dart';
 
 class MockPackageManagerRouter extends Mock implements PackageManagerRouter {}
 
@@ -104,6 +99,8 @@ void main() {
         vaultDatabasePath: 'database',
         logFilePath: '/tmp/test.log',
         logLevel: 'info',
+        dtrackApiUrl: 'http://localhost:8090',
+        dtrackApiKey: 'token',
       );
 
       final publicRouter = PublicRouter(
@@ -128,10 +125,7 @@ void main() {
       expect(response.statusCode, equals(200));
 
       final responseLegacy = await handler.call(
-        Request(
-          'GET',
-          Uri.parse('http://localhost/packages/npm/public/express'),
-        ),
+        Request('GET', Uri.parse('http://localhost/npm/public/express')),
       );
       expect(responseLegacy.statusCode, equals(200));
     },

@@ -1,6 +1,6 @@
-import 'package:sambura_core/domain/exceptions/domain_exception.dart';
-import 'package:sambura_core/domain/value_objects/package_name.dart';
 import 'package:test/test.dart';
+
+import 'package:sambura_core/domain/barrel.dart';
 
 void main() {
   group('PackageName', () {
@@ -16,8 +16,14 @@ void main() {
       });
 
       test('deve aceitar coordenadas Maven (groupId:artifactId)', () {
-        expect(() => PackageName('org.apache.maven:maven-model'), returnsNormally);
-        expect(PackageName('org.apache.maven:maven-model').value, equals('org.apache.maven:maven-model'));
+        expect(
+          () => PackageName('org.apache.maven:maven-model'),
+          returnsNormally,
+        );
+        expect(
+          PackageName('org.apache.maven:maven-model').value,
+          equals('org.apache.maven:maven-model'),
+        );
       });
 
       test('deve aceitar nomes com maiúsculas (comum em Maven/NuGet)', () {
@@ -25,10 +31,13 @@ void main() {
         expect(PackageName('Newtonsoft.Json').value, equals('Newtonsoft.Json'));
       });
 
-      test('deve aceitar nome com números e caracteres especiais permitidos', () {
-        expect(() => PackageName('package123'), returnsNormally);
-        expect(() => PackageName('my.package_name-123'), returnsNormally);
-      });
+      test(
+        'deve aceitar nome com números e caracteres especiais permitidos',
+        () {
+          expect(() => PackageName('package123'), returnsNormally);
+          expect(() => PackageName('my.package_name-123'), returnsNormally);
+        },
+      );
 
       test('deve remover espaços em branco', () {
         final name = PackageName('  universal-package  ');
@@ -48,9 +57,18 @@ void main() {
       });
 
       test('deve rejeitar caracteres proibidos (espaços, hashtags, etc)', () {
-        expect(() => PackageName('my package'), throwsA(isA<PackageNameException>()));
-        expect(() => PackageName('my#package'), throwsA(isA<PackageNameException>()));
-        expect(() => PackageName('my!package'), throwsA(isA<PackageNameException>()));
+        expect(
+          () => PackageName('my package'),
+          throwsA(isA<PackageNameException>()),
+        );
+        expect(
+          () => PackageName('my#package'),
+          throwsA(isA<PackageNameException>()),
+        );
+        expect(
+          () => PackageName('my!package'),
+          throwsA(isA<PackageNameException>()),
+        );
       });
     });
 
@@ -70,9 +88,18 @@ void main() {
       });
 
       test('nameWithoutScope deve retornar a parte final do nome', () {
-        expect(PackageName('@scope/package').nameWithoutScope, equals('package'));
-        expect(PackageName('group:artifact').nameWithoutScope, equals('artifact'));
-        expect(PackageName('simple-package').nameWithoutScope, equals('simple-package'));
+        expect(
+          PackageName('@scope/package').nameWithoutScope,
+          equals('package'),
+        );
+        expect(
+          PackageName('group:artifact').nameWithoutScope,
+          equals('artifact'),
+        );
+        expect(
+          PackageName('simple-package').nameWithoutScope,
+          equals('simple-package'),
+        );
       });
     });
 
