@@ -3,7 +3,6 @@ import 'package:shelf/shelf.dart';
 import 'package:shelf_router/shelf_router.dart';
 import 'package:test/test.dart';
 
-import 'package:sambura_core/config/barrel.dart';
 import 'package:sambura_core/domain/barrel.dart';
 import 'package:sambura_core/application/barrel.dart';
 import 'package:sambura_core/infrastructure/barrel.dart';
@@ -51,15 +50,9 @@ void main() {
       when(() => packageManagerRouter.router).thenReturn(pmRouter);
 
       final mockAuthController = MockAuthController();
-      final mockArtifactController = MockArtifactController();
-      final mockBlobController = MockBlobController();
+      final mockPackageManagerRouter = MockPackageManagerRouter();
       final mockSystemController = MockSystemController();
       final mockMetricsController = MockMetricsController();
-      final mockApiKeyRepo = MockApiKeyRepository();
-      final mockAccountRepo = MockAccountRepository();
-      final mockAuthPort = MockAuthPort();
-      final mockCache = MockCachePort();
-      final mockMetricsPort = MockMetricsPort();
 
       when(
         () => mockSystemController.router,
@@ -68,53 +61,10 @@ void main() {
         () => mockMetricsController.getMetrics(any()),
       ).thenAnswer((_) async => Response.ok('metrics'));
 
-      final env = EnvConfig(
-        environment: Environment.development,
-        appName: 'sambura-core',
-        port: 8080,
-        publicOrigin: 'http://localhost:8080',
-        dbHost: 'localhost',
-        dbPort: 5432,
-        dbUser: 'sambura',
-        dbPassword: 'sambura',
-        dbName: 'sambura',
-        redisHost: 'localhost',
-        redisPort: 6379,
-        rabbitmqHost: 'localhost',
-        rabbitmqPort: 5672,
-        rabbitmqUser: 'guest',
-        rabbitmqPass: 'guest',
-        siloHost: 'localhost',
-        siloPort: 9000,
-        siloAccessKey: 'minio',
-        siloSecretKey: 'minio123',
-        siloUseSSL: false,
-        bucketName: 'sambura',
-        keycloakUrl: 'http://localhost/auth',
-        keycloakRealm: 'sambura',
-        keycloakClientId: 'sambura',
-        vaultUrl: 'http://localhost:8200',
-        vaultToken: 'token',
-        vaultAuthPath: 'auth',
-        vaultDatabasePath: 'database',
-        logFilePath: '/tmp/test.log',
-        logLevel: 'info',
-        dtrackApiUrl: 'http://localhost:8090',
-        dtrackApiKey: 'token',
-      );
-
       final publicRouter = PublicRouter(
-        env,
-        packageManagerRouter,
+        mockPackageManagerRouter,
         mockAuthController,
-        mockArtifactController,
-        mockBlobController,
         mockSystemController,
-        mockApiKeyRepo,
-        mockAccountRepo,
-        mockAuthPort,
-        mockCache,
-        mockMetricsPort,
       );
 
       final handler = publicRouter.router;
