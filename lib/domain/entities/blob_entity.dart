@@ -3,7 +3,8 @@ import 'dart:typed_data';
 import 'package:crypto/crypto.dart';
 import 'package:convert/convert.dart';
 import 'package:mime/mime.dart';
-import 'package:sambura_core/domain/repositories/repositories.dart';
+
+import 'package:sambura_core/domain/barrel.dart';
 
 class BlobEntity {
   final int? id; // ID serial (gerado pelo Worker no DB)

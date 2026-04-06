@@ -1,4 +1,4 @@
-import 'package:sambura_core/domain/entities/entities.dart';
+import 'package:sambura_core/domain/barrel.dart';
 
 abstract class PackageRepository {
   /// Busca um pacote pelo nome e pelo ID do repositório
@@ -21,7 +21,7 @@ abstract class PackageRepository {
 
   /// Garante a existência de um pacote (Upsert).
   Future<PackageEntity> ensurePackage({
-    required int repositoryId,
+    required int namespaceId,
     required String name,
   });
 

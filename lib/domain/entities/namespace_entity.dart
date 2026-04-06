@@ -1,54 +1,51 @@
-enum RepositoryType { npm, maven, pypi, nuget, docker, generic }
+enum RepositoryType { npm }
 
-class RepositoryEntity {
+class NamespaceEntity {
   final int? id; // ID serial do Postgres
+  final String packageManager;
   final String name; // Nome amigável (ex: "production-main")
-  final String namespace; // O dono/escopo (ex: "minha-empresa")
+  final String escope; // O dono/escopo (ex: "minha-empresa")
   final bool isPublic; // Se qualquer um pode baixar sem token
-  final RepositoryType type; // Tipo do repositório (npm, maven, etc)
   final String
   remoteUrl; // URL do repositório real (ex: "https://registry.npmjs.org/")
   final DateTime? createdAt; // Timestamp de criação
 
-  RepositoryEntity._({
+  NamespaceEntity._({
     this.id,
+    required this.packageManager,
     required this.name,
-    required this.namespace,
+    required this.escope,
     required this.isPublic,
-    required this.type,
     required this.remoteUrl,
     this.createdAt,
   });
 
   /// Factory para criar um repositório novo no sistema (via API de Admin)
-  factory RepositoryEntity.create({
+  factory NamespaceEntity.create({
+    required String packageManager,
     required String name,
-    required String namespace,
+    required String escope,
     bool isPublic = false,
     bool active = true,
-    RepositoryType type = RepositoryType.generic,
     required String remoteUrl,
   }) {
-    return RepositoryEntity._(
+    return NamespaceEntity._(
+      packageManager: packageManager,
       name: name,
-      namespace: namespace,
+      escope: escope,
       isPublic: isPublic,
-      type: type,
       remoteUrl: remoteUrl,
       createdAt: DateTime.now(),
     );
   }
 
-  factory RepositoryEntity.fromMap(Map<String, dynamic> map) {
-    return RepositoryEntity._(
+  factory NamespaceEntity.fromMap(Map<String, dynamic> map) {
+    return NamespaceEntity._(
       id: map['id'] is int ? map['id'] as int : null,
+      packageManager: map['package_manager'] as String,
       name: map['name'] as String,
-      namespace: (map['namespace'] ?? 'default') as String,
+      escope: (map['escope'] ?? 'default') as String,
       isPublic: map['is_public'] ?? map['isPublic'] ?? false,
-      type: RepositoryType.values.firstWhere(
-        (e) => e.toString() == 'RepositoryType.${map['type']}',
-        orElse: () => RepositoryType.generic,
-      ),
       remoteUrl: map['remote_url'] as String,
       createdAt: map['created_at'] != null
           ? (map['created_at'] is DateTime
@@ -58,20 +55,20 @@ class RepositoryEntity {
     );
   }
 
-  RepositoryEntity copyWith({
+  NamespaceEntity copyWith({
     int? id,
+    String? packageManager,
     String? name,
-    String? namespace,
+    String? escope,
     bool? isPublic,
-    RepositoryType? type,
     String? remoteUrl,
   }) {
-    return RepositoryEntity._(
+    return NamespaceEntity._(
       id: id ?? this.id,
+      packageManager: packageManager ?? this.packageManager,
       name: name ?? this.name,
-      namespace: namespace ?? this.namespace,
+      escope: escope ?? this.escope,
       isPublic: isPublic ?? this.isPublic,
-      type: type ?? this.type,
       remoteUrl: remoteUrl ?? this.remoteUrl,
       createdAt: createdAt,
     );
@@ -81,10 +78,10 @@ class RepositoryEntity {
   Map<String, dynamic> toMap() {
     return {
       'id': id,
+      'package_manager': packageManager,
       'name': name,
-      'namespace': namespace,
+      'escope': escope,
       'is_public': isPublic,
-      'type': type.name,
       'remote_url': remoteUrl,
       'created_at': createdAt?.toIso8601String(),
     };

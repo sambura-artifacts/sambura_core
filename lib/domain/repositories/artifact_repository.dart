@@ -1,4 +1,4 @@
-import 'package:sambura_core/domain/entities/entities.dart';
+import 'package:sambura_core/domain/barrel.dart';
 
 abstract class ArtifactRepository {
   /// Persiste um novo artefato no banco de dados.
@@ -26,13 +26,13 @@ abstract class ArtifactRepository {
   );
 
   Future<ArtifactEntity?> findOne(
-    String repoName,
+    String namespace,
     String packageName,
     String version,
   );
 
   Future<List<ArtifactEntity>> findAllVersions(
-    String repoName,
+    String namespace,
     String packageName,
   );
 
