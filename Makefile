@@ -37,6 +37,7 @@ IMAGE_TAG ?= v1.0.1
 # URLs e dados para setup
 REPO_URL ?= $(API_URL)/admin/repositories
 REPO_DATA ?= '{"name": "npm-registry", "namespace": "npm", "is_public": true, "type": "proxy"}'
+REPO_MAVEN ?= '{"name": "maven-registry", "namespace": "maven", "is_public": true, "type": "proxy"}'
 API_KEYS_URL ?= $(API_URL)/admin/api-keys
 
 # Flags de debug
@@ -111,6 +112,8 @@ docker-logs-app: ## Acompanha os logs do container da aplicação
 docker-logs-full: ## Acompanha os logs dos containers
 	docker compose -f docker/docker-compose.yml logs -f
 
+docker-ps: ## Acompanha os logs dos containers
+	docker compose -f docker/docker-compose.yml ps
 
 # Alias para compatibilidade
 up: docker-up
@@ -119,6 +122,7 @@ rebuild: docker-rebuild
 log: docker-logs-app
 logs: docker-logs-full
 purge: docker-purge
+ps: docker-ps
 
 
 # ==============================================================================
@@ -180,6 +184,7 @@ auth-login:
 	@RESPONSE=$$(curl -s -k --header "X-Vault-Token: $(VAULT_TOKEN)" "$(VAULT_API_URL)/secret/data/sambura/bootstrap"); \
 	ADMIN_USER=$$(echo "$$RESPONSE" | python3 -c "import json,sys; data=json.load(sys.stdin); print(data.get('data').get('data').get('username'))"); \
 	ADMIN_PASS=$$(echo "$$RESPONSE" | python3 -c "import json,sys; data=json.load(sys.stdin);print(data.get('data',{}).get('data',{}).get('password',''))"); \
+	echo "🔑 Credenciais extraídas: User='$$ADMIN_USER' | Pass length=$${#ADMIN_PASS} caracteres"; \
 	if [ "$(DEBUG)" = "true" ]; then echo "🐞 [DEBUG] User: $$ADMIN_USER | Pass length: $${#ADMIN_PASS}"; fi; \
 	if [ -z "$$ADMIN_USER" ] || [ -z "$$ADMIN_PASS" ]; then \
 		echo "❌ Credenciais não encontradas no Vault. Execute 'make auth-register' primeiro."; \
@@ -200,7 +205,7 @@ auth-login:
 	fi
 
 
-API_KEYS_URL = $(API_URL)/admin/api-keys
+API_KEYS_URL = $(API_URL)/admin/api-key
 
 create-apikey:
 	@if [ ! -f .token ]; then echo "❌ Erro: Rode 'make auth-login' primeiro."; exit 1; fi
@@ -224,13 +229,22 @@ create-apikey:
 # ==============================================================================
 # REPOSITÓRIOS & STORAGE
 # ==============================================================================
-create-repo: ## Cria o repositório npm-proxy usando o token JWT
+create-npm-repo: ## Cria o repositório npm-proxy usando o token JWT
 	@if [ ! -f .token ]; then echo "❌ Erro: Cadê o token? Roda 'make auth-login' primeiro!"; exit 1; fi
 	@echo "🏗️  Criando repositório: npm-proxy..."
 	@curl -s -X POST $(REPO_URL) \
 		-H "Authorization: Bearer $$(cat .token)" \
 		-H "Content-Type: application/json" \
 		-d $(REPO_DATA)
+	@echo "\n✅ Repositório pronto para cachear pacotes!"
+
+create-maven-repo: ## Cria o repositório maven-proxy usando o token JWT
+	@if [ ! -f .token ]; then echo "❌ Erro: Cadê o token? Roda 'make auth-login' primeiro!"; exit 1; fi
+	@echo "🏗️  Criando repositório: maven-proxy..."
+	@curl -s -X POST $(REPO_URL) \
+		-H "Authorization: Bearer $$(cat .token)" \
+		-H "Content-Type: application/json" \
+		-d $(REPO_MAVEN)
 	@echo "\n✅ Repositório pronto para cachear pacotes!"
 
 setup-s3: ## Garante que o bucket do MinIO existe
@@ -385,6 +399,10 @@ info: ## Mostra informações sobre o projeto
 	@echo "  • Vault: http://localhost:8200"
 	@echo "  • MinIO Console: http://localhost:9001"
 	@echo "  • Grafana: http://localhost:3000"
+	@echo "  • Prometheus: http://localhost:9090"
+	@echo "  • Loki: http://localhost:3100"
+	@echo "  • Dependency Track Frontend: http://localhost:8091"
+	@echo "  • Dependency Track API: http://localhost:8090"
 	@echo ""
 	@echo "📚 Documentação:"
 	@echo "  • README: docs/README.md"
@@ -393,3 +411,21 @@ info: ## Mostra informações sobre o projeto
 
 version: ## Mostra versão do projeto
 	@echo "Samburá Core v1.0.1"
+
+
+# ==============================================================================
+# Funcionalidades de limpeza
+# ==============================================================================
+
+cache-clean: ## Limpa dados do Redis (cache de artefatos)
+	@echo "🧹 Limpando cache do Redis..."
+	@docker exec sambura_cache redis-cli FLUSHALL
+	@echo "✅ Cache do Redis limpo!"
+db-clean: wait-db ## Limpa dados do banco de dados (artifacts, packages, blobs)
+	@echo "🧹 Limpando dados do banco de dados..."
+	@echo " Limpando artifacts, packages e blobs"
+	@docker exec -i sambura_db psql -U sambura -d sambura_metadata -c "DELETE FROM artifacts; DELETE FROM packages; DELETE FROM blobs;"
+	@echo "✅ Banco de dados limpo!"
+
+clean-all: cache-clean db-clean ## Limpa cache, banco e silo
+	@echo "🧹 Limpeza completa de cache e banco concluída!"

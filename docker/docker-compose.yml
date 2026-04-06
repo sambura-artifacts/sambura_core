@@ -16,6 +16,9 @@ volumes:
   grafana_data:
   logs_volume:
   docs_volume:
+  postgres_dtrack_data:
+  dtrack_db_data:
+  dtrack_data:
 
 services:
   # --- APPLICATION ---
@@ -31,7 +34,7 @@ services:
       - "8080:8080"
     environment:
       # Database
-      DB_HOST: postgres
+      DB_HOST: postgres_app
       DB_PORT: 5432
       DB_USER: sambura
       DB_PASSWORD: sambura_db_secret
@@ -63,6 +66,10 @@ services:
       # Logging
       LOG_LEVEL: INFO
       LOG_FILE_PATH: /app/logs
+
+      # SCA - Dependency-Track
+      DTRACK_API_URL: http://dtrack-apiserver:8080
+      DTRACK_API_KEY: odt_0fer9gMt_08x2CcnVl663ICpzKf16ueW3Baf8YgqQ
     networks:
       - sambura_network
       - monitoring
@@ -73,7 +80,7 @@ services:
       timeout: 5s
       retries: 5
     depends_on:
-      postgres: { condition: service_healthy }
+      postgres_app: { condition: service_healthy }
       redis: { condition: service_healthy }
       rabbitmq: { condition: service_healthy }
       minio: { condition: service_healthy }
@@ -83,7 +90,7 @@ services:
     restart: unless-stopped
 
   # --- DATABASE ---
-  postgres:
+  postgres_app:
     image: postgres:16-alpine
     container_name: sambura_db
     environment:
@@ -92,6 +99,7 @@ services:
       POSTGRES_DB: sambura_metadata
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - ../sql/init_app.sql:/docker-entrypoint-initdb.d/init_app.sql
     ports:
       - "5432:5432"
     healthcheck:
@@ -139,6 +147,23 @@ services:
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
       interval: 5s
+    networks:
+      - sambura_network
+
+  # --- AWS MOCK (LocalStack) ---
+  localstack:
+    container_name: "sambura_localstack"
+    image: localstack/localstack  
+    ports:
+      - "127.0.0.1:4566:4566"            # LocalStack Gateway
+      - "127.0.0.1:4510-4559:4510-4559"  # external services port range
+      - "127.0.0.1:443:443"              # LocalStack HTTPS Gateway (Pro)
+    environment:
+      - DEBUG=${DEBUG:-0}
+      - PERSISTENCE=${PERSISTENCE:-0}
+    volumes:
+      - "${LOCALSTACK_VOLUME_DIR:-./volume}:/var/lib/localstack"
+      - "/var/run/docker.sock:/var/run/docker.sock"
     networks:
       - sambura_network
 
@@ -218,7 +243,7 @@ services:
     entrypoint: >
       /bin/sh -c "
         sleep 2;
-        vault kv put secret/sambura/database host=postgres port=5432 user=sambura password=sambura_db_secret name=sambura_metadata;
+        vault kv put secret/sambura/database host=postgres_app port=5432 user=sambura password=sambura_db_secret name=sambura_metadata;
         vault kv put secret/sambura/auth jwt_secret=chave_mestra token_expiration=3600;
         vault kv put secret/sambura/auth jwt_secret=chave_mestra_sambura_2025 pepper=pimenta_no_reino;
         echo 'Segredos injetados!';"
@@ -230,7 +255,7 @@ services:
     networks:
       - sambura_network
     depends_on:
-      postgres: { condition: service_healthy }
+      postgres_app: { condition: service_healthy }
       minio: { condition: service_healthy }
     volumes:
       - ../sql:/sql
@@ -242,8 +267,60 @@ services:
       /bin/sh -c "
         apk add --no-cache postgresql-client aws-cli;
         echo '🏗️  Iniciando DB Init...';
-        psql -h postgres -U sambura -d sambura_metadata -f /sql/init.sql;
+        psql -h postgres_app -U sambura -d sambura_metadata -f /sql/init.sql;
         echo '📥 Configurando bucket no MinIO...';
         aws --endpoint-url http://minio:9000 s3 mb s3://sambura-blobs 2>/dev/null || echo '✅ Bucket já existe.';
         echo '🚀 INFRA PRONTA!';"
 
+
+  postgres_dtrack:
+    image: postgres:16-alpine
+    container_name: sambura-dtrack-db
+    environment:
+      POSTGRES_USER: sambura
+      POSTGRES_PASSWORD: sambura_db_secret
+      POSTGRES_DB: sambura_metadata
+    volumes:
+      - postgres_dtrack_data:/var/lib/postgresql/data
+      - ../sql/init_dtrack.sql:/docker-entrypoint-initdb.d/init_dtrack.sql
+    ports:
+      - "5435:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sambura -d sambura_metadata"]
+      interval: 5s
+      retries: 5
+    networks:
+      - sambura_network
+# 🛡️ DEPENDENCY-TRACK - Software Composition Analysis (SCA)
+  dtrack-apiserver:
+    image: dependencytrack/apiserver:latest
+    container_name: sambura-dtrack-api
+    environment:
+      - EXTRA_JAVA_OPTIONS=-Xmx2G -Xms1G
+      - ALPINE_DATABASE_MODE=external
+      - ALPINE_DATABASE_URL=jdbc:postgresql://postgres_dtrack:5432/dtrack_db
+      - ALPINE_DATABASE_DRIVER=org.postgresql.Driver
+      - ALPINE_DATABASE_USERNAME=dtrack_user
+      - ALPINE_DATABASE_PASSWORD=dtrack_password
+    ports:
+      - "8090:8080"
+    volumes:
+      - dtrack_data:/data
+    networks:
+      - sambura_network
+    restart: unless-stopped
+
+  dtrack-frontend:
+    image: dependencytrack/frontend:latest
+    container_name: sambura-dtrack-ui
+    depends_on:
+      - dtrack-apiserver
+    environment:
+      # Importante: Como o frontend roda no navegador do utilizador, 
+      # a URL deve ser a que a sua máquina (localhost) enxerga.
+      - API_BASE_URL=http://localhost:8090
+    ports:
+      - "8091:8080"
+    networks:
+      - sambura_network
+    restart: unless-stopped

@@ -1,6 +1,7 @@
 import 'dart:io';
-import 'package:sambura_core/config/app_config.dart';
 import 'package:test/test.dart';
+
+import 'package:sambura_core/config/barrel.dart';
 
 void main() {
   group('AppConfig', () {

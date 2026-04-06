@@ -1,87 +1,21 @@
-import 'package:logging/logging.dart';
-import 'package:sambura_core/config/env.dart';
 import 'package:http/http.dart' as http;
-import 'package:sambura_core/application/usecase/artifact/download_npm_artifact_usecase.dart';
-import 'package:sambura_core/application/usecase/artifact/package_handler/package_handler_factory.dart';
-import 'package:sambura_core/infrastructure/api/controller/artifact/docker_controller.dart';
-import 'package:sambura_core/infrastructure/api/controller/artifact/maven_controller.dart';
-import 'package:sambura_core/infrastructure/api/controller/artifact/npm_controller.dart';
-import 'package:sambura_core/infrastructure/api/controller/artifact/nuget_controller.dart';
-import 'package:sambura_core/infrastructure/api/controller/artifact/pypi_controller.dart';
+import 'package:logging/logging.dart';
 
-// Ports
-
-// Services (Application)
-import 'package:sambura_core/application/services/health/health_check_service.dart';
-import 'package:sambura_core/application/services/auth/auth_service.dart';
-
-// Adapters (Infrastructure)
-import 'package:sambura_core/infrastructure/adapters/auth/local_auth_adapter.dart';
-import 'package:sambura_core/infrastructure/adapters/auth/bcrypt_hash_adapter.dart';
-import 'package:sambura_core/infrastructure/adapters/cache/redis_adapter.dart';
-import 'package:sambura_core/infrastructure/adapters/health/redis_healt_check.dart';
-import 'package:sambura_core/infrastructure/adapters/http/http_client_adapter.dart';
-import 'package:sambura_core/infrastructure/adapters/observability/prometheus_metrics_adapter.dart';
-import 'package:sambura_core/infrastructure/adapters/storage/minio_storage_adapter.dart';
-import 'package:sambura_core/infrastructure/adapters/health/blob_storage_health_check.dart';
-import 'package:sambura_core/infrastructure/adapters/health/postgres_health_check.dart';
-import 'package:sambura_core/infrastructure/api/controller/artifact/repository_controller.dart';
-import 'package:sambura_core/infrastructure/api/controller/auth/auth_controller.dart';
-import 'package:sambura_core/infrastructure/api/controller/system/metrics_controller.dart';
-import 'package:sambura_core/infrastructure/api/routes/package_manager_router.dart';
-
-// Database & Repositories
-import 'package:sambura_core/infrastructure/database/postgres_connector.dart';
-import 'package:sambura_core/infrastructure/repositories/postgres/postgres_blob_repository.dart';
-import 'package:sambura_core/infrastructure/repositories/blob/silo_blob_repository.dart';
-import 'package:sambura_core/infrastructure/repositories/postgres/postgres_repository_repository.dart';
-import 'package:sambura_core/infrastructure/repositories/postgres/postgres_artifact_repository.dart';
-import 'package:sambura_core/infrastructure/repositories/postgres/postgres_package_repository.dart';
-import 'package:sambura_core/infrastructure/repositories/postgres/postgres_account_repository.dart';
-import 'package:sambura_core/infrastructure/repositories/postgres/postgres_api_key_repository.dart';
-
-// UseCases
-import 'package:sambura_core/application/usecase/account/create_account_usecase.dart';
-import 'package:sambura_core/application/usecase/auth/login_usecase.dart';
-import 'package:sambura_core/application/usecase/api_key/generate_api_key_usecase.dart';
-import 'package:sambura_core/application/usecase/api_key/list_api_keys_usecase.dart';
-import 'package:sambura_core/application/usecase/api_key/revoke_api_key_usecase.dart';
-import 'package:sambura_core/application/usecase/artifact/create_artifact_usecase.dart';
-import 'package:sambura_core/application/usecase/artifact/get_artifact_by_id_usecase.dart';
-import 'package:sambura_core/application/usecase/artifact/get_artifact_download_stream_usecase.dart';
-import 'package:sambura_core/application/usecase/artifact/get_artifact_usecase.dart';
-import 'package:sambura_core/application/usecase/artifact/upload_artifact_usecase.dart';
-import 'package:sambura_core/application/usecase/artifact/check_artifact_exists_usecase.dart';
-import 'package:sambura_core/application/usecase/package/get_package_metadata_usecase.dart';
-import 'package:sambura_core/application/usecase/package/proxy_package_metadata_usecase.dart';
-import 'package:sambura_core/application/usecase/health/get_server_health_usecase.dart';
-
-// Controllers & Routes
-import 'package:sambura_core/infrastructure/api/controller/artifact/blob_controller.dart';
-import 'package:sambura_core/infrastructure/api/controller/artifact/package_controller.dart';
-import 'package:sambura_core/infrastructure/api/controller/artifact/artifact_controller.dart';
-import 'package:sambura_core/infrastructure/api/controller/admin/api_key_controller.dart';
-import 'package:sambura_core/infrastructure/api/controller/artifact/upload_controller.dart';
-import 'package:sambura_core/infrastructure/api/controller/system/system_controller.dart';
-import 'package:sambura_core/infrastructure/api/routes/admin_router.dart';
-import 'package:sambura_core/infrastructure/api/routes/artifact_router.dart';
-import 'package:sambura_core/infrastructure/api/routes/protected_router.dart';
-import 'package:sambura_core/infrastructure/api/routes/public_router.dart';
-import 'package:sambura_core/infrastructure/services/secrets/vault_service.dart';
-import 'package:sambura_core/infrastructure/proxies/npm_proxy.dart';
-import 'package:sambura_core/application/ports/ports.dart';
+import 'package:sambura_core/config/barrel.dart';
+import 'package:sambura_core/domain/barrel.dart';
+import 'package:sambura_core/application/barrel.dart';
+import 'package:sambura_core/infrastructure/barrel.dart';
 
 class DependencyInjection {
   late final AuthController authController;
   late final ApiKeyController apiKeyController;
   late final ArtifactController artifactController;
-  late final NpmController npmController;
-  late final MavenController mavenController;
-  late final PypiController pypiController;
-  late final NugetController nugetController;
-  late final DockerController dockerController;
-  late final RepositoryController repositoryController;
   late final PackageController packageController;
+  late final NpmControllerDownloadTarball npmControllerDownloadTarball;
+  late final NpmControllerGetMetadata npmControllerGetMetadata;
+  late final NpmControllerSecurityAdvisoryConsulting
+  npmControllerSecurityAdvisoryConsulting;
+  late final NamespaceController namespaceController;
   late final BlobController blobController;
   late final UploadController uploadController;
   late final SystemController systemController;
@@ -99,8 +33,27 @@ class DependencyInjection {
 
   late final PostgresApiKeyRepository apiKeyRepository;
   late final PostgresAccountRepository accountRepository;
+  late final NamespaceRepository namespaceRepository;
   late final VaultService vaultService;
   late final CreateAccountUsecase createAccountUsecase;
+
+  void configureNpmControllers({
+    required NpmDownloadArtifactUsecase npmDownloadArtifactUsecase,
+    required NpmGetPackageMetadataUseCase npmGetPackageMetadataUseCase,
+    required NpmSecurityAdvisoryConsultingUsecase
+    npmSecurityAdvisoryConsultingUsecase,
+  }) {
+    npmControllerDownloadTarball = NpmControllerDownloadTarball(
+      npmDownloadArtifactUsecase,
+    );
+    npmControllerGetMetadata = NpmControllerGetMetadata(
+      npmGetPackageMetadataUseCase,
+    );
+    npmControllerSecurityAdvisoryConsulting =
+        NpmControllerSecurityAdvisoryConsulting(
+          npmSecurityAdvisoryConsultingUsecase,
+        );
+  }
 
   static Future<DependencyInjection> init(EnvConfig env) async {
     final di = DependencyInjection();
@@ -148,8 +101,8 @@ class DependencyInjection {
     di.accountRepository = PostgresAccountRepository(postgresConnector);
     di.apiKeyRepository = PostgresApiKeyRepository(postgresConnector);
 
-    final repositoryRepo = PostgresRepositoryRepository(postgresConnector);
-    final artifactRepo = PostgresArtifactRepository(postgresConnector);
+    final namespaceRepository = PostgresNamespaceRepository(postgresConnector);
+    final artifactRepository = PostgresArtifactRepository(postgresConnector);
     final packageRepo = PostgresPackageRepository(postgresConnector);
     final postgresBlobRepo = PostgresBlobRepository(postgresConnector);
     final siloBlobRepo = SiloBlobRepository(minioAdapter, postgresBlobRepo);
@@ -170,7 +123,6 @@ class DependencyInjection {
     // 6. PROXIES & HTTP
     final client = http.Client();
     final httpClient = HttpClientAdapter(client);
-    final npmProxy = NpmProxy(siloBlobRepo, packageRepo);
 
     // 7. USE CASES
     di.createAccountUsecase = CreateAccountUsecase(
@@ -190,45 +142,46 @@ class DependencyInjection {
       di.accountRepository,
     );
 
-    final proxyPackageMetadataUseCase = ProxyPackageMetadataUseCase(httpClient);
-    final getArtifactUseCase = GetArtifactUseCase(
-      artifactRepo,
-      packageRepo,
-      repositoryRepo,
-      npmProxy,
+    final proxyPackageMetadataUseCase = NpmProxyPackageMetadataUseCase(
+      httpClient,
     );
-    final getMetadataUseCase = GetPackageMetadataUseCase(artifactRepo);
+
     final getArtifactDownloadStreamUsecase = GetArtifactDownloadStreamUsecase(
-      artifactRepo,
+      artifactRepository,
       siloBlobRepo,
       redisAdapter,
     );
     final uploadArtifactUsecase = UploadArtifactUsecase(
-      artifactRepo,
+      artifactRepository,
       packageRepo,
-      repositoryRepo,
+      namespaceRepository,
       siloBlobRepo,
     );
     final createArtifactUseCase = CreateArtifactUsecase(
-      artifactRepo,
+      artifactRepository,
       packageRepo,
       siloBlobRepo,
-      repositoryRepo,
+      namespaceRepository,
     );
-    final checkArtifactExistsUseCase = CheckArtifactExistsUseCase(artifactRepo);
+    final checkArtifactExistsUseCase = CheckArtifactExistsUseCase(
+      artifactRepository,
+    );
 
     final packageHandlerFactory = PackageHandlerFactory(
       httpClient,
       createArtifactUseCase,
       getArtifactDownloadStreamUsecase,
+      namespaceRepository,
       di.cachePort,
       di.metricsPort,
     );
 
-    final downloadAndProxyArtifactUsecase = DownloadNpmArtifactUsecase(
+    final npmDownloadAndProxyArtifactUsecase = NpmDownloadArtifactUsecase(
       getArtifactDownloadStreamUsecase,
-      repositoryRepo,
+      namespaceRepository,
       packageHandlerFactory,
+      DependencyTrackAdapter(httpClient, env.dtrackApiUrl, env.dtrackApiKey),
+      di.cachePort,
     );
 
     // 8. CONTROLLERS
@@ -238,23 +191,35 @@ class DependencyInjection {
       di.authProvider,
     );
 
-    di.npmController = NpmController(downloadAndProxyArtifactUsecase);
-    di.mavenController = MavenController(downloadAndProxyArtifactUsecase);
-    di.pypiController = PypiController(downloadAndProxyArtifactUsecase);
-    di.nugetController = NugetController(downloadAndProxyArtifactUsecase);
-    di.dockerController = DockerController(downloadAndProxyArtifactUsecase);
+    di.configureNpmControllers(
+      npmDownloadArtifactUsecase: npmDownloadAndProxyArtifactUsecase,
+      npmGetPackageMetadataUseCase: NpmGetPackageMetadataUseCase(
+        artifactRepository,
+        namespaceRepository,
+        httpClient,
+      ),
+      npmSecurityAdvisoryConsultingUsecase:
+          NpmSecurityAdvisoryConsultingUsecase(httpClient),
+    );
 
     di.apiKeyController = ApiKeyController(
       generateApiKeyUsecase,
       listApiKeysUsecase,
       revokeApiKeyUsecase,
     );
-    di.repositoryController = RepositoryController(repositoryRepo);
+
     di.packageController = PackageController(
       packageRepo,
-      getMetadataUseCase,
-      proxyPackageMetadataUseCase,
+      NpmGetPackageMetadataUseCase(
+        artifactRepository,
+        namespaceRepository,
+        httpClient,
+      ),
+      NpmProxyPackageMetadataUseCase(httpClient),
     );
+
+    di.namespaceController = NamespaceController(namespaceRepository);
+
     di.blobController = BlobController(siloBlobRepo);
     di.uploadController = UploadController(
       uploadArtifactUsecase,
@@ -262,8 +227,6 @@ class DependencyInjection {
     );
     di.artifactController = ArtifactController(
       createArtifactUseCase,
-      getArtifactUseCase,
-      GetArtifactByIdUseCase(artifactRepo),
       getArtifactDownloadStreamUsecase,
       proxyPackageMetadataUseCase,
       generateApiKeyUsecase,
@@ -277,33 +240,24 @@ class DependencyInjection {
 
     // 9. ROUTERS
     di.packageManagerRouter = PackageManagerRouter(
-      di.npmController,
-      di.mavenController,
-      di.pypiController,
-      di.nugetController,
-      di.dockerController,
+      NpmRouter(
+        di.npmControllerDownloadTarball,
+        di.npmControllerGetMetadata,
+        di.npmControllerSecurityAdvisoryConsulting,
+      ),
     );
 
     di.publicRouter = PublicRouter(
-      env,
       di.packageManagerRouter,
       di.authController,
-      di.artifactController,
-      di.blobController,
       di.systemController,
-      di.apiKeyRepository,
-      di.accountRepository,
-      di.authProvider,
-      di.cachePort,
-      di.metricsPort,
     );
 
-    di.adminRouter = AdminRouter(di.apiKeyController);
+    di.adminRouter = AdminRouter(di.apiKeyController, di.namespaceController);
     di.artifactRouter = ArtifactRouter(
-      di.repositoryController,
       di.packageController,
       di.artifactController,
-      di.uploadController,
+      di.blobController,
     );
     di.protectedRouter = ProtectedRouter(
       di.authController,

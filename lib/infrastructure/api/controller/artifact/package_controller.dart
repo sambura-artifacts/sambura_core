@@ -1,18 +1,16 @@
 import 'dart:convert';
-import 'package:sambura_core/application/usecase/package/proxy_package_metadata_usecase.dart';
 import 'package:shelf/shelf.dart';
-import 'package:shelf_router/shelf_router.dart';
 import 'package:logging/logging.dart';
-import 'package:sambura_core/config/logger.dart';
-import 'package:sambura_core/application/usecase/package/get_package_metadata_usecase.dart'; // Importe o UseCase
-import 'package:sambura_core/infrastructure/api/presenter/artifact/package_presenter.dart';
-import 'package:sambura_core/infrastructure/api/presenter/error_presenter.dart';
-import 'package:sambura_core/domain/repositories/repositories.dart';
+
+import 'package:sambura_core/config/barrel.dart';
+import 'package:sambura_core/domain/barrel.dart';
+import 'package:sambura_core/application/barrel.dart';
+import 'package:sambura_core/infrastructure/barrel.dart';
 
 class PackageController {
   final PackageRepository _repository;
-  final GetPackageMetadataUseCase _getMetadataUseCase;
-  final ProxyPackageMetadataUseCase _proxyMetadataUseCase;
+  final NpmGetPackageMetadataUseCase _getMetadataUseCase;
+  final NpmProxyPackageMetadataUseCase _proxyMetadataUseCase;
   final Logger _log = LoggerConfig.getLogger('PackageController');
 
   PackageController(
@@ -21,13 +19,17 @@ class PackageController {
     this._proxyMetadataUseCase,
   );
 
-  Future<Response> getMetadata(Request request) async {
-    final packageName = Uri.decodeComponent(request.params['name'] ?? '');
-    final repoName = request.params['repo'] ?? 'private-repo';
-
+  Future<Response> getMetadata(
+    Request request,
+    String repo,
+    String packageName,
+  ) async {
     try {
       // Tenta buscar metadados locais (Pacotes privados/já cacheados)
-      var metadata = await _getMetadataUseCase.execute(repoName, packageName);
+
+      var metadata = await _getMetadataUseCase.execute(
+        InfraestructureArtifactInput(namespace: repo, packageName: packageName),
+      );
 
       if (metadata == null) {
         _log.info(
@@ -37,7 +39,7 @@ class PackageController {
         // Fallback para o Proxy (Lazy Mirroring de Metadados)
         metadata = await _proxyMetadataUseCase.execute(
           packageName,
-          repoName: repoName,
+          repoName: repo,
         );
       }
 

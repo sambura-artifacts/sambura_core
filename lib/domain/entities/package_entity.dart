@@ -1,13 +1,13 @@
 class PackageEntity {
   final int? id; // Identificador único interno no Postgres
-  final int? repositoryId; // Vínculo com o repositório pai (namespace)
+  final int? namespaceId; // Vínculo com o repositório pai (namespace)
   final String name; // Nome nominal do pacote (ex: "core-api")
   final String? description; // Metadados descritivos do software
   final DateTime createdAt; // Registro temporal de criação do catálogo
 
   PackageEntity._({
     this.id,
-    this.repositoryId,
+    this.namespaceId,
     required this.name,
     this.description,
     required this.createdAt,
@@ -18,11 +18,11 @@ class PackageEntity {
   /// processado ou validado antes da persistência final pelo Worker.
   factory PackageEntity.create({
     required String name,
-    int? repositoryId,
+    int? namespaceId,
     String? description,
   }) {
     return PackageEntity._(
-      repositoryId: repositoryId,
+      namespaceId: namespaceId,
       name: name,
       description: description,
       createdAt: DateTime.now(),
@@ -34,7 +34,7 @@ class PackageEntity {
   factory PackageEntity.fromMap(Map<String, dynamic> map) {
     return PackageEntity._(
       id: map['id'] as int?,
-      repositoryId: map['repository_id'] as int?,
+      namespaceId: map['repository_id'] as int?,
       name: map['name'] as String,
       description: map['description'] as String?,
       createdAt: map['created_at'] is DateTime
@@ -45,14 +45,14 @@ class PackageEntity {
 
   static PackageEntity restore({
     required int? id,
-    required int repositoryId,
+    required int namespaceId,
     required String name,
     required String? description,
     required DateTime createdAt,
   }) {
     return PackageEntity._(
       id: id,
-      repositoryId: repositoryId,
+      namespaceId: namespaceId,
       name: name,
       description: description,
       createdAt: createdAt,
@@ -64,7 +64,7 @@ class PackageEntity {
   Map<String, dynamic> toJson() {
     return {
       'id': id,
-      'repository_id': repositoryId,
+      'namespace_id': namespaceId,
       'name': name,
       'description': description,
       'created_at': createdAt.toIso8601String(),

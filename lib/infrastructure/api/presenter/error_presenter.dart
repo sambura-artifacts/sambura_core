@@ -1,8 +1,9 @@
 import 'dart:convert';
-import 'package:sambura_core/infrastructure/exceptions/infrastructure_exception.dart';
 import 'package:shelf/shelf.dart';
-import 'package:sambura_core/domain/exceptions/exceptions.dart';
-import 'package:sambura_core/application/exceptions/exceptions.dart';
+
+import 'package:sambura_core/domain/barrel.dart';
+import 'package:sambura_core/application/barrel.dart';
+import 'package:sambura_core/infrastructure/barrel.dart';
 
 class ErrorPresenter {
   static Response fromException(Object e, String instance, String baseUrl) {
@@ -114,7 +115,7 @@ class ErrorPresenter {
     String baseUrl,
   ) {
     final body = jsonEncode({
-      "type": "${baseUrl}/docs/errors/service-unavailable",
+      "type": "$baseUrl/docs/errors/service-unavailable",
       "title": "Service Unavailable",
       "status": 503,
       "detail": detail,

@@ -1,11 +1,9 @@
 import 'package:logging/logging.dart';
 import 'package:postgres/postgres.dart';
-import 'package:sambura_core/config/logger.dart';
-import 'package:sambura_core/infrastructure/database/postgres_connector.dart';
-import 'package:sambura_core/infrastructure/mappers/package_mapper.dart';
-import 'package:sambura_core/domain/entities/entities.dart';
-import 'package:sambura_core/domain/exceptions/exceptions.dart';
-import 'package:sambura_core/domain/repositories/repositories.dart';
+
+import 'package:sambura_core/config/barrel.dart';
+import 'package:sambura_core/domain/barrel.dart';
+import 'package:sambura_core/infrastructure/barrel.dart';
 
 class PostgresPackageRepository implements PackageRepository {
   final PostgresConnector _db;
@@ -26,7 +24,7 @@ class PostgresPackageRepository implements PackageRepository {
       final res = await _db.connection.execute(
         Sql.named(
           'SELECT p.* FROM packages p '
-          'INNER JOIN repositories r ON p.repository_id = r.id '
+          'INNER JOIN namespaces r ON p.namespace_id = r.id '
           'WHERE r.name = @repoName '
           'ORDER BY p.name ASC '
           'LIMIT @limit OFFSET @offset',
@@ -46,19 +44,19 @@ class PostgresPackageRepository implements PackageRepository {
 
   @override
   Future<PackageEntity> ensurePackage({
-    required int repositoryId,
+    required int namespaceId,
     required String name,
   }) async {
-    _log.fine('EnsurePackage: $name no repo_id: $repositoryId');
+    _log.fine('EnsurePackage: $name no namespace_id: $namespaceId');
     try {
       final result = await _db.connection.execute(
         Sql.named(
-          'INSERT INTO packages (repository_id, name, created_at) '
-          'VALUES (@repositoryId, @name, NOW()) '
-          'ON CONFLICT (repository_id, name) DO UPDATE SET name = EXCLUDED.name '
+          'INSERT INTO packages (namespace_id, name, created_at) '
+          'VALUES (@namespaceId, @name, NOW()) '
+          'ON CONFLICT (namespace_id, name) DO UPDATE SET name = EXCLUDED.name '
           'RETURNING *',
         ),
-        parameters: {'repositoryId': repositoryId, 'name': name},
+        parameters: {'namespaceId': namespaceId, 'name': name},
       );
 
       if (result.isEmpty) {

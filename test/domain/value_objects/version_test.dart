@@ -1,5 +1,6 @@
-import 'package:sambura_core/domain/value_objects/version.dart';
 import 'package:test/test.dart';
+
+import 'package:sambura_core/domain/barrel.dart';
 
 void main() {
   group('Version', () {

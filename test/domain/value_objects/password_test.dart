@@ -1,6 +1,6 @@
-import 'package:sambura_core/domain/exceptions/domain_exception.dart';
-import 'package:sambura_core/domain/value_objects/password.dart';
 import 'package:test/test.dart';
+
+import 'package:sambura_core/domain/barrel.dart';
 
 void main() {
   group('Password', () {

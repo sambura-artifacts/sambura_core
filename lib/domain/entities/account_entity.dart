@@ -1,4 +1,4 @@
-import 'package:sambura_core/domain/value_objects/value_objects.dart';
+import 'package:sambura_core/domain/barrel.dart';
 
 class AccountEntity {
   final int? id;

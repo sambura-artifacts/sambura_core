@@ -1,7 +1,7 @@
 import 'package:mocktail/mocktail.dart';
-import 'package:sambura_core/application/services/health/health_check_service.dart';
-import 'package:sambura_core/application/usecase/health/get_server_health_usecase.dart';
 import 'package:test/test.dart';
+
+import 'package:sambura_core/application/barrel.dart';
 
 class MockHealthCheckService extends Mock implements HealthCheckService {}
 

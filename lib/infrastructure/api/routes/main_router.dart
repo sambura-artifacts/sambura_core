@@ -55,7 +55,14 @@ class MainRouter {
         )
         .addHandler(_buildApiRoutes().call);
 
-    router.mount('/api/v1', apiPipeline);
+    // --- Rotas Públicas ---
+    // (Ex: Login, Docs, Health, Proxy de Leitura)
+    router.mount('/api/v1', _publicRouter.router.call);
+
+    // --- Rotas Protegidas ---
+    // (Ex: Register, Admin, Upload, Management)
+    // Monta apenas rotas específicas do protected router que não conflitam
+    router.mount('/api/v1/', apiPipeline);
 
     return router.call;
   }
@@ -70,13 +77,6 @@ class MainRouter {
       },
     );
 
-    // --- Rotas Públicas ---
-    // (Ex: Login, Docs, Health, Proxy de Leitura)
-    v1.mount('/', _publicRouter.router.call);
-
-    // --- Rotas Protegidas ---
-    // (Ex: Register, Admin, Upload, Management)
-    // Monta apenas rotas específicas do protected router que não conflitam
     v1.mount(
       '/',
       Pipeline()

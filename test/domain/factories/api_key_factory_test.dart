@@ -1,6 +1,6 @@
-import 'package:sambura_core/domain/entities/api_key_entity.dart';
-import 'package:sambura_core/domain/factories/api_key_factory.dart';
 import 'package:test/test.dart';
+
+import 'package:sambura_core/domain/barrel.dart';
 
 void main() {
   group('ApiKeyFactory', () {

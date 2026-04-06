@@ -1,16 +1,16 @@
-import 'package:sambura_core/domain/entities/entities.dart';
+import 'package:sambura_core/domain/barrel.dart';
 
 /// Factory para criar instâncias de PackageEntity
 class PackageFactory {
   /// Cria um novo pacote
   static PackageEntity create({
     required String name,
-    int? repositoryId,
+    int? namespaceId,
     String? description,
   }) {
     return PackageEntity.create(
       name: name,
-      repositoryId: repositoryId,
+      namespaceId: namespaceId,
       description: description,
     );
   }

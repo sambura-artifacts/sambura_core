@@ -1,9 +1,8 @@
 import 'dart:convert';
 import 'dart:typed_data';
-
-import 'package:sambura_core/application/ports/http_client_port.dart';
-import 'package:sambura_core/application/usecase/package/proxy_package_metadata_usecase.dart';
 import 'package:test/test.dart';
+
+import 'package:sambura_core/application/barrel.dart';
 
 class MockClient implements HttpClientPort {
   final Map<String, dynamic>? responseBody;
@@ -27,13 +26,20 @@ class MockClient implements HttpClientPort {
     }
 
     if (uri.toString().contains('pacote-inexistente-xpto-123')) {
-      return HttpClientResponse(statusCode: 404, bodyBytes: [00]);
+      return HttpClientResponse(
+        statusCode: 404,
+        headers: {'content-type': 'application/stream'},
+        bodyBytes: [00],
+        body: null,
+      );
     }
 
     if (uri.toString().contains('.tgz')) {
       return HttpClientResponse(
         statusCode: statusCode,
+        headers: {'content-type': 'application/stream'},
         bodyBytes: bodyBytes ?? [8, 2, 4, 5, 6],
+        body: null,
       );
     }
 
@@ -49,6 +55,7 @@ class MockClient implements HttpClientPort {
           };
       return HttpClientResponse(
         statusCode: statusCode,
+        headers: {'content-type': 'application/json'},
         body: jsonEncode(searchBody),
         bodyBytes: [],
       );
@@ -71,18 +78,27 @@ class MockClient implements HttpClientPort {
 
     return HttpClientResponse(
       statusCode: statusCode,
+      headers: {'content-type': 'application/json'},
       body: jsonEncode(body),
       bodyBytes: bodyBytes ?? [8, 2, 4, 5, 6],
     );
   }
 
   @override
-  Future<HttpClientResponse> post({
-    required String uri,
+  Future<HttpClientResponse> post(
+    Uri uri, {
     Map<String, String>? headers,
-    data,
-  }) {
-    throw UnimplementedError();
+    dynamic body,
+  }) async {
+    if (throwError) {
+      throw Exception('Network error');
+    }
+    return HttpClientResponse(
+      statusCode: statusCode,
+      headers: {'content-type': 'application/json'},
+      body: jsonEncode(responseBody ?? {}),
+      bodyBytes: bodyBytes ?? [],
+    );
   }
 
   @override
@@ -98,19 +114,57 @@ class MockClient implements HttpClientPort {
   Future<({int? length, Stream<Uint8List> stream})> stream(
     Uri uri, {
     Map<String, String>? headers,
-  }) {
-    throw UnimplementedError();
+  }) async {
+    if (throwError) {
+      throw Exception('Network error');
+    }
+    final stream = Stream.fromIterable([Uint8List.fromList(bodyBytes ?? [])]);
+    return (length: bodyBytes?.length, stream: stream);
+  }
+
+  @override
+  Future<HttpClientResponse> delete(
+    Uri uri, {
+    Map<String, String>? headers,
+    body,
+  }) async {
+    if (throwError) {
+      throw Exception('Network error');
+    }
+    return HttpClientResponse(
+      statusCode: statusCode,
+      headers: {'content-type': 'application/json'},
+      body: jsonEncode(responseBody ?? {}),
+      bodyBytes: bodyBytes ?? [],
+    );
+  }
+
+  @override
+  Future<HttpClientResponse> put(
+    Uri uri, {
+    Map<String, String>? headers,
+    body,
+  }) async {
+    if (throwError) {
+      throw Exception('Network error');
+    }
+    return HttpClientResponse(
+      statusCode: statusCode,
+      headers: {'content-type': 'application/json'},
+      body: jsonEncode(responseBody ?? {}),
+      bodyBytes: bodyBytes ?? [],
+    );
   }
 }
 
 void main() {
-  group('ProxyPackageMetadataUseCase', () {
-    late ProxyPackageMetadataUseCase usecase;
+  group('NpmProxyPackageMetadataUseCase', () {
+    late NpmProxyPackageMetadataUseCase usecase;
     late MockClient mockClient;
 
     setUp(() {
       mockClient = MockClient();
-      usecase = ProxyPackageMetadataUseCase(mockClient);
+      usecase = NpmProxyPackageMetadataUseCase(mockClient);
     });
 
     test('deve buscar metadados de pacote sem escopo com sucesso', () async {
@@ -206,7 +260,7 @@ void main() {
           ],
         },
       );
-      final usecase = ProxyPackageMetadataUseCase(mockWithSearch);
+      final usecase = NpmProxyPackageMetadataUseCase(mockWithSearch);
 
       final result = await usecase.execute(
         '/-/v1/search?text=express',
@@ -219,7 +273,7 @@ void main() {
 
     test('deve retornar null quando ocorre erro de rede', () async {
       final mockWithError = MockClient(throwError: true);
-      final usecase = ProxyPackageMetadataUseCase(mockWithError);
+      final usecase = NpmProxyPackageMetadataUseCase(mockWithError);
 
       final result = await usecase.execute('lodash', repoName: 'npm-registry');
 
@@ -230,7 +284,7 @@ void main() {
       final mockNoVersions = MockClient(
         responseBody: {'name': 'package-without-versions'},
       );
-      final usecase = ProxyPackageMetadataUseCase(mockNoVersions);
+      final usecase = NpmProxyPackageMetadataUseCase(mockNoVersions);
 
       final result = await usecase.execute(
         'package-without-versions',

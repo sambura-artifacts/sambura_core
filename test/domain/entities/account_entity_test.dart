@@ -1,5 +1,6 @@
-import 'package:sambura_core/domain/entities/account_entity.dart';
 import 'package:test/test.dart';
+
+import 'package:sambura_core/domain/barrel.dart';
 
 void main() {
   group('AccountEntity', () {
